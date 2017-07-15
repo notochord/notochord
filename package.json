@@ -1,23 +1,25 @@
 {
-  "name": "music",
+  "name": "oligophony",
   "version": "1.0.0",
   "description": "A lead-sheet editor and chord player a la iReal (which you should buy because it's far more useful)",
-  "main": "index.js",
+  "main": "src/oligophony.js",
   "scripts": {
-    "test": "./node_modules/.bin/eslint ./src/editor.js"
+    "test": "echo \"No tests yet, try building?\"",
+    "build": "node build.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrjacobbloom/music.git"
+    "url": "git+https://github.com/mrjacobbloom/oligophony.git"
   },
   "author": "Jacob Bloom",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mrjacobbloom/music/issues"
+    "url": "https://github.com/mrjacobbloom/oligophony/issues"
   },
-  "homepage": "https://github.com/mrjacobbloom/music#readme",
+  "homepage": "https://github.com/mrjacobbloom/oligophony#readme",
   "devDependencies": {
     "eslint": "^4.2.0",
-    "jsdoc": "^3.5.3"
+    "jsdoc": "^3.5.3",
+    "browserify": "^14.4.0"
   }
 }
