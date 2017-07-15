@@ -14,9 +14,11 @@
    */
   var Oligophony = window.Oligophony = new OligConstructor();
   var viewer = new Viewer();
-  Oligophony.attachViewer(Oligophony.viewer);
+  Oligophony.attachViewer(viewer);
   
   window.addEventListener('load', () => {
     viewer.appendTo(document.body);
+    
+    console.log(Oligophony.addMeasure('C', 'D', 'E', 'F'));
   });
 })();

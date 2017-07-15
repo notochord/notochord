@@ -21,5 +21,8 @@
     "eslint": "^4.2.0",
     "jsdoc": "^3.5.3",
     "browserify": "^14.4.0"
+  },
+  "dependencies": {
+    "chord-magic": "1.0.0"
   }
 }

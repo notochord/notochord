@@ -18,6 +18,7 @@
    */
   var MeasureView = function(viewer, measure) {
     this.viewer = viewer;
+    this.oligophony = this.viewer.oligophony;
     this.measure = measure;
     
     // link measure back to this
@@ -30,8 +31,15 @@
      */
     this._svgGroup = document.createElementNS(SVG_NS, 'g');
     
-    // insert at index fetched from this.measure.getIndex()
-    // may need to, like, re-flow
+    this.move = function() {
+      var newIndex = this.measure.getIndex();
+      if(newIndex == this.oligophony.measures.length - 1) {
+        this.viewer._svgElem.appendChild(this._svgGroup);
+      } else {
+        // @todo reflow or whatever
+      }
+    };
+    this.move();
   };
   
   /**

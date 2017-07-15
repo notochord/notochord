@@ -3,56 +3,65 @@
  */
 (function() {
   'use strict';
-  /**
-   * Represents one chord in a measure.
-   */
-  var Chord = function() {
-    /**
-     * Whether the Chord has been assigned a unique value (different from the
-     * previous beat).
-     * @type {Boolean}
-     * @public
-     */
-    this.set = false;
-    /**
-     * Either null, or a single-letter string containing a capital letter A-G,
-     * which represents the root of the chord.
-     * @type {?String}
-     * @public
-     */
-    this.root = null;
-    /**
-     * Null, or an enum representing the chord's quality.
-     * See Oligophony.QUALITIES.
-     * @type {?Number}
-     * @public
-     */
-    this.quality = null;
-    
-    this.over = null; // bass != root
-    this.suspension = false;
-    this.interval = null; // null|6|7|9...
-    this.intervalQuality = null; // ?enum
-  };
-  
+  const chordMagic = require('chord-magic');  
   /**
    * Represents a measure of music.
    * @class
    * @param {Oligophony} oligophony The parent composition.
+   * @param {?Number} index Optional: index at which to insert measure.
+   * @param {?String[]} chords Optional: Array of chords as Strings.
    */
-  var Measure = function(oligophony) {
+  var Measure = function(oligophony, index, chords) {
     this.oligophony = oligophony;
-    this.oligophony.measures.push(this);
     
     /**
-     * Array containing timeSignature[0] Chords.
-     * @type {Chord[]}
+     * Array containing timeSignature[0] ChordMagic chords or nulls.
+     * @type {?Object[]}
      * @public
      */
     this.beats = [];
+    if(!chords) chords = []; // If none given, pass undefined.
     for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
-      this.beats.push(new Chord());
+      if(chords[i]) {
+        this.beats.push( chordMagic.parse(chords[i]) );
+      } else {
+        this.beats.push(null);
+      }
     }
+    
+    /**
+     * Set/change the location of the measure in the song.
+     * @param {Number} _index New index.
+     * @public
+     */
+    this.setIndex = function(_index) {
+      var currentIndex = this.oligophony.measures.indexOf(this);
+      if(currentIndex != -1) {
+        this.oligophony.measures.splice(currentIndex, 1);
+      }
+      if(_index > currentIndex) {
+        this.oligophony.measures.splice(_index - 1, 0, this);
+      } else {
+        this.oligophony.measures.splice(_index, 0, this);
+      }
+      if(this._measureView) this._measureView.move();
+    };
+    
+    if(index === null) {
+      this.oligophony.measures.push(this);
+    } else {
+      this.setIndex(index);
+    }
+    
+    /**
+     * Get the measure's index in the piece
+     * @returns {Number} the measure's index in the piece.
+     * @public
+     */
+    this.getIndex = function() {
+      return this.oligophony.measures.indexOf(this);
+    };
+    
     
     /**
      * If a MeasureView is linked to the Measure, it goes here.
@@ -66,15 +75,6 @@
     if(viewer) {
       viewer.createMeasureView(this);
     }
-    
-    /**
-     * Get the measure's index in the piece
-     * @returns {Number} the measure's index in the piece.
-     * @public
-     */
-    this.getIndex = function() {
-      return this.oligophony.indexOf(this);
-    };
   };
   
   /**
@@ -90,7 +90,7 @@
      * @const
      * @public
      */
-    this.timeSignature = options['timeSignature'][4,4];
+    this.timeSignature = (options && options['timeSignature']) || [4,4];
     
     /**
      * Store a reference to a future Viewer, should one be attached.
@@ -106,6 +106,7 @@
      */
     this.attachViewer = function(viewer) {
       this.viewer = viewer;
+      this.viewer.oligophony = this;
       
       // account for measures that already exist
       for(let measure of this.measures) {
@@ -131,6 +132,16 @@
       'MINOR':      1,
       'MAJOR':      2,
       'AUGMENTED':  3
+    };
+    
+    /**
+     * Append a measure to the piece
+     * @param {...String} chords Array of chords as Strings.
+     * @return {Measure} The generated measure.
+     * @public
+     */
+    this.addMeasure = function(...chords) {
+      return new Measure(this, null, chords);
     };
   };
 
