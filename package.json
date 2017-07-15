@@ -1,0 +1,23 @@
+{
+  "name": "music",
+  "version": "1.0.0",
+  "description": "A lead-sheet editor and chord player a la iReal (which you should buy because it's far more useful)",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/.bin/eslint ./src/editor.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrjacobbloom/music.git"
+  },
+  "author": "Jacob Bloom",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mrjacobbloom/music/issues"
+  },
+  "homepage": "https://github.com/mrjacobbloom/music#readme",
+  "devDependencies": {
+    "eslint": "^4.2.0",
+    "jsdoc": "^3.5.3"
+  }
+}
