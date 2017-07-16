@@ -2,14 +2,13 @@
  * Code to generate an Oligophony file, which stores the chord data for a song.
  */
 (function() {
-  'use strict';
-  const chordMagic = require('chord-magic');  
+  'use strict'; 
   /**
    * Represents a measure of music.
    * @class
    * @param {Oligophony} oligophony The parent composition.
    * @param {?Number} index Optional: index at which to insert measure.
-   * @param {?String[]} chords Optional: Array of chords as Strings.
+   * @param {null|Array.String} chords Optional: Array of chords as Strings.
    */
   var Measure = function(oligophony, index, chords) {
     this.oligophony = oligophony;
@@ -19,11 +18,13 @@
      * @type {?Object[]}
      * @public
      */
+    // @todo make private and add getter for transposition
+    // @todo figure out sharps (just append original string as prop?)
     this.beats = [];
     if(!chords) chords = []; // If none given, pass undefined.
     for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
       if(chords[i]) {
-        this.beats.push( chordMagic.parse(chords[i]) );
+        this.beats.push( this.oligophony.chordMagic.parse(chords[i]) );
       } else {
         this.beats.push(null);
       }
@@ -44,7 +45,7 @@
       } else {
         this.oligophony.measures.splice(_index, 0, this);
       }
-      if(this._measureView) this._measureView.move();
+      if(this.measureView) this.measureView.move();
     };
     
     if(index === null) {
@@ -66,9 +67,9 @@
     /**
      * If a MeasureView is linked to the Measure, it goes here.
      * @type {?MeasureView}
-     * @private
+     * @public
      */
-    this._measureView = null;
+    this.measureView = null;
     
     // If there's already an attached Viewer, create a MeasureView.
     var viewer = this.oligophony.viewer;
@@ -91,6 +92,8 @@
      * @public
      */
     this.timeSignature = (options && options['timeSignature']) || [4,4];
+    
+    this.chordMagic = require('chord-magic');
     
     /**
      * Store a reference to a future Viewer, should one be attached.
@@ -115,13 +118,6 @@
     };
     
     /**
-     * A list of measures, in order.
-     * @type {Measure[]}
-     * @public
-     */
-    this.measures = [];
-    
-    /**
      * Enum of chord qualities (in ascending order by brightness)
      * @enum {Number}
      * @const
@@ -135,13 +131,35 @@
     };
     
     /**
+     * A list of measures and nulls, in order. Null represents a newline.
+     * @type {?Measure[]}
+     * @public
+     */
+    this.measures = [];
+    
+    /**
      * Append a measure to the piece
-     * @param {...String} chords Array of chords as Strings.
+     * @param {String[]} chords Array of chords as Strings.
+     * @param {?Number} index Optional: Index for the new measure.
      * @return {Measure} The generated measure.
      * @public
      */
-    this.addMeasure = function(...chords) {
-      return new Measure(this, null, chords);
+    this.addMeasure = function(chords, index) {
+      return new Measure(this, index, chords);
+    };
+    
+    /**
+     * Append a measure to the piece
+     * @param {?Number} index Optional: Index for the newline in measures array.
+     * @public
+     */
+    this.addNewline = function(index) {
+      if(index === null) {
+        this.measures.push(null);
+      } else {
+        this.measures.splice(index, 0, null);
+      }
+      if(this.viewer) this.viewer.reflow();
     };
   };
 

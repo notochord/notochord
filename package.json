@@ -18,9 +18,9 @@
   },
   "homepage": "https://github.com/mrjacobbloom/oligophony#readme",
   "devDependencies": {
+    "browserify": "^14.4.0",
     "eslint": "^4.2.0",
-    "jsdoc": "^3.5.3",
-    "browserify": "^14.4.0"
+    "jsdoc": "^3.5.3"
   },
   "dependencies": {
     "chord-magic": "1.0.0"

@@ -15,6 +15,6 @@ console.log(formatter(report.results));
 // build
 console.log('===== BUILDING =====');
 var b = browserify();
-b.add('src/website.js');
-var bundle = fs.createWriteStream('oligophony.bundle.js');
+b.add('website.js');
+var bundle = fs.createWriteStream('website.bundle.js');
 b.bundle().pipe(bundle);
