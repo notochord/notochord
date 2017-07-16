@@ -20,4 +20,4 @@ var viewer = new Viewer(v_options);
 oligophony.attachViewer(viewer);
 viewer.appendTo(document.body);
 
-oligophony.addMeasure(['Cm7', 'Daug6', null, 'F#6'], null);
+for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug6', null, 'F#M7'], null);

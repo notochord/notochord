@@ -14632,19 +14632,36 @@ Object.defineProperty(exports, '__esModule', { value: true });
     /**
      * Array containing timeSignature[0] ChordMagic chords or nulls.
      * @type {?Object[]}
-     * @public
+     * @private
      */
-    // @todo make private and add getter for transposition
-    // @todo figure out sharps (just append original string as prop?)
-    this.beats = [];
+    this._beats = [];
     if(!chords) chords = []; // If none given, pass undefined.
     for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
       if(chords[i]) {
-        this.beats.push( this.oligophony.chordMagic.parse(chords[i]) );
+        let parsed = this.oligophony.chordMagic.parse(chords[i]);
+        parsed.raw = chords[i];
+        this._beats.push(parsed);
       } else {
-        this.beats.push(null);
+        this._beats.push(null);
       }
     }
+    
+    this.getBeat = function(beat) {
+      var transpose = this.oligophony.transpose;
+      var oldChord = this._beats[beat];
+      if(oldChord) {
+        var out = this.oligophony.chordMagic.transpose(oldChord, transpose);
+        out.raw = oldChord.raw;
+        if(oldChord.raw[1] == '#') {
+          out.rawRoot = oldChord.raw[0].toUpperCase() + '#';
+        } else {
+          out.rawRoot = oldChord.root;
+        }
+        return out;
+      } else {
+        return null;
+      }
+    };
     
     /**
      * Set/change the location of the measure in the song.
@@ -14708,6 +14725,12 @@ Object.defineProperty(exports, '__esModule', { value: true });
      * @public
      */
     this.timeSignature = (options && options['timeSignature']) || [4,4];
+    
+    /**
+     * Controls transposition (believe it or not!)
+     * @type {Number}
+     */
+    this.transpose = 0;
     
     this.chordMagic = require('chord-magic');
     
@@ -14790,6 +14813,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
    * Handles the visual representation of a beat within a MeasureView.
    * @class
    * @param {Object} chord A ChordMagic chord object to render.
+   * @param {Viewer} viewer The Viewer to which the BeatView belongs.
    * @param {SVGElement} parent The parent element to append to.
    * @param {Number} xoffset The beat's horizontal offset in the MeasureView.
    */
@@ -14801,7 +14825,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
     // Append right away so we can compute size.
     parent.appendChild(group);
     
-    var root = this.viewer.textToPath(chord.root[0]);
+    var root = this.viewer.textToPath(chord.rawRoot[0]);
     group.appendChild(root);
     
     var rootbb = root.getBBox();
@@ -14811,19 +14835,30 @@ Object.defineProperty(exports, '__esModule', { value: true });
      */
     const PADDING_RIGHT = 7;
     
-    if(chord.root[1]) {
-      // accidentals are always expressed as flats
-      // @todo fix that
-      let flat = document.createElementNS(this.viewer.SVG_NS, 'path');
-      flat.setAttributeNS(null, 'd',this.viewer.PATHS.flat);
-      let goalheight = (rootbb.height * 0.6);
+    // ACCIDENTALS
+    if(chord.rawRoot[1]) {
+      let accidental = document.createElementNS(this.viewer.SVG_NS, 'path');
+      let goal_height = (rootbb.height * 0.6);
       let x = rootbb.width + PADDING_RIGHT;
-      let y = (-1 * goalheight) - (0.6 * rootbb.height);
-      let scale = goalheight / this.viewer.PATHS.flat_height;
-      flat.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
-      group.appendChild(flat);
+      let y;
+      let orig_height;
+      if(chord.rawRoot[1] == '#') {
+        accidental.setAttributeNS(null, 'd',this.viewer.PATHS.sharp);
+        orig_height = this.viewer.PATHS.sharp_height;
+        y = -0.6 * rootbb.height;
+      } else {
+        accidental.setAttributeNS(null, 'd',this.viewer.PATHS.flat);
+        orig_height = this.viewer.PATHS.flat_height;
+        y = (-1 * goal_height) - (0.6 * rootbb.height);
+      }
+      let scale = goal_height / orig_height;
+      accidental.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+      group.appendChild(accidental);
     }
-    // If the chord is anything besides a major triad, it needs more bits.
+    
+    // MORE BITS
+    // If the chord is anything besides a major triad, it needs more bits
+    // (quality, 7ths, etc.)
     if(chord.quality != 'Major' || chord.extended || chord.added) {
       let bottomText = '';
       const ADDED_MAP = {
@@ -14838,7 +14873,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
           'Major7': this.viewer.PATHS.maj_triangle,
           'Minor7': '-7',
           'Dominant7': '7',
-          'Diminished7': this.viewer.PATHS.o_slash + '7',
+          'Diminished7': 'O7',
           'Major9': this.viewer.PATHS.maj_triangle + '9',
           'Major11': this.viewer.PATHS.maj_triangle + '11',
           'Major13': this.viewer.PATHS.maj_triangle + '13',
@@ -14854,7 +14889,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
         if(chord.quality == 'Minor') {
           bottomText += '-';
         } else if(chord.quality == 'Diminished') {
-          bottomText += this.viewer.PATHS.o_slash;
+          bottomText += 'O';
         } else if(chord.quality == 'Augmented') {
           bottomText += '+';
         }
@@ -14950,8 +14985,8 @@ Object.defineProperty(exports, '__esModule', { value: true });
      */
     this.render = function() {
       if(!this.viewer.font) return null;
-      for(let i = 0; i < this.measure.beats.length; i++) {
-        let chord = this.measure.beats[i];
+      for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
+        let chord = this.measure.getBeat(i);
         if(chord) {
           let offset = i * this.viewer.beatOffset;
           let node = new this.viewer.BeatView(chord, this.viewer, this._svgGroup, offset);
@@ -15034,7 +15069,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
     var self = this;
     require('opentype.js').load(FONT_URLS.slabo27px, function(err, font) {
       if (err) {
-          alert('Could not load font: ' + err);
+        alert('Could not load font: ' + err);
       } else {
         /**
          * opentype.js font object.
@@ -15145,8 +15180,7 @@ module.exports = {
   // https://commons.wikimedia.org/wiki/File:Di%C3%A8se.svg
   'sharp': 'm 4.6252809,-11.71096 c 0,-0.21414 -0.1713067,-0.40686 -0.38544,-0.40686 -0.2141334,0 -0.4068535,0.19272 -0.4068535,0.40686 l 0,3.1049303 -1.777307,-0.66381 0,-3.3833103 c 0,-0.21413 -0.19272,-0.40685 -0.4068534,-0.40685 -0.2141334,0 -0.3854401,0.19272 -0.3854401,0.40685 l 0,3.1049303 -0.68522678,-0.25696 c -0.0428267,-0.0214 -0.10706669,-0.0214 -0.14989337,-0.0214 C 0.19272004,-9.8265897 0,-9.6338697 0,-9.3983197 l 0,1.2847998 c 0,0.1713 0.10706669,0.34261 0.27837339,0.40685 l 0.98501351,0.34261 0,3.42614 -0.68522678,-0.23555 c -0.0428267,-0.0214 -0.10706669,-0.0214 -0.14989337,-0.0214 C 0.19272004,-4.1948799 0,-4.0021599 0,-3.7666099 l 0,1.2848 c 0,0.1713 0.10706669,0.3212 0.27837339,0.38544 l 0.98501351,0.36402 0,3.38331 c 0,0.21413 0.1713067,0.40685 0.3854401,0.40685 0.2141334,0 0.4068534,-0.19272 0.4068534,-0.40685 l 0,-3.10493 1.777307,0.66380998 0,3.38331002 c 0,0.21413 0.1927201,0.40685 0.4068535,0.40685 0.2141333,0 0.38544,-0.19272 0.38544,-0.40685 l 0,-3.10494002 0.6852268,0.25696 c 0.042827,0.0214 0.1070667,0.0214 0.1498934,0.0214 0.2355467,0 0.4282668,-0.19272 0.4282668,-0.42827 l 0,-1.28479998 c 0,-0.17131 -0.1070667,-0.34261 -0.2783734,-0.40685 l -0.9850136,-0.34262 0,-3.42613 0.6852268,0.23554 c 0.042827,0.0214 0.1070667,0.0214 0.1498934,0.0214 0.2355467,0 0.4282668,-0.19272 0.4282668,-0.42827 l 0,-1.2848 c 0,-0.17131 -0.1070667,-0.3212 -0.2783734,-0.38544 l -0.9850136,-0.36403 0,-3.3833001 z m -2.5696005,8.0728301 0,-3.42614 1.777307,0.6424 0,3.42614 z',
   'sharp_height': 16.059999465942383,
-  'o_slash': '&#248;',
-  'maj_triangle': '&#8710;'
+  'maj_triangle': '\u0394'
 };
 
 },{}],25:[function(require,module,exports){
@@ -15172,6 +15206,6 @@ var viewer = new Viewer(v_options);
 oligophony.attachViewer(viewer);
 viewer.appendTo(document.body);
 
-oligophony.addMeasure(['Cm7', 'Daug6', null, 'F#6'], null);
+for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug6', null, 'F#M7'], null);
 
 },{"./src/Oligophony":20,"./src/viewer/Viewer":23}]},{},[25]);

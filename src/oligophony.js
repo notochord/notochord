@@ -16,19 +16,36 @@
     /**
      * Array containing timeSignature[0] ChordMagic chords or nulls.
      * @type {?Object[]}
-     * @public
+     * @private
      */
-    // @todo make private and add getter for transposition
-    // @todo figure out sharps (just append original string as prop?)
-    this.beats = [];
+    this._beats = [];
     if(!chords) chords = []; // If none given, pass undefined.
     for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
       if(chords[i]) {
-        this.beats.push( this.oligophony.chordMagic.parse(chords[i]) );
+        let parsed = this.oligophony.chordMagic.parse(chords[i]);
+        parsed.raw = chords[i];
+        this._beats.push(parsed);
       } else {
-        this.beats.push(null);
+        this._beats.push(null);
       }
     }
+    
+    this.getBeat = function(beat) {
+      var transpose = this.oligophony.transpose;
+      var oldChord = this._beats[beat];
+      if(oldChord) {
+        var out = this.oligophony.chordMagic.transpose(oldChord, transpose);
+        out.raw = oldChord.raw;
+        if(oldChord.raw[1] == '#') {
+          out.rawRoot = oldChord.raw[0].toUpperCase() + '#';
+        } else {
+          out.rawRoot = oldChord.root;
+        }
+        return out;
+      } else {
+        return null;
+      }
+    };
     
     /**
      * Set/change the location of the measure in the song.
@@ -92,6 +109,12 @@
      * @public
      */
     this.timeSignature = (options && options['timeSignature']) || [4,4];
+    
+    /**
+     * Controls transposition (believe it or not!)
+     * @type {Number}
+     */
+    this.transpose = 0;
     
     this.chordMagic = require('chord-magic');
     

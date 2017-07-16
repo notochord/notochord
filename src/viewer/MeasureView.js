@@ -64,8 +64,8 @@
      */
     this.render = function() {
       if(!this.viewer.font) return null;
-      for(let i = 0; i < this.measure.beats.length; i++) {
-        let chord = this.measure.beats[i];
+      for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
+        let chord = this.measure.getBeat(i);
         if(chord) {
           let offset = i * this.viewer.beatOffset;
           let node = new this.viewer.BeatView(chord, this.viewer, this._svgGroup, offset);

@@ -56,7 +56,7 @@
     var self = this;
     require('opentype.js').load(FONT_URLS.slabo27px, function(err, font) {
       if (err) {
-          alert('Could not load font: ' + err);
+        alert('Could not load font: ' + err);
       } else {
         /**
          * opentype.js font object.
