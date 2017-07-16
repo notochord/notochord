@@ -13,6 +13,10 @@
   var Measure = function(oligophony, index, chords) {
     this.oligophony = oligophony;
     
+    // If Measure-related events don't exist yet, register them.
+    this.oligophony.createEvent('Measure.create', false);
+    this.oligophony.createEvent('Measure.move', false);
+    
     /**
      * Array containing timeSignature[0] ChordMagic chords or nulls.
      * @type {?Object[]}
@@ -62,7 +66,7 @@
       } else {
         this.oligophony.measures.splice(_index, 0, this);
       }
-      if(this.measureView) this.measureView.move();
+      this.oligophony.dispatchEvent('Measure.move', {measure: this});
     };
     
     if(index === null) {
@@ -80,19 +84,7 @@
       return this.oligophony.measures.indexOf(this);
     };
     
-    
-    /**
-     * If a MeasureView is linked to the Measure, it goes here.
-     * @type {?MeasureView}
-     * @public
-     */
-    this.measureView = null;
-    
-    // If there's already an attached Viewer, create a MeasureView.
-    var viewer = this.oligophony.viewer;
-    if(viewer) {
-      viewer.createMeasureView(this);
-    }
+    this.oligophony.dispatchEvent('Measure.create', {measure: this});
   };
   
   /**
@@ -118,40 +110,68 @@
     
     this.chordMagic = require('chord-magic');
     
+    /*
+     * Event system to keep track of things
+     * Events take the form 'Measure.create' or 'Viewer.ready' etc.
+     */
+     
     /**
-     * Store a reference to a future Viewer, should one be attached.
-     * @type {?Viewer}
+     * Database of Oligophony events.
+     * @type {Object.Object}
+     * @private
+     */
+    this._eventsDB = {};
+    /**
+     * Register an Oligophony event, if it doesn't already exist.
+     * @param {String} eventName Name of the event to register.
+     * @param {Boolean} oneTime If true, future functions added to the event run immediately.
+     * @returns {Object} Object that stores information about the event.
      * @public
      */
-    this.viewer = null;
-    
+    this.createEvent = function(eventName, oneTime) {
+      if(!this._eventsDB[eventName]) {
+        this._eventsDB[eventName] = {
+          funcs: [],
+          dispatchCount: 0,
+          oneTime: oneTime,
+          args: {}
+        };
+      }
+      return this._eventsDB[eventName];
+    };
     /**
-     * Attach a Viewer to the Oligophony.
-     * @param {Viewer} viewer The Viewer to attach.
+     * Add a function to run the next time the event is dispatched (or immediately)
+     * @param {String} eventName Name of event to fire on.
+     * @param {Function} func Function to run.
      * @public
      */
-    this.attachViewer = function(viewer) {
-      this.viewer = viewer;
-      this.viewer.oligophony = this;
-      
-      // account for measures that already exist
-      for(let measure of this.measures) {
-        viewer.createMeasureView(measure);
+    this.onEvent = function(eventName, func) {
+      var event = this._eventsDB[eventName];
+      if(!event) event = this.createEvent(eventName, false);
+      if(event.oneTime && event.dispatchCount !== 0) {
+        // Pass it any arguments from the first run.
+        func(event.args);
+      } else {
+        event.funcs.push(func);
       }
     };
-    
     /**
-     * Enum of chord qualities (in ascending order by brightness)
-     * @enum {Number}
-     * @const
+     * Fire an event and run any functions linked to it.
+     * @param {String} eventName Event to dispatch.
+     * @param {Object} args Any arguments to pass to the functions.
+     * @return {Boolean} Whether an event eventName exists.
      * @public
      */
-    this.QUALITIES = {
-      'DIMINISHED': 0,
-      'MINOR':      1,
-      'MAJOR':      2,
-      'AUGMENTED':  3
+    this.dispatchEvent = function(eventName, args) {
+      var event = this._eventsDB[eventName];
+      if(!event) return false;
+      event.args = args;
+      for(let func of event.funcs) {
+        func(event.args);
+      }
+      return true;
     };
+    
     
     /**
      * A list of measures and nulls, in order. Null represents a newline.
@@ -171,6 +191,7 @@
       return new Measure(this, index, chords);
     };
     
+    this.createEvent('Oligophony.addNewline', false);
     /**
      * Append a measure to the piece
      * @param {?Number} index Optional: Index for the newline in measures array.
@@ -182,7 +203,7 @@
       } else {
         this.measures.splice(index, 0, null);
       }
-      if(this.viewer) this.viewer.reflow();
+      this.dispatchEvent('Oligophony.addNewline', {});
     };
   };
 

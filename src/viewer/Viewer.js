@@ -7,9 +7,12 @@
   /**
    * Viewer constructor. A Viewer displays an Oligophony.
    * @class
+   * @param {Oligophony} oligophony The Oligophony to displau/
    * @param {undefined|Object} options Optional: options for the Viewer.
    */
-  var Viewer = function(options) {
+  var Viewer = function(oligophony, options) {
+    this.oligophony = oligophony;
+    
     /**
      * SVG width, can be user-customized. May change w/ resize??
      * @type {Number}
@@ -43,6 +46,9 @@
      */
     this.beatOffset = this.colWidth / 4;
     
+    this.oligophony.createEvent('Viewer.ready', true);
+    //this.oligophony.onEvent('Viewer.ready', this.renderAllMeasures);
+    
     /**
      * I keep changing my mind about the prettiest font to use.
      * It's not easy to request fonts from Google as WOFF.
@@ -64,11 +70,7 @@
          */
         self.font = font;
         self.H_HEIGHT = self.textToPath('H').getBBox().height;
-        if(self.oligophony) {
-          for(let measure of self.oligophony.measures) {
-            measure.measureView.render();
-          }
-        }
+        self.oligophony.dispatchEvent('Viewer.ready', {});
       }
     });
     
@@ -83,14 +85,6 @@
       path.setAttributeNS(null, 'd',pathdata);
       return path;
     };
-    
-    /**
-     * A Viewer isn't initially attached to any Oligophony. An Oligophony
-     * will attach itself to the Viewer using Oligophony.attachViewer(<Viewer>).
-     * @type {?Oligophony}
-     * @public
-     */
-    this.oligophony = null;
     
     /**
      * Path data for various shapes.
@@ -135,6 +129,13 @@
     this.createMeasureView = function(measure) {
       new this.MeasureView(this, measure);
     };
+    // account for measures that already exist
+    for(let measure of this.oligophony.measures) {
+      this.createMeasureView(measure);
+    }
+    this.oligophony.onEvent('Measure.create', (args) => {
+      this.createMeasureView(args.measure);
+    });
     
     /**
      * Layout measures and newlines.
@@ -155,6 +156,8 @@
         measure.measureView.setPosition(x,y);
       }
     };
+    this.oligophony.onEvent('Measure.create', () => this.reflow.call(self));
+    this.oligophony.onEvent('Oligophony.addNewline', () => this.reflow.call(self));
   };
 
   module.exports = Viewer;

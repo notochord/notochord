@@ -2,8 +2,8 @@
  * Code to connect everything together!
  */
 const Oligophony = require('./src/Oligophony'),
-      Viewer     = require('./src/viewer/Viewer');
-
+      Viewer     = require('./src/viewer/Viewer'),
+      Player     = require('./src/Player');
 var o_options = {
     'timeSignature': [4,4]
   };
@@ -15,9 +15,9 @@ var v_options = {
     'rowHeight': 60,
     'fontSize': 50
   }
-var viewer = new Viewer(v_options);
-
-oligophony.attachViewer(viewer);
+var viewer = new Viewer(oligophony, v_options);
 viewer.appendTo(document.body);
+
+var player = new Player();
 
 for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug6', null, 'F#M7'], null);

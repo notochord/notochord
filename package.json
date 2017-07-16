@@ -23,6 +23,7 @@
     "jsdoc": "^3.5.3"
   },
   "dependencies": {
-    "chord-magic": "1.0.0"
+    "chord-magic": "1.0.0",
+    "midi.js": "^0.3.1"
   }
 }

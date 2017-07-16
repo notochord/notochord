@@ -6,11 +6,11 @@ buy because it's far more useful and you should support the arts and stuff).
 This is like _super_ modular and excessively well-documented. A friend of mine
 recently complained that I don't comment enough, so take that haters.
 
-## Modules
-* **oligophony.js** - A system for storing and manipulating song/chord data
-* **viewer.js** - Displays an Oligophony as a pretty SVG
-* **editor.js** (doesn't exist yet) - extends viewer.js to be interactive
-* **player.js** (doesn't exist yet) - plays chords from an Oligophony
+## Main Modules
+* **Oligophony.js** - A system for storing and manipulating song/chord data
+* **Viewer.js** - Displays an Oligophony as a pretty SVG
+* **Editor.js** (doesn't exist yet) - extends viewer.js to be interactive
+* **Player.js** - plays chords from an Oligophony
 
 ## Example
 ```javascript

@@ -100,6 +100,8 @@
       }
     };
     this.render();
+    var self = this;
+    this.oligophony.onEvent('Viewer.ready', () => this.render.call(self));
   };
 
   module.exports = MeasureView;
