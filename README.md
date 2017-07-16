@@ -14,27 +14,26 @@ recently complained that I don't comment enough, so take that haters.
 
 ## Example
 ```javascript
-window.addEventListener('load', () => {
-  const Oligophony = require('./src/oligophony.js'),
-        Viewer     = require('./src/viewer.js');
+const Oligophony = require('./src/Oligophony'),
+      Viewer     = require('./src/viewer/Viewer');
 
-  var o_options = {
-      'timeSignature': [4,4]
-    };
-  var oligophony = window.oligophony = new Oligophony(o_options);
-  
-  var v_options = {
-      'width': document.body.offsetWidth,
-      'height': 700,
-      'rowHeight': 60
-    }
-  var viewer = new Viewer(v_options);
-  
-  oligophony.attachViewer(viewer);
-  viewer.appendTo(document.body);
+var o_options = {
+    'timeSignature': [4,4]
+  };
+var oligophony = window.oligophony = new Oligophony(o_options);
 
-  oligophony.addMeasure(['Cm7', 'Daug', 'Eb+', 'F6'], null);
-});
+var v_options = {
+    'width': document.body.offsetWidth,
+    'height': 700,
+    'rowHeight': 60,
+    'fontSize': 50
+  }
+var viewer = new Viewer(v_options);
+
+oligophony.attachViewer(viewer);
+viewer.appendTo(document.body);
+
+for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug6', null, 'F#M7'], null);
 ```
 
 ## Credit
