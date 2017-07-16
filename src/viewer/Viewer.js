@@ -59,10 +59,11 @@
         alert('Could not load font: ' + err);
       } else {
         /**
-         * opentype.js font object.
+         * opentype.js Font object for whatever our chosen font is.
          * @type {Font}
          */
         self.font = font;
+        self.H_HEIGHT = self.textToPath('H').getBBox().height;
         if(self.oligophony) {
           for(let measure of self.oligophony.measures) {
             measure.measureView.render();
@@ -144,7 +145,7 @@
       var col = 0;
       for(let measure of this.oligophony.measures) {
         let x = this.colWidth * col++;
-        if(x > this.width || measure === null) {
+        if(x + this.colWidth > this.width || measure === null) {
           x = 0;
           col = 0;
           row++;

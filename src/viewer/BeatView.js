@@ -30,18 +30,18 @@
     // ACCIDENTALS
     if(chord.rawRoot[1]) {
       let accidental = document.createElementNS(this.viewer.SVG_NS, 'path');
-      let goal_height = (rootbb.height * 0.6);
+      let goal_height = (this.viewer.H_HEIGHT * 0.6);
       let x = rootbb.width + PADDING_RIGHT;
       let y;
       let orig_height;
       if(chord.rawRoot[1] == '#') {
         accidental.setAttributeNS(null, 'd',this.viewer.PATHS.sharp);
         orig_height = this.viewer.PATHS.sharp_height;
-        y = -0.6 * rootbb.height;
+        y = -0.6 * this.viewer.H_HEIGHT;
       } else {
         accidental.setAttributeNS(null, 'd',this.viewer.PATHS.flat);
         orig_height = this.viewer.PATHS.flat_height;
-        y = (-1 * goal_height) - (0.6 * rootbb.height);
+        y = (-1 * goal_height) - (0.6 * this.viewer.H_HEIGHT);
       }
       let scale = goal_height / orig_height;
       accidental.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);

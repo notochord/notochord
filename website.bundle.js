@@ -14838,18 +14838,18 @@ Object.defineProperty(exports, '__esModule', { value: true });
     // ACCIDENTALS
     if(chord.rawRoot[1]) {
       let accidental = document.createElementNS(this.viewer.SVG_NS, 'path');
-      let goal_height = (rootbb.height * 0.6);
+      let goal_height = (this.viewer.H_HEIGHT * 0.6);
       let x = rootbb.width + PADDING_RIGHT;
       let y;
       let orig_height;
       if(chord.rawRoot[1] == '#') {
         accidental.setAttributeNS(null, 'd',this.viewer.PATHS.sharp);
         orig_height = this.viewer.PATHS.sharp_height;
-        y = -0.6 * rootbb.height;
+        y = -0.6 * this.viewer.H_HEIGHT;
       } else {
         accidental.setAttributeNS(null, 'd',this.viewer.PATHS.flat);
         orig_height = this.viewer.PATHS.flat_height;
-        y = (-1 * goal_height) - (0.6 * rootbb.height);
+        y = (-1 * goal_height) - (0.6 * this.viewer.H_HEIGHT);
       }
       let scale = goal_height / orig_height;
       accidental.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
@@ -15003,6 +15003,22 @@ Object.defineProperty(exports, '__esModule', { value: true });
           });
         }
       }
+      
+      /**
+       * Left bar of the measure. Only happens if not the first meassure on the line.
+       * @type {SVGPathElement}
+       * @private
+       */
+      if(this.oligophony.measures[this.measure.getIndex() - 1]) {
+        this._leftBar = document.createElementNS(this.viewer.SVG_NS, 'path');
+        this._leftBar.setAttributeNS(null, 'd', this.viewer.PATHS.bar);
+        let x = -0.25 * this.viewer.beatOffset;
+        let y = 0.5 * (this.viewer.rowHeight - this.viewer.H_HEIGHT);
+        let scale = this.viewer.rowHeight / this.viewer.PATHS.bar_height;
+        this._leftBar.setAttributeNS(null, 'transform', `translate(${x}, ${y}) scale(${scale})`);
+        this._leftBar.setAttributeNS(null, 'style', 'stroke-width: 1px; stroke: black;');
+        this._svgGroup.appendChild(this._leftBar);
+      }
     };
     this.render();
   };
@@ -15072,10 +15088,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
         alert('Could not load font: ' + err);
       } else {
         /**
-         * opentype.js font object.
+         * opentype.js Font object for whatever our chosen font is.
          * @type {Font}
          */
         self.font = font;
+        self.H_HEIGHT = self.textToPath('H').getBBox().height;
         if(self.oligophony) {
           for(let measure of self.oligophony.measures) {
             measure.measureView.render();
@@ -15157,7 +15174,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
       var col = 0;
       for(let measure of this.oligophony.measures) {
         let x = this.colWidth * col++;
-        if(x > this.width || measure === null) {
+        if(x + this.colWidth > this.width || measure === null) {
           x = 0;
           col = 0;
           row++;
@@ -15180,6 +15197,8 @@ module.exports = {
   // https://commons.wikimedia.org/wiki/File:Di%C3%A8se.svg
   'sharp': 'm 4.6252809,-11.71096 c 0,-0.21414 -0.1713067,-0.40686 -0.38544,-0.40686 -0.2141334,0 -0.4068535,0.19272 -0.4068535,0.40686 l 0,3.1049303 -1.777307,-0.66381 0,-3.3833103 c 0,-0.21413 -0.19272,-0.40685 -0.4068534,-0.40685 -0.2141334,0 -0.3854401,0.19272 -0.3854401,0.40685 l 0,3.1049303 -0.68522678,-0.25696 c -0.0428267,-0.0214 -0.10706669,-0.0214 -0.14989337,-0.0214 C 0.19272004,-9.8265897 0,-9.6338697 0,-9.3983197 l 0,1.2847998 c 0,0.1713 0.10706669,0.34261 0.27837339,0.40685 l 0.98501351,0.34261 0,3.42614 -0.68522678,-0.23555 c -0.0428267,-0.0214 -0.10706669,-0.0214 -0.14989337,-0.0214 C 0.19272004,-4.1948799 0,-4.0021599 0,-3.7666099 l 0,1.2848 c 0,0.1713 0.10706669,0.3212 0.27837339,0.38544 l 0.98501351,0.36402 0,3.38331 c 0,0.21413 0.1713067,0.40685 0.3854401,0.40685 0.2141334,0 0.4068534,-0.19272 0.4068534,-0.40685 l 0,-3.10493 1.777307,0.66380998 0,3.38331002 c 0,0.21413 0.1927201,0.40685 0.4068535,0.40685 0.2141333,0 0.38544,-0.19272 0.38544,-0.40685 l 0,-3.10494002 0.6852268,0.25696 c 0.042827,0.0214 0.1070667,0.0214 0.1498934,0.0214 0.2355467,0 0.4282668,-0.19272 0.4282668,-0.42827 l 0,-1.28479998 c 0,-0.17131 -0.1070667,-0.34261 -0.2783734,-0.40685 l -0.9850136,-0.34262 0,-3.42613 0.6852268,0.23554 c 0.042827,0.0214 0.1070667,0.0214 0.1498934,0.0214 0.2355467,0 0.4282668,-0.19272 0.4282668,-0.42827 l 0,-1.2848 c 0,-0.17131 -0.1070667,-0.3212 -0.2783734,-0.38544 l -0.9850136,-0.36403 0,-3.3833001 z m -2.5696005,8.0728301 0,-3.42614 1.777307,0.6424 0,3.42614 z',
   'sharp_height': 16.059999465942383,
+  'bar': 'M 0,0 0,-100',
+  'bar_height': 100,
   'maj_triangle': '\u0394'
 };
 

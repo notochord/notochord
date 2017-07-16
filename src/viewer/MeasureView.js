@@ -82,6 +82,22 @@
           });
         }
       }
+      
+      /**
+       * Left bar of the measure. Only happens if not the first meassure on the line.
+       * @type {SVGPathElement}
+       * @private
+       */
+      if(this.oligophony.measures[this.measure.getIndex() - 1]) {
+        this._leftBar = document.createElementNS(this.viewer.SVG_NS, 'path');
+        this._leftBar.setAttributeNS(null, 'd', this.viewer.PATHS.bar);
+        let x = -0.25 * this.viewer.beatOffset;
+        let y = 0.5 * (this.viewer.rowHeight - this.viewer.H_HEIGHT);
+        let scale = this.viewer.rowHeight / this.viewer.PATHS.bar_height;
+        this._leftBar.setAttributeNS(null, 'transform', `translate(${x}, ${y}) scale(${scale})`);
+        this._leftBar.setAttributeNS(null, 'style', 'stroke-width: 1px; stroke: black;');
+        this._svgGroup.appendChild(this._leftBar);
+      }
     };
     this.render();
   };
