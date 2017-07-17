@@ -61,11 +61,15 @@
           this.MIDI.noteOn(0, note, 100, 0);
           this.MIDI.noteOff(0, note, 1);
         }
-        this.oligophony.dispatchEvent('Player.playBeat', {
+        var args = {
           beatNumber: beat,
           measureNumber: measure,
           measure: this.oligophony.measures[measure]
-        });
+        };
+        this.oligophony.dispatchEvent('Player.playBeat', args);
+        setTimeout(() => {
+          this.oligophony.dispatchEvent('Player.stopBeat', args);
+        }, this.beatLength);
       }
       setTimeout(() => {
         beat++;

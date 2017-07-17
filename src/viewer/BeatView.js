@@ -113,9 +113,13 @@
     
     var self = this;
     this.oligophony.onEvent('Player.playBeat', (args) => {
-      self._svgGroup.classList.remove('OligophonyPlayedBeat');
       if(args.measure == self.measureView.measure && args.beatNumber == self.index) {
         self._svgGroup.classList.add('OligophonyPlayedBeat');
+      }
+    });
+    this.oligophony.onEvent('Player.stopBeat', (args) => {
+      if(args.measure == self.measureView.measure && args.beatNumber == self.index) {
+        self._svgGroup.classList.remove('OligophonyPlayedBeat');
       }
     });
   };

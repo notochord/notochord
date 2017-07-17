@@ -6,7 +6,8 @@ const Oligophony = require('./src/Oligophony'),
       Player     = require('./src/Player');
 
 var o_options = {
-    'timeSignature': [4,4]
+    'timeSignature': [4,4],
+    'transpose': 3
   };
 var oligophony = window.oligophony = new Oligophony(o_options);
 
@@ -31,6 +32,4 @@ flyMeToTheMoon = [
   ['CM7', null, 'C7', null]
 ];
 
-for(let measure of flyMeToTheMoon) {
-  oligophony.addMeasure(measure, null);
-}
+oligophony.parseArray(flyMeToTheMoon);

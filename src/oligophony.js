@@ -42,7 +42,9 @@
       if(oldChord) {
         var out = this.oligophony.chordMagic.transpose(oldChord, transpose);
         out.raw = oldChord.raw;
-        if(oldChord.raw[1] == '#') {
+        if(transpose) {
+          out.rawRoot = out.root;
+        } else if(oldChord.raw[1] == '#') {
           out.rawRoot = oldChord.raw[0].toUpperCase() + '#';
         } else {
           out.rawRoot = oldChord.root;
@@ -108,7 +110,7 @@
      * Controls transposition (believe it or not!)
      * @type {Number}
      */
-    this.transpose = 0;
+    this.transpose = (options && options['transpose']) || 0;
     
     /**
      * Oligophony's instance of ChordMagic, see that module's documentations for details.
@@ -215,6 +217,21 @@
         this.measures.splice(index, 0, null);
       }
       this.dispatchEvent('Oligophony.addNewline', {});
+    };
+    
+    /**
+     * Parse a song from an Array containing nulls (newlines) or Arrays of beats.
+     * @param {Array.null|Array} array The array to parse into a song.
+     * @public
+     */
+    this.parseArray = function(array) {
+      for(let measure of array) {
+        if(measure) {
+          this.addMeasure(measure, null);
+        } else {
+          this.addNewline(null);
+        }
+      }
     };
   };
 

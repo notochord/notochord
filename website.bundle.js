@@ -20716,7 +20716,9 @@ module.exports = tonal;
       if(oldChord) {
         var out = this.oligophony.chordMagic.transpose(oldChord, transpose);
         out.raw = oldChord.raw;
-        if(oldChord.raw[1] == '#') {
+        if(transpose) {
+          out.rawRoot = out.root;
+        } else if(oldChord.raw[1] == '#') {
           out.rawRoot = oldChord.raw[0].toUpperCase() + '#';
         } else {
           out.rawRoot = oldChord.root;
@@ -20782,7 +20784,7 @@ module.exports = tonal;
      * Controls transposition (believe it or not!)
      * @type {Number}
      */
-    this.transpose = 0;
+    this.transpose = (options && options['transpose']) || 0;
     
     /**
      * Oligophony's instance of ChordMagic, see that module's documentations for details.
@@ -20890,6 +20892,21 @@ module.exports = tonal;
       }
       this.dispatchEvent('Oligophony.addNewline', {});
     };
+    
+    /**
+     * Parse a song from an Array containing nulls (newlines) or Arrays of beats.
+     * @param {Array.null|Array} array The array to parse into a song.
+     * @public
+     */
+    this.parseArray = function(array) {
+      for(let measure of array) {
+        if(measure) {
+          this.addMeasure(measure, null);
+        } else {
+          this.addNewline(null);
+        }
+      }
+    };
   };
 
   module.exports = Oligophony;
@@ -20959,11 +20976,15 @@ module.exports = tonal;
           this.MIDI.noteOn(0, note, 100, 0);
           this.MIDI.noteOff(0, note, 1);
         }
-        this.oligophony.dispatchEvent('Player.playBeat', {
+        var args = {
           beatNumber: beat,
           measureNumber: measure,
           measure: this.oligophony.measures[measure]
-        });
+        };
+        this.oligophony.dispatchEvent('Player.playBeat', args);
+        setTimeout(() => {
+          this.oligophony.dispatchEvent('Player.stopBeat', args);
+        }, this.beatLength);
       }
       setTimeout(() => {
         beat++;
@@ -21096,9 +21117,13 @@ module.exports = tonal;
     
     var self = this;
     this.oligophony.onEvent('Player.playBeat', (args) => {
-      self._svgGroup.classList.remove('OligophonyPlayedBeat');
       if(args.measure == self.measureView.measure && args.beatNumber == self.index) {
         self._svgGroup.classList.add('OligophonyPlayedBeat');
+      }
+    });
+    this.oligophony.onEvent('Player.stopBeat', (args) => {
+      if(args.measure == self.measureView.measure && args.beatNumber == self.index) {
+        self._svgGroup.classList.remove('OligophonyPlayedBeat');
       }
     });
   };
@@ -21403,7 +21428,8 @@ const Oligophony = require('./src/Oligophony'),
       Player     = require('./src/Player');
 
 var o_options = {
-    'timeSignature': [4,4]
+    'timeSignature': [4,4],
+    'transpose': 3
   };
 var oligophony = window.oligophony = new Oligophony(o_options);
 
@@ -21428,8 +21454,6 @@ flyMeToTheMoon = [
   ['CM7', null, 'C7', null]
 ];
 
-for(let measure of flyMeToTheMoon) {
-  oligophony.addMeasure(measure, null);
-}
+oligophony.parseArray(flyMeToTheMoon);
 
 },{"./src/Oligophony":44,"./src/Player":45,"./src/viewer/Viewer":48}]},{},[50]);
