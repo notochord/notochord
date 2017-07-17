@@ -7,7 +7,7 @@
   /**
    * Viewer constructor. A Viewer displays an Oligophony.
    * @class
-   * @param {Oligophony} oligophony The Oligophony to displau/
+   * @param {Oligophony} oligophony The Oligophony to display.
    * @param {undefined|Object} options Optional: options for the Viewer.
    */
   var Viewer = function(oligophony, options) {

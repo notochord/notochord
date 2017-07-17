@@ -109,6 +109,7 @@
     this.transpose = 0;
     
     this.chordMagic = require('chord-magic');
+    this.tonal = require('tonal');
     
     /*
      * Event system to keep track of things

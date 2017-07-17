@@ -37,5 +37,6 @@ for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug6', null, 'F#M7'], nu
 ```
 
 ## Credit
-* Chord parser is the incredible [ChordMagic](https://github.com/nolanlawson/chord-magic)
+* This uses 2 awesome packages to handle some of the Theory math:  [ChordMagic](https://github.com/nolanlawson/chord-magic) and [Tonal](https://github.com/danigb/tonal).
 * Various musical symbols adapted from images from Wikimedia Commons (all are in the public domain): https://commons.wikimedia.org/wiki/Category:SVG_musical_notation
+* Uses a CommonJS port of [MIDI.js](https://github.com/mudcube/MIDI.js) and a JS port of FluidR3_GM.sf2 found [here](https://github.com/gleitz/midi-js-soundfonts).

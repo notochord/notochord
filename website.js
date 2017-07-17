@@ -4,6 +4,7 @@
 const Oligophony = require('./src/Oligophony'),
       Viewer     = require('./src/viewer/Viewer'),
       Player     = require('./src/Player');
+
 var o_options = {
     'timeSignature': [4,4]
   };
@@ -14,10 +15,11 @@ var v_options = {
     'height': 700,
     'rowHeight': 60,
     'fontSize': 50
-  }
+  };
 var viewer = new Viewer(oligophony, v_options);
 viewer.appendTo(document.body);
 
-var player = new Player();
+var p_options = {};
+var player = new Player(oligophony, o_options);
 
 for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug6', null, 'F#M7'], null);
