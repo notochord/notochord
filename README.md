@@ -1,6 +1,6 @@
 # Oligophony
 
-Oligophony is a lead-sheet editor and chord player inspired by iReal Pro. It's still in development so expect bugs and missing functionality.
+Oligophony is a lead-sheet editor and chord player inspired by iReal Pro. It's still in development so expect bugs and missing functionality. Check out [the demo](https://mrjacobbloom.github.io/oligophony/).
 
 ## Main Modules
 Oligophony is broken up into a handful of modules. These are the ones you need to worry about:
