@@ -3,11 +3,11 @@
 Oligophony is a lead-sheet editor and chord player inspired by iReal Pro. It's still in development so expect bugs and missing functionality. Check out [the demo](https://mrjacobbloom.github.io/oligophony/index.html).
 
 ## Main Modules
-Oligophony is broken up into a handful of modules. These are the ones you need to worry about:
-* **Oligophony.js** - A system for storing and manipulating song/chord data
-* **Viewer.js** - Displays an Oligophony as a pretty SVG
-* **Editor.js** (doesn't exist yet) - extends viewer.js to be interactive
-* **Player.js** - plays chords from an Oligophony
+Oligophony is broken up into a handful of modules. The main Oligophony module is just song data so it can theoretically run anywhere, but the others are dependent on the browser and are designed to be used with browserify. These are the modules you need to worry about:
+* **Oligophony** - A system for storing and manipulating song/chord data
+* **Viewer** - Displays an Oligophony as a pretty SVG
+* **Editor** (doesn't exist yet) - extends Viewer to be interactive
+* **Player** - plays chords from an Oligophony
 
 ## Example
 ```javascript
