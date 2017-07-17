@@ -68,7 +68,7 @@
         let chord = this.measure.getBeat(i);
         if(chord) {
           let offset = i * this.viewer.beatOffset;
-          let node = new this.viewer.BeatView(chord, this.viewer, this._svgGroup, offset);
+          let node = new this.viewer.BeatView(chord, this.viewer, this, i, offset);
           this.beatViews.push({
             node: node,
             chord: chord,

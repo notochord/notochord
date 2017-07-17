@@ -6,16 +6,20 @@
    * @class
    * @param {Object} chord A ChordMagic chord object to render.
    * @param {Viewer} viewer The Viewer to which the BeatView belongs.
-   * @param {SVGElement} parent The parent element to append to.
+   * @param {MeasureView} measureView The BeatView's parent measureView.
+   * @param {Number} index Which beat this represents in the Measure.
    * @param {Number} xoffset The beat's horizontal offset in the MeasureView.
    */
-  var BeatView = function(chord, viewer, parent, xoffset) {
+  var BeatView = function(chord, viewer, measureView, index, xoffset) {
     this.viewer = viewer;
+    this.oligophony = this.viewer.oligophony;
+    this.measureView = measureView;
+    this.index = index;
     if(!this.viewer.font) return null;
     var group = document.createElementNS(this.viewer.SVG_NS, 'g');
     group.setAttributeNS(null, 'transform', `translate(${xoffset}, 0)`);
     // Append right away so we can compute size.
-    parent.appendChild(group);
+    this.measureView._svgGroup.appendChild(group);
     
     var root = this.viewer.textToPath(chord.rawRoot[0]);
     group.appendChild(root);
@@ -106,6 +110,14 @@
     } else {
       this._svgGroup = group;
     }
+    
+    var self = this;
+    this.oligophony.onEvent('Player.playBeat', (args) => {
+      self._svgGroup.classList.remove('OligophonyPlayedBeat');
+      if(args.measure == self.measureView.measure && args.beatNumber == self.index) {
+        self._svgGroup.classList.add('OligophonyPlayedBeat');
+      }
+    });
   };
   module.exports = BeatView;
 })();

@@ -26,6 +26,7 @@
     this.MIDI = require('midi.js');
     
     this.oligophony.createEvent('Player.ready', true);
+    this.oligophony.createEvent('Player.playBeat', false);
     
     var self = this;
     this.MIDI.loadPlugin({
@@ -60,6 +61,11 @@
           this.MIDI.noteOn(0, note, 100, 0);
           this.MIDI.noteOff(0, note, 1);
         }
+        this.oligophony.dispatchEvent('Player.playBeat', {
+          beatNumber: beat,
+          measureNumber: measure,
+          measure: this.oligophony.measures[measure]
+        });
       }
       setTimeout(() => {
         beat++;
