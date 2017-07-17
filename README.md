@@ -15,7 +15,8 @@ recently complained that I don't comment enough, so take that haters.
 ## Example
 ```javascript
 const Oligophony = require('./src/Oligophony'),
-      Viewer     = require('./src/viewer/Viewer');
+      Viewer     = require('./src/viewer/Viewer'),
+      Player     = require('./src/Player');
 
 var o_options = {
     'timeSignature': [4,4]
@@ -27,13 +28,16 @@ var v_options = {
     'height': 700,
     'rowHeight': 60,
     'fontSize': 50
-  }
-var viewer = new Viewer(v_options);
-
-oligophony.attachViewer(viewer);
+  };
+var viewer = new Viewer(oligophony, v_options);
 viewer.appendTo(document.body);
 
-for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug6', null, 'F#M7'], null);
+var p_options = {
+  'tempo': 120
+};
+var player = new Player(oligophony, p_options);
+
+for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug', null, 'F#M7'], null);
 ```
 
 ## Credit

@@ -108,7 +108,15 @@
      */
     this.transpose = 0;
     
+    /**
+     * Oligophony's instance of ChordMagic, see that module's documentations for details.
+     * @public
+     */
     this.chordMagic = require('chord-magic');
+    /**
+     * Oligophony's instance of Tonal, see that module's documentations for details.
+     * @public
+     */
     this.tonal = require('tonal');
     
     /*

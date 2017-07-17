@@ -19,7 +19,9 @@ var v_options = {
 var viewer = new Viewer(oligophony, v_options);
 viewer.appendTo(document.body);
 
-var p_options = {};
-var player = new Player(oligophony, o_options);
+var p_options = {
+  'tempo': 120
+};
+var player = new Player(oligophony, p_options);
 
-for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug6', null, 'F#M7'], null);
+for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug', null, 'F#M7'], null);

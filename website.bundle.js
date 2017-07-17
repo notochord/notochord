@@ -20782,7 +20782,15 @@ module.exports = tonal;
      */
     this.transpose = 0;
     
+    /**
+     * Oligophony's instance of ChordMagic, see that module's documentations for details.
+     * @public
+     */
     this.chordMagic = require('chord-magic');
+    /**
+     * Oligophony's instance of Tonal, see that module's documentations for details.
+     * @public
+     */
     this.tonal = require('tonal');
     
     /*
@@ -20897,7 +20905,18 @@ module.exports = tonal;
     this.oligophony = oligophony;
     
     /**
-     * MIDI.js
+     * Tempo for playback, in BPM (beats-per-minute).
+     * @type {Number}
+     */
+    this.tempo = (options && options['tempo']) || 120;
+    /**
+     * Length of a beat, in milliseconds.
+     * @type {Number}
+     */
+    this.beatLength = (60 * 1000) / this.tempo;
+    
+    /**
+     * Player's instance of MIDI.js, see that module's documentations for details.
      * @public
      */
     this.MIDI = require('midi.js');
@@ -20916,9 +20935,11 @@ module.exports = tonal;
      * Turns a ChordMagic chord object into an array of MIDI note numbers.
      * @param {Object} chord ChordMagic chord object to analyze.
      * @returns {Number[]} Array of MIDI note numbers.
+     * @public
      */
     this.chordToArray = function(chord) {
       var chordAsString = this.oligophony.chordMagic.prettyPrint(chord);
+      //chordAsString = chordAsString.replace('aug', 'M#5');
       var chordAsNoteNames = this.oligophony.tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
         return this.oligophony.tonal.note.midi(note + '4');
@@ -20926,16 +20947,30 @@ module.exports = tonal;
       return chordAsMIDINums;
     };
     
-    function playback() {
-      var chord = this.oligophony.measures[0].getBeat(0);
-      var chordAsArray = this.chordToArray(chord);
-      for(let note of chordAsArray) {
-        this.MIDI.noteOn(0, note, 100, 0);
-        this.MIDI.noteOff(0, note, 1);
+    var measure = 0;
+    var beat = 0;
+    function playNextChord() {
+      var chord = this.oligophony.measures[0].getBeat(beat);
+      console.log([measure, beat, chord]);
+      if(chord) {
+        var chordAsArray = this.chordToArray(chord);
+        console.log([this.oligophony.chordMagic.prettyPrint(chord), chordAsArray]);
+        for(let note of chordAsArray) {
+          this.MIDI.noteOn(0, note, 100, 0);
+          this.MIDI.noteOff(0, note, 1);
+        }
       }
+      setTimeout(() => {
+        beat++;
+        if(beat >= this.oligophony.timeSignature[0]) {
+          beat = 0;
+          measure++;
+        }
+        if(measure > this.oligophony.measures.length) return;
+        playNextChord.call(self);
+      }, this.beatLength);
     }
-    
-    this.oligophony.onEvent('Player.ready', () => playback.call(self));
+    this.oligophony.onEvent('Player.ready', () => playNextChord.call(self));
   };
   module.exports = Player;
 })();
@@ -21364,9 +21399,11 @@ var v_options = {
 var viewer = new Viewer(oligophony, v_options);
 viewer.appendTo(document.body);
 
-var p_options = {};
-var player = new Player(oligophony, o_options);
+var p_options = {
+  'tempo': 120
+};
+var player = new Player(oligophony, p_options);
 
-for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug6', null, 'F#M7'], null);
+for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug', null, 'F#M7'], null);
 
 },{"./src/Oligophony":44,"./src/Player":45,"./src/viewer/Viewer":48}]},{},[50]);
