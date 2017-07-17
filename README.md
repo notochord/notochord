@@ -1,12 +1,9 @@
 # Oligophony
 
-A lead-sheet editor and chord player a la Jammer Pro or iReal (which you should
-buy because it's far more useful and you should support the arts and stuff).
-
-This is like _super_ modular and excessively well-documented. A friend of mine
-recently complained that I don't comment enough, so take that haters.
+Oligophony is a lead-sheet editor and chord player inspired by iReal Pro. It's still in development so expect bugs and missing functionality.
 
 ## Main Modules
+Oligophony is broken up into a handful of modules. These are the ones you need to worry about:
 * **Oligophony.js** - A system for storing and manipulating song/chord data
 * **Viewer.js** - Displays an Oligophony as a pretty SVG
 * **Editor.js** (doesn't exist yet) - extends viewer.js to be interactive
@@ -19,18 +16,19 @@ const Oligophony = require('./src/Oligophony'),
       Player     = require('./src/Player');
 
 var o_options = {
-    'timeSignature': [4,4]
+    'timeSignature': [4,4],
+    'transpose': 3
   };
 var oligophony = window.oligophony = new Oligophony(o_options);
 
 var v_options = {
     'width': 1000,
-    'height': 700,
+    'height': 80,
     'rowHeight': 60,
     'fontSize': 50
   };
 var viewer = new Viewer(oligophony, v_options);
-viewer.appendTo(document.body);
+viewer.appendTo(document.querySelector('#oligophonyContainer'));
 
 var p_options = {
   'tempo': 120
@@ -44,9 +42,7 @@ flyMeToTheMoon = [
   ['CM7', null, 'C7', null]
 ];
 
-for(let measure of flyMeToTheMoon) {
-  oligophony.addMeasure(measure, null);
-}
+oligophony.parseArray(flyMeToTheMoon);
 ```
 
 ## Credit

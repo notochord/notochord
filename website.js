@@ -13,12 +13,12 @@ var oligophony = window.oligophony = new Oligophony(o_options);
 
 var v_options = {
     'width': 1000,
-    'height': 700,
+    'height': 80,
     'rowHeight': 60,
     'fontSize': 50
   };
 var viewer = new Viewer(oligophony, v_options);
-viewer.appendTo(document.body);
+viewer.appendTo(document.querySelector('#oligophonyContainer'));
 
 var p_options = {
   'tempo': 120
