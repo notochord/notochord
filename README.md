@@ -24,7 +24,7 @@ var o_options = {
 var oligophony = window.oligophony = new Oligophony(o_options);
 
 var v_options = {
-    'width': document.body.offsetWidth,
+    'width': 1000,
     'height': 700,
     'rowHeight': 60,
     'fontSize': 50
@@ -37,7 +37,16 @@ var p_options = {
 };
 var player = new Player(oligophony, p_options);
 
-for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug', null, 'F#M7'], null);
+flyMeToTheMoon = [
+  ['A-7', null, 'A', null],
+  ['D-7', null, null, null],
+  ['G7', null, null, null],
+  ['CM7', null, 'C7', null]
+];
+
+for(let measure of flyMeToTheMoon) {
+  oligophony.addMeasure(measure, null);
+}
 ```
 
 ## Credit

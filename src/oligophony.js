@@ -26,7 +26,9 @@
     if(!chords) chords = []; // If none given, pass undefined.
     for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
       if(chords[i]) {
-        let parsed = this.oligophony.chordMagic.parse(chords[i]);
+        // correct for a bug in chordMagic.
+        let corrected = chords[i].replace('-7', 'm7');
+        let parsed = this.oligophony.chordMagic.parse(corrected);
         parsed.raw = chords[i];
         this._beats.push(parsed);
       } else {

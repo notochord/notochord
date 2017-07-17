@@ -53,11 +53,9 @@
     var measure = 0;
     var beat = 0;
     function playNextChord() {
-      var chord = this.oligophony.measures[0].getBeat(beat);
-      console.log([measure, beat, chord]);
+      var chord = this.oligophony.measures[measure].getBeat(beat);
       if(chord) {
         var chordAsArray = this.chordToArray(chord);
-        console.log([this.oligophony.chordMagic.prettyPrint(chord), chordAsArray]);
         for(let note of chordAsArray) {
           this.MIDI.noteOn(0, note, 100, 0);
           this.MIDI.noteOff(0, note, 1);
@@ -69,7 +67,7 @@
           beat = 0;
           measure++;
         }
-        if(measure > this.oligophony.measures.length) return;
+        if(measure >= this.oligophony.measures.length) return;
         playNextChord.call(self);
       }, this.beatLength);
     }

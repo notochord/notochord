@@ -20700,7 +20700,9 @@ module.exports = tonal;
     if(!chords) chords = []; // If none given, pass undefined.
     for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
       if(chords[i]) {
-        let parsed = this.oligophony.chordMagic.parse(chords[i]);
+        // correct for a bug in chordMagic.
+        let corrected = chords[i].replace('-7', 'm7');
+        let parsed = this.oligophony.chordMagic.parse(corrected);
         parsed.raw = chords[i];
         this._beats.push(parsed);
       } else {
@@ -20939,7 +20941,6 @@ module.exports = tonal;
      */
     this.chordToArray = function(chord) {
       var chordAsString = this.oligophony.chordMagic.prettyPrint(chord);
-      //chordAsString = chordAsString.replace('aug', 'M#5');
       var chordAsNoteNames = this.oligophony.tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
         return this.oligophony.tonal.note.midi(note + '4');
@@ -20950,11 +20951,9 @@ module.exports = tonal;
     var measure = 0;
     var beat = 0;
     function playNextChord() {
-      var chord = this.oligophony.measures[0].getBeat(beat);
-      console.log([measure, beat, chord]);
+      var chord = this.oligophony.measures[measure].getBeat(beat);
       if(chord) {
         var chordAsArray = this.chordToArray(chord);
-        console.log([this.oligophony.chordMagic.prettyPrint(chord), chordAsArray]);
         for(let note of chordAsArray) {
           this.MIDI.noteOn(0, note, 100, 0);
           this.MIDI.noteOff(0, note, 1);
@@ -20966,7 +20965,7 @@ module.exports = tonal;
           beat = 0;
           measure++;
         }
-        if(measure > this.oligophony.measures.length) return;
+        if(measure >= this.oligophony.measures.length) return;
         playNextChord.call(self);
       }, this.beatLength);
     }
@@ -21391,7 +21390,7 @@ var o_options = {
 var oligophony = window.oligophony = new Oligophony(o_options);
 
 var v_options = {
-    'width': document.body.offsetWidth,
+    'width': 1000,
     'height': 700,
     'rowHeight': 60,
     'fontSize': 50
@@ -21404,6 +21403,15 @@ var p_options = {
 };
 var player = new Player(oligophony, p_options);
 
-for(i = 0; i < 5; i++) oligophony.addMeasure(['Cm7', 'Dbaug', null, 'F#M7'], null);
+flyMeToTheMoon = [
+  ['A-7', null, 'A', null],
+  ['D-7', null, null, null],
+  ['G7', null, null, null],
+  ['CM7', null, 'C7', null]
+];
+
+for(let measure of flyMeToTheMoon) {
+  oligophony.addMeasure(measure, null);
+}
 
 },{"./src/Oligophony":44,"./src/Player":45,"./src/viewer/Viewer":48}]},{},[50]);
