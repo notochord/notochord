@@ -14,8 +14,8 @@ if(report.errorCount || report.warningCount) {
 // build
 console.log('===== BUILDING =====');
 var b = browserify();
-b.add('website.js');
-var bundle = fs.createWriteStream('website.bundle.js');
+b.add('demo/website.js');
+var bundle = fs.createWriteStream('demo/website.bundle.js');
 b.bundle().pipe(bundle);
 
 console.log('===== DONE =====');

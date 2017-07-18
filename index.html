@@ -1,7 +1,6 @@
 <html>
   <head>
     <title>Oligophony Demo</title>
-    <link rel="stylesheet" href="src/oligophony.css">
     <style>
       body {
         font-family: sans-serif;
@@ -49,34 +48,37 @@ const Oligophony = require('./src/Oligophony'),
 
 var o_options = {
     'timeSignature': [4,4],
-    'transpose': 3
+    'transpose': 3 // the original chords are in A-, transpose up to C-.
   };
-var oligophony = window.oligophony = new Oligophony(o_options);
+window.oligophony = new Oligophony(o_options);
 
-var v_options = {
+var viewer_options = {
     'width': 1000,
     'height': 80,
     'rowHeight': 60,
     'fontSize': 50
   };
-var viewer = new Viewer(oligophony, v_options);
+// a Viewer displays an Oligophony as an SVG.
+window.viewer = new Viewer(oligophony, viewer_options);
+// add the SVG to the document.
 viewer.appendTo(document.querySelector('#oligophonyContainer'));
 
-var p_options = {
+var player_options = {
   'tempo': 120
 };
-var player = new Player(oligophony, p_options);
+// a Player plays an Oligophony as audio.
+window.player = new Player(oligophony, player_options);
 
 flyMeToTheMoon = [
   ['A-7', null, 'A', null],
   ['D-7', null, null, null],
   ['G7', null, null, null],
-  ['CM7', null, 'C7', null]
+  ['CM9', null, 'C7', null]
 ];
 
 oligophony.parseArray(flyMeToTheMoon);
       </pre>
     </div>
-    <script src="website.bundle.js"></script>
+    <script src="demo/website.bundle.js"></script>
   </body>
 </html>

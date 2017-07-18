@@ -1,4 +1,41 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+const Oligophony = require('../src/Oligophony'),
+      Viewer     = require('../src/viewer/Viewer'),
+      Player     = require('../src/Player');
+
+var o_options = {
+    'timeSignature': [4,4],
+    'transpose': 3 // the original chords are in A-, transpose up to C-.
+  };
+window.oligophony = new Oligophony(o_options);
+
+var viewer_options = {
+    'width': 1000,
+    'height': 80,
+    'rowHeight': 60,
+    'fontSize': 50
+  };
+// a Viewer displays an Oligophony as an SVG.
+window.viewer = new Viewer(oligophony, viewer_options);
+// add the SVG to the document.
+viewer.appendTo(document.querySelector('#oligophonyContainer'));
+
+var player_options = {
+  'tempo': 120
+};
+// a Player plays an Oligophony as audio.
+window.player = new Player(oligophony, player_options);
+
+flyMeToTheMoon = [
+  ['A-7', null, 'A', null],
+  ['D-7', null, null, null],
+  ['G7', null, null, null],
+  ['CM9', null, 'C7', null]
+];
+
+oligophony.parseArray(flyMeToTheMoon);
+
+},{"../src/Oligophony":45,"../src/Player":46,"../src/viewer/Viewer":49}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -114,9 +151,9 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],2:[function(require,module,exports){
-
 },{}],3:[function(require,module,exports){
+
+},{}],4:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -1824,7 +1861,7 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":1,"ieee754":18}],4:[function(require,module,exports){
+},{"base64-js":2,"ieee754":19}],5:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -1834,7 +1871,7 @@ module.exports = {
   SixNine: ["6/9"],
   PowerChord: ["5"] // duh duh DUH, duh duh DUH-duh, duh duh DUH, duh duh ((c) Deep Purple)
 };
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -1857,7 +1894,7 @@ module.exports = {
   Minor9: ['Minor', ["min9", "m9", "minor9"]]
   
 };
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -1866,7 +1903,7 @@ module.exports = {
   Augmented: ["aug", "augmented", "+"],
   Diminished: ["dim", "diminished"]
 };
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 var noteNamings = require('./note-namings');
@@ -1990,7 +2027,7 @@ function greedyDisjunction(aliases, matchingGroup) {
 }
 
 initializeChordRegexes();
-},{"./chord-addeds":4,"./chord-extendeds":5,"./chord-qualities":6,"./chord-suspendeds":9,"./note-namings":11}],8:[function(require,module,exports){
+},{"./chord-addeds":5,"./chord-extendeds":6,"./chord-qualities":7,"./chord-suspendeds":10,"./note-namings":12}],9:[function(require,module,exports){
 'use strict';
 
 module.exports = [
@@ -2007,20 +2044,20 @@ module.exports = [
   'G',
   'Ab'
 ];
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict';
 
 module.exports = {
   Sus4: ["sus4", "suspended", "sus"],
   Sus2: ["sus2", "suspended2"]
 };
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict';
 
 exports.parse = require('./parse');
 exports.prettyPrint = require('./pretty-print');
 exports.transpose = require('./transpose');
-},{"./parse":12,"./pretty-print":13,"./transpose":15}],11:[function(require,module,exports){
+},{"./parse":13,"./pretty-print":14,"./transpose":16}],12:[function(require,module,exports){
 'use strict';
 
 var English = {};
@@ -2070,7 +2107,7 @@ module.exports = {
   NorthernEuropean: NorthernEuropean,
   SouthernEuropean: SouthernEuropean
 };
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 'use strict';
 
 var chordRegexes = require('./chord-regexes');
@@ -2118,7 +2155,7 @@ function parseObject(match, noteNaming) {
 
   return res;
 }
-},{"./chord-regexes":7,"./reverse-lookups":14}],13:[function(require,module,exports){
+},{"./chord-regexes":8,"./reverse-lookups":15}],14:[function(require,module,exports){
 'use strict';
 
 var noteNamings = require('./note-namings');
@@ -2155,7 +2192,7 @@ module.exports = function prettyPrint(chord, opts) {
   }
   return str;
 };
-},{"./chord-addeds":4,"./chord-extendeds":5,"./chord-qualities":6,"./chord-suspendeds":9,"./note-namings":11}],14:[function(require,module,exports){
+},{"./chord-addeds":5,"./chord-extendeds":6,"./chord-qualities":7,"./chord-suspendeds":10,"./note-namings":12}],15:[function(require,module,exports){
 'use strict';
 
 // given a string and a note naming, return the structured version of it.
@@ -2221,7 +2258,7 @@ module.exports = {
   addeds: chordAddedsLookups,
   suspendeds: chordSuspendedsLookups
 };
-},{"./chord-addeds":4,"./chord-extendeds":5,"./chord-qualities":6,"./chord-suspendeds":9,"./note-namings":11}],15:[function(require,module,exports){
+},{"./chord-addeds":5,"./chord-extendeds":6,"./chord-qualities":7,"./chord-suspendeds":10,"./note-namings":12}],16:[function(require,module,exports){
 'use strict';
 
 var chordRoots = require('./chord-roots');
@@ -2261,7 +2298,7 @@ module.exports = function transpose(chord, num) {
 
   return transposedChord;
 };
-},{"./chord-roots":8,"./utils":16}],16:[function(require,module,exports){
+},{"./chord-roots":9,"./utils":17}],17:[function(require,module,exports){
 'use strict';
 
 var extend = require('extend');
@@ -2271,7 +2308,7 @@ exports.extend = extend;
 exports.clone = function (obj) {
   return extend(true, {}, obj);
 };
-},{"extend":17}],17:[function(require,module,exports){
+},{"extend":18}],18:[function(require,module,exports){
 var hasOwn = Object.prototype.hasOwnProperty;
 var toString = Object.prototype.toString;
 var undefined;
@@ -2353,7 +2390,7 @@ module.exports = function extend() {
 };
 
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -2439,11 +2476,11 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 !function(t,n){"object"==typeof exports&&"undefined"!=typeof module?n(exports):"function"==typeof define&&define.amd?define(["exports"],n):n(t.IntervalNotation=t.IntervalNotation||{})}(this,function(t){"use strict";function n(t,n){if("string"!=typeof t)return null;var e=d.exec(t);if(!e)return null;var r={num:+(e[3]||e[8]),q:e[4]||e[6]};r.dir="-"===(e[2]||e[7])?-1:1;var u=(r.num-1)%7;return r.simple=u+1,r.type=p[u],r.alt=f(r.type,r.q),r.oct=Math.floor((r.num-1)/7),r.size=r.dir*(c[u]+r.alt+12*r.oct),!1!==n&&"M"===r.type&&"P"===r.q?null:r}function e(t){return p[(t-1)%7]}function r(t){return-1===t?"-":""}function u(t,n){return t+7*n}function o(t,n,e,o){return a(t,n)+r(o)+u(t,e)}function i(t,n,e,o){return r(o)+u(t,e)+a(t,n)}function f(t,n){var r="number"==typeof t?e(t):t;return"M"===n&&"M"===r?0:"P"===n&&"P"===r?0:"m"===n&&"M"===r?-1:/^A+$/.test(n)?n.length:/^d+$/.test(n)?"P"===r?-n.length:-n.length-1:null}function l(t,n){return Array(Math.abs(n)+1).join(t)}function a(t,n){var r="number"==typeof t?e(Math.abs(t)):t;return 0===n?"M"===r?"M":"P":-1===n&&"M"===r?"m":n>0?l("A",n):n<0?l("d","P"===r?n:n+1):null}var d=new RegExp("^(?:(([-+]?)(\\d+)(d{1,4}|m|M|P|A{1,4}))|((AA|A|P|M|m|d|dd)([-+]?)(\\d+)))$"),c=[0,2,4,5,7,9,11],p="PMMPPMM";t.parse=n,t.type=e,t.shorthand=o,t.build=i,t.qToAlt=f,t.altToQ=a});
 
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();
@@ -4950,11 +4987,11 @@ return /******/ (function(modules) { // webpackBootstrap
 });
 ;
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 !function(t,n){"object"==typeof exports&&"undefined"!=typeof module?n(exports):"function"==typeof define&&define.amd?define(["exports"],n):n(t.NoteParser=t.NoteParser||{})}(this,function(t){"use strict";function n(t,n){return Array(n+1).join(t)}function r(t){return"number"==typeof t}function e(t){return"string"==typeof t}function u(t){return void 0!==t}function c(t,n){return Math.pow(2,(t-69)/12)*(n||440)}function o(){return b}function i(t,n,r){if("string"!=typeof t)return null;var e=b.exec(t);if(!e||!n&&e[4])return null;var u={letter:e[1].toUpperCase(),acc:e[2].replace(/x/g,"##")};u.pc=u.letter+u.acc,u.step=(u.letter.charCodeAt(0)+3)%7,u.alt="b"===u.acc[0]?-u.acc.length:u.acc.length;var o=A[u.step]+u.alt;return u.chroma=o<0?12+o:o%12,e[3]&&(u.oct=+e[3],u.midi=o+12*(u.oct+1),u.freq=c(u.midi,r)),n&&(u.tonicOf=e[4]),u}function f(t){return r(t)?t<0?n("b",-t):n("#",t):""}function a(t){return r(t)?""+t:""}function l(t,n,r){return null===t||void 0===t?null:t.step?l(t.step,t.alt,t.oct):t<0||t>6?null:C.charAt(t)+f(n)+a(r)}function p(t){if((r(t)||e(t))&&t>=0&&t<128)return+t;var n=i(t);return n&&u(n.midi)?n.midi:null}function s(t,n){var r=p(t);return null===r?null:c(r,n)}function d(t){return(i(t)||{}).letter}function m(t){return(i(t)||{}).acc}function h(t){return(i(t)||{}).pc}function v(t){return(i(t)||{}).step}function g(t){return(i(t)||{}).alt}function x(t){return(i(t)||{}).chroma}function y(t){return(i(t)||{}).oct}var b=/^([a-gA-G])(#{1,}|b{1,}|x{1,}|)(-?\d*)\s*(.*)\s*$/,A=[0,2,4,5,7,9,11],C="CDEFGAB";t.regex=o,t.parse=i,t.build=l,t.midi=p,t.freq=s,t.letter=d,t.acc=m,t.pc=h,t.step=v,t.alt=g,t.chroma=x,t.oct=y});
 
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 (function (Buffer){
 /**
  * https://opentype.js.org v0.7.1 | (c) Frederik De Bleser and other contributors | MIT License | Uses tiny-inflate by Devon Govett
@@ -17128,7 +17165,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":3,"fs":2}],23:[function(require,module,exports){
+},{"buffer":4,"fs":3}],24:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -17456,7 +17493,7 @@ exports.rotateAsc = rotateAsc;
 exports.select = select;
 exports.permutations = permutations;
 
-},{"tonal-distance":26,"tonal-pitch":36,"tonal-transpose":42}],24:[function(require,module,exports){
+},{"tonal-distance":27,"tonal-pitch":37,"tonal-transpose":43}],25:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -17816,7 +17853,7 @@ exports.position = position;
 exports.inversion = inversion;
 exports.parse = parse;
 
-},{"note-parser":21,"tonal-array":23,"tonal-dictionary":25,"tonal-harmonizer":29,"tonal-note":34}],25:[function(require,module,exports){
+},{"note-parser":22,"tonal-array":24,"tonal-dictionary":26,"tonal-harmonizer":30,"tonal-note":35}],26:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -17947,7 +17984,7 @@ function detector (dict, build) {
 exports.dictionary = dictionary;
 exports.detector = detector;
 
-},{"tonal-array":23,"tonal-note":34,"tonal-pcset":35}],26:[function(require,module,exports){
+},{"tonal-array":24,"tonal-note":35,"tonal-pcset":36}],27:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -18026,7 +18063,7 @@ function semitones (a, b) {
 exports.interval = interval;
 exports.semitones = semitones;
 
-},{"tonal-pitch":36}],27:[function(require,module,exports){
+},{"tonal-pitch":37}],28:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -18093,7 +18130,7 @@ function decode (f, o) {
 exports.encode = encode;
 exports.decode = decode;
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -18235,7 +18272,7 @@ exports.toMidi = toMidi$1;
 exports.note = note$1;
 exports.cents = cents;
 
-},{"tonal-midi":32}],29:[function(require,module,exports){
+},{"tonal-midi":33}],30:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -18340,7 +18377,7 @@ exports.harmonics = harmonics;
 exports.intervallic = intervallic;
 exports.harmonize = harmonize;
 
-},{"tonal-array":23,"tonal-distance":26,"tonal-transpose":42}],30:[function(require,module,exports){
+},{"tonal-array":24,"tonal-distance":27,"tonal-transpose":43}],31:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -18607,7 +18644,7 @@ exports.type = type;
 exports.invert = invert;
 exports.simplify = simplify;
 
-},{"interval-notation":19,"tonal-pitch":36}],31:[function(require,module,exports){
+},{"interval-notation":20,"tonal-pitch":37}],32:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -18874,7 +18911,7 @@ exports.alteration = alteration;
 exports.signature = signature;
 exports.accidentals = accidentals;
 
-},{"tonal-array":23,"tonal-harmonizer":29,"tonal-notation":33,"tonal-note":34,"tonal-range":39,"tonal-transpose":42}],32:[function(require,module,exports){
+},{"tonal-array":24,"tonal-harmonizer":30,"tonal-notation":34,"tonal-note":35,"tonal-range":40,"tonal-transpose":43}],33:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -18944,7 +18981,7 @@ function note (num, sharps) {
 exports.toMidi = toMidi;
 exports.note = note;
 
-},{"note-parser":21}],33:[function(require,module,exports){
+},{"note-parser":22}],34:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -19049,7 +19086,7 @@ exports.areSharps = areSharps;
 exports.toAlt = toAlt;
 exports.toAcc = toAcc;
 
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -19363,7 +19400,7 @@ exports.pc = pc;
 exports.enharmonics = enharmonics;
 exports.simplify = simplify;
 
-},{"note-parser":21,"tonal-freq":28,"tonal-midi":32,"tonal-pitch":36,"tonal-transpose":42}],35:[function(require,module,exports){
+},{"note-parser":22,"tonal-freq":29,"tonal-midi":33,"tonal-pitch":37,"tonal-transpose":43}],36:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -19616,7 +19653,7 @@ exports.superset = superset;
 exports.includes = includes;
 exports.filter = filter;
 
-},{"tonal-array":23,"tonal-note":34,"tonal-pitch":36,"tonal-transpose":42}],36:[function(require,module,exports){
+},{"tonal-array":24,"tonal-note":35,"tonal-pitch":37,"tonal-transpose":43}],37:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -19900,7 +19937,7 @@ exports.noteFn = noteFn;
 exports.ivlFn = ivlFn;
 exports.pitchFn = pitchFn;
 
-},{"interval-notation":19,"note-parser":21,"tonal-encoding":27}],37:[function(require,module,exports){
+},{"interval-notation":20,"note-parser":22,"tonal-encoding":28}],38:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -19935,7 +19972,7 @@ function notes (notes) {
 
 exports.notes = notes;
 
-},{"tonal-array":23}],38:[function(require,module,exports){
+},{"tonal-array":24}],39:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -20060,7 +20097,7 @@ exports.concrete = concrete;
 exports.romanRegex = romanRegex;
 exports.parseRomanChord = parseRomanChord;
 
-},{"tonal-array":23,"tonal-chord":24,"tonal-distance":26,"tonal-interval":30,"tonal-notation":33,"tonal-note":34,"tonal-transpose":42}],39:[function(require,module,exports){
+},{"tonal-array":24,"tonal-chord":25,"tonal-distance":27,"tonal-interval":31,"tonal-notation":34,"tonal-note":35,"tonal-transpose":43}],40:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -20179,7 +20216,7 @@ exports.chromatic = chromatic;
 exports.fifths = fifths;
 exports.pitchSet = pitchSet;
 
-},{"tonal-array":23,"tonal-midi":32,"tonal-pcset":35,"tonal-transpose":42}],40:[function(require,module,exports){
+},{"tonal-array":24,"tonal-midi":33,"tonal-pcset":36,"tonal-transpose":43}],41:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -20463,7 +20500,7 @@ exports.isKnowScale = isKnowScale;
 exports.parse = parse;
 exports.detect = detect;
 
-},{"tonal-array":23,"tonal-dictionary":25,"tonal-harmonizer":29,"tonal-note":34}],41:[function(require,module,exports){
+},{"tonal-array":24,"tonal-dictionary":26,"tonal-harmonizer":30,"tonal-note":35}],42:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -20519,7 +20556,7 @@ function density (list) {
 
 exports.density = density;
 
-},{"tonal-array":23,"tonal-interval":30,"tonal-pitch":36}],42:[function(require,module,exports){
+},{"tonal-array":24,"tonal-interval":31,"tonal-pitch":37}],43:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -20602,7 +20639,7 @@ function trFifths (t, n) {
 exports.transpose = transpose;
 exports.trFifths = trFifths;
 
-},{"tonal-pitch":36}],43:[function(require,module,exports){
+},{"tonal-pitch":37}],44:[function(require,module,exports){
 'use strict';
 
 var array = require('tonal-array');
@@ -20671,7 +20708,7 @@ if (typeof window !== 'undefined') window.Tonal = tonal;
 
 module.exports = tonal;
 
-},{"tonal-array":23,"tonal-chord":24,"tonal-distance":26,"tonal-freq":28,"tonal-harmonizer":29,"tonal-interval":30,"tonal-key":31,"tonal-midi":32,"tonal-notation":33,"tonal-note":34,"tonal-pcset":35,"tonal-pitch":36,"tonal-pitchset":37,"tonal-progression":38,"tonal-range":39,"tonal-scale":40,"tonal-sonority":41,"tonal-transpose":42}],44:[function(require,module,exports){
+},{"tonal-array":24,"tonal-chord":25,"tonal-distance":27,"tonal-freq":29,"tonal-harmonizer":30,"tonal-interval":31,"tonal-key":32,"tonal-midi":33,"tonal-notation":34,"tonal-note":35,"tonal-pcset":36,"tonal-pitch":37,"tonal-pitchset":38,"tonal-progression":39,"tonal-range":40,"tonal-scale":41,"tonal-sonority":42,"tonal-transpose":43}],45:[function(require,module,exports){
 /*
  * Code to generate an Oligophony file, which stores the chord data for a song.
  */
@@ -20912,7 +20949,7 @@ module.exports = tonal;
   module.exports = Oligophony;
 })();
 
-},{"chord-magic":10,"tonal":43}],45:[function(require,module,exports){
+},{"chord-magic":11,"tonal":44}],46:[function(require,module,exports){
 (function() {
   /**
    * Player constructor. A Player renders an Oligophony as audio.
@@ -21001,7 +21038,7 @@ module.exports = tonal;
   module.exports = Player;
 })();
 
-},{"midi.js":20}],46:[function(require,module,exports){
+},{"midi.js":21}],47:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -21020,6 +21057,10 @@ module.exports = tonal;
     this.measureView = measureView;
     this.index = index;
     if(!this.viewer.font) return null;
+    
+    // Padding between the root of the chord and the accidental/other bits.
+    const PADDING_RIGHT = 7;
+    
     var group = document.createElementNS(this.viewer.SVG_NS, 'g');
     group.setAttributeNS(null, 'transform', `translate(${xoffset}, 0)`);
     // Append right away so we can compute size.
@@ -21031,84 +21072,128 @@ module.exports = tonal;
     var rootbb = root.getBBox();
     
     /**
-     * Padding between the root of the chord and the accidental/other bits.
+     * If the chord is anything besodes a major triad, it'll need extra symbols
+     * to describe quality, suspensions, 7ths, etc. This grabs those.
+     * @param {Object} chord ChordMagic object to parse.
+     * @returns {String} Bottom text to render.
+     * @private
      */
-    const PADDING_RIGHT = 7;
+    this._getBottomText = function(chord) {
+      var bottomText = '';
+      if(chord.quality != 'Major' || chord.extended || chord.added) {
+        const ADDED_MAP = {
+          'Add9': 'Add9',
+          'Add11': 'Add11',
+          'Major6': 'Add6',
+          'SixNine': '69',
+          'PowerChord': 'Add5'
+        };
+        if(chord.extended) {
+          const EXTENDED_MAP = {
+            'Major7': this.viewer.PATHS.delta_char,
+            'Minor7': '-7',
+            'Dominant7': '7',
+            'Diminished7': 'O7',
+            'Major9': this.viewer.PATHS.delta_char + '9',
+            'Major11': this.viewer.PATHS.delta_char + '11',
+            'Major13': this.viewer.PATHS.delta_char + '13',
+            'AugmentedDominant7': '+7',
+            'AugmentedMajor7': '+' + this.viewer.PATHS.delta_char + '7',
+            'Minor9': '-9'
+          };
+          bottomText += EXTENDED_MAP[chord.extended];
+          if(chord.added) {
+            bottomText += ADDED_MAP[chord.added];
+          }
+        } else { // quality != Major
+          if(chord.quality == 'Minor') {
+            bottomText += '-';
+          } else if(chord.quality == 'Diminished') {
+            bottomText += 'O';
+          } else if(chord.quality == 'Augmented') {
+            bottomText += '+';
+          }
+          
+          if(chord.added == 'Major6') {
+            bottomText += '6';
+          } else if(chord.added) {
+            bottomText += ADDED_MAP[chord.added];
+          }
+        }
+        if(chord.suspended) bottomText += chord.suspended;
+      }
+      return bottomText;
+    };
     
-    // ACCIDENTALS
-    if(chord.rawRoot[1]) {
-      let accidental = document.createElementNS(this.viewer.SVG_NS, 'path');
-      let goal_height = (this.viewer.H_HEIGHT * 0.6);
-      let x = rootbb.width + PADDING_RIGHT;
-      let y;
-      let orig_height;
-      if(chord.rawRoot[1] == '#') {
-        accidental.setAttributeNS(null, 'd',this.viewer.PATHS.sharp);
+    /**
+     * Render an accidental in the correct size and place.
+     * @param {String} acc WIth accidental to render: either 'b' or '#'.
+     * @private
+     */
+    this._renderAccidental = function(acc) {
+      var path = document.createElementNS(this.viewer.SVG_NS, 'path');
+      var goal_height = (this.viewer.H_HEIGHT * 0.6);
+      var x = rootbb.width + PADDING_RIGHT;
+      var y;
+      var orig_height;
+      if(acc == '#') {
+        path.setAttributeNS(null, 'd',this.viewer.PATHS.sharp);
         orig_height = this.viewer.PATHS.sharp_height;
         y = -0.6 * this.viewer.H_HEIGHT;
       } else {
-        accidental.setAttributeNS(null, 'd',this.viewer.PATHS.flat);
+        path.setAttributeNS(null, 'd',this.viewer.PATHS.flat);
         orig_height = this.viewer.PATHS.flat_height;
         y = (-1 * goal_height) - (0.6 * this.viewer.H_HEIGHT);
       }
       let scale = goal_height / orig_height;
-      accidental.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
-      group.appendChild(accidental);
-    }
+      path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+      group.appendChild(path);
+    };
     
-    // MORE BITS
-    // If the chord is anything besides a major triad, it needs more bits
-    // (quality, 7ths, etc.)
-    if(chord.quality != 'Major' || chord.extended || chord.added) {
-      let bottomText = '';
-      const ADDED_MAP = {
-        'Add9': 'Add9',
-        'Add11': 'Add11',
-        'Major6': 'Add6',
-        'SixNine': '69',
-        'PowerChord': 'Add5'
-      };
-      if(chord.extended) {
-        const EXTENDED_MAP = {
-          'Major7': this.viewer.PATHS.maj_triangle,
-          'Minor7': '-7',
-          'Dominant7': '7',
-          'Diminished7': 'O7',
-          'Major9': this.viewer.PATHS.maj_triangle + '9',
-          'Major11': this.viewer.PATHS.maj_triangle + '11',
-          'Major13': this.viewer.PATHS.maj_triangle + '13',
-          'AugmentedDominant7': '+7',
-          'AugmentedMajor7': '+' + this.viewer.PATHS.maj_triangle + '7',
-          'Minor9': '-9'
-        };
-        bottomText += EXTENDED_MAP[chord.extended];
-        if(chord.added) {
-          bottomText += ADDED_MAP[chord.added];
-        }
-      } else { // quality != Major
-        if(chord.quality == 'Minor') {
-          bottomText += '-';
-        } else if(chord.quality == 'Diminished') {
-          bottomText += 'O';
-        } else if(chord.quality == 'Augmented') {
-          bottomText += '+';
-        }
-        
-        if(chord.added == 'Major6') {
-          bottomText += '6';
-        } else if(chord.added) {
-          bottomText += ADDED_MAP[chord.added];
+    /**
+     * If the chord is anything besodes a major triad, it'll need extra symbols
+     * to describe quality, suspensions, 7ths, etc. This renders those.
+     * @param {String} bottomText Bottom text to render.
+     * @private
+     */
+    this._renderBottomText = function(bottomText) {
+      var regex = new RegExp(`(${this.viewer.PATHS.delta_char})`, 'g');
+      var split = bottomText.split(regex);
+      var bottomGroup = document.createElementNS(this.viewer.SVG_NS, 'g');
+      group.appendChild(bottomGroup);
+      for(let str of split) {
+        if(!str) continue;
+        let x = rootbb.width + PADDING_RIGHT + bottomGroup.getBBox().width;
+        if(str == this.viewer.PATHS.delta_char) {
+          let path = document.createElementNS(this.viewer.SVG_NS, 'path');
+          path.setAttributeNS(null, 'd',this.viewer.PATHS.delta_path);
+          let orig_height = this.viewer.PATHS.delta_height;
+          let goal_height = (this.viewer.H_HEIGHT * 0.5);
+          let y = -0.5 * this.viewer.H_HEIGHT;
+          let scale = goal_height / orig_height;
+          path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+          bottomGroup.appendChild(path);
+        } else {
+          let text = this.viewer.textToPath(str);
+          let y = 0;
+          let scale = 0.5;
+          text.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+          bottomGroup.appendChild(text);
         }
       }
-      if(chord.suspended) bottomText += chord.suspended;
-      
-      let bottom = this.viewer.textToPath(bottomText);
-      let x = rootbb.width + PADDING_RIGHT;
-      let y = 0;
-      let scale = 0.5;
-      bottom.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
-      group.appendChild(bottom);
+    };
+    
+    // ACCIDENTALS
+    if(chord.rawRoot[1]) {
+      this._renderAccidental(chord.rawRoot[1]);
     }
+    // BOTTOM BITS
+    // If the chord is anything besides a major triad, it needs more bits
+    var bottomText = this._getBottomText(chord);
+    if(bottomText) {
+      this._renderBottomText(bottomText);
+    }
+  
     if(chord.overridingRoot) {
       // @todo scale down group and return a bigger group
     } else {
@@ -21130,7 +21215,7 @@ module.exports = tonal;
   module.exports = BeatView;
 })();
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -21240,7 +21325,7 @@ module.exports = tonal;
   module.exports = MeasureView;
 })();
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 /*
  * Code to generate a Viewer object. This will be extended to an editor in
  * a separate file so that that functionality is only loaded as needed.
@@ -21292,7 +21377,7 @@ module.exports = tonal;
     this.oligophony.createEvent('Viewer.ready', true);
     //this.oligophony.onEvent('Viewer.ready', this.renderAllMeasures);
     
-    /**
+    /*
      * I keep changing my mind about the prettiest font to use.
      * It's not easy to request fonts from Google as WOFF.
      * @const
@@ -21348,8 +21433,14 @@ module.exports = tonal;
      * @private
      */
     this._svgElem = document.createElementNS(this.SVG_NS, 'svg');
-    this._svgElem.setAttribute('width', this.width);
-    this._svgElem.setAttribute('height', this.height);
+    this._svgElem.setAttributeNS(null, 'width', this.width);
+    this._svgElem.setAttributeNS(null, 'height', this.height);
+    
+    var styledata = require('./viewer.css.js');
+    var style = document.createElementNS(this.SVG_NS, 'style');
+    style.setAttributeNS(null, 'type', 'text/css');
+    style.appendChild(document.createTextNode(styledata));
+    this._svgElem.appendChild(style);
     
     /**
      * Append editor element to a parent element.
@@ -21406,7 +21497,7 @@ module.exports = tonal;
   module.exports = Viewer;
 })();
 
-},{"./BeatView":46,"./MeasureView":47,"./svg_constants":49,"opentype.js":22}],49:[function(require,module,exports){
+},{"./BeatView":47,"./MeasureView":48,"./svg_constants":50,"./viewer.css.js":51,"opentype.js":23}],50:[function(require,module,exports){
 module.exports = {
   // https://commons.wikimedia.org/wiki/File:B%C3%A9mol.svg
   'flat': 'm 1.380956,10.84306 -0.02557,1.68783 0,0.28131 c 0,0.56261 0.02557,1.12522 0.102293,1.68783 1.150797,-0.97178 2.378313,-2.04586 2.378313,-3.55468 0,-0.84392 -0.358026,-1.7134103 -1.09965,-1.7134103 -0.792771,0 -1.329809,0.7672 -1.355382,1.6111203 z M 0.306879,15.42067 0,0.20457992 C 0.204586,0.07671992 0.460319,-7.6580061e-8 0.690478,-7.6580061e-8 0.920637,-7.6580061e-8 1.17637,0.07669992 1.380956,0.20457992 L 1.201943,9.0273597 c 0.639331,-0.53704 1.483249,-0.8695 2.327166,-0.8695 1.329809,0 2.27602,1.22752 2.27602,2.6084803 0,2.04586 -2.1993,2.99207 -3.759269,4.32188 C 1.662261,15.42067 1.432102,16.06 0.895064,16.06 0.562612,16.06 0.306879,15.77869 0.306879,15.42067 Z',
@@ -21416,44 +21507,17 @@ module.exports = {
   'sharp_height': 16.059999465942383,
   'bar': 'M 0,0 0,-100',
   'bar_height': 100,
-  'maj_triangle': '\u0394'
+  'delta_char': '\u0394',
+  'delta_path': 'M 19.424709,0 9.7665062,21.9805 c -5.31,12.09 -9.70171875,22.1 -9.76171875,22.25 -0.09,0.25 0.90023458,0.2695 19.49023455,0.2695 10.77,0 19.549765,-0.059 19.509765,-0.1191 -0.03,-0.06 -4.209297,-10.07 -9.279297,-22.25 L 20.516506,0 19.965725,0 19.424709,0 Z m -1.308594,10.0117 c 0.06,0 12.718594,30.5984 13.058594,31.5684 0.03,0.09 -5.09,0.1504 -13.5,0.1504 l -13.5585934,0 0.4199218,-0.9688 c 2.2600001,-5.28 13.5200776,-30.75 13.5800776,-30.75 z',
+  'delta_height': 44.5
 };
 
-},{}],50:[function(require,module,exports){
-/*
- * Code to connect everything together!
- */
-const Oligophony = require('./src/Oligophony'),
-      Viewer     = require('./src/viewer/Viewer'),
-      Player     = require('./src/Player');
+},{}],51:[function(require,module,exports){
+module.exports = `/*<![CDATA[*/
+  .OligophonyPlayedBeat path,
+  .OligophonyPlayedBeat text {
+    fill: lightblue;
+  }
+/*]]>*/`;
 
-var o_options = {
-    'timeSignature': [4,4],
-    'transpose': 3
-  };
-var oligophony = window.oligophony = new Oligophony(o_options);
-
-var v_options = {
-    'width': 1000,
-    'height': 80,
-    'rowHeight': 60,
-    'fontSize': 50
-  };
-var viewer = new Viewer(oligophony, v_options);
-viewer.appendTo(document.querySelector('#oligophonyContainer'));
-
-var p_options = {
-  'tempo': 120
-};
-var player = new Player(oligophony, p_options);
-
-flyMeToTheMoon = [
-  ['A-7', null, 'A', null],
-  ['D-7', null, null, null],
-  ['G7', null, null, null],
-  ['CM7', null, 'C7', null]
-];
-
-oligophony.parseArray(flyMeToTheMoon);
-
-},{"./src/Oligophony":44,"./src/Player":45,"./src/viewer/Viewer":48}]},{},[50]);
+},{}]},{},[1]);

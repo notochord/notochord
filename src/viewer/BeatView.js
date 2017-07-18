@@ -16,6 +16,10 @@
     this.measureView = measureView;
     this.index = index;
     if(!this.viewer.font) return null;
+    
+    // Padding between the root of the chord and the accidental/other bits.
+    const PADDING_RIGHT = 7;
+    
     var group = document.createElementNS(this.viewer.SVG_NS, 'g');
     group.setAttributeNS(null, 'transform', `translate(${xoffset}, 0)`);
     // Append right away so we can compute size.
@@ -27,84 +31,128 @@
     var rootbb = root.getBBox();
     
     /**
-     * Padding between the root of the chord and the accidental/other bits.
+     * If the chord is anything besodes a major triad, it'll need extra symbols
+     * to describe quality, suspensions, 7ths, etc. This grabs those.
+     * @param {Object} chord ChordMagic object to parse.
+     * @returns {String} Bottom text to render.
+     * @private
      */
-    const PADDING_RIGHT = 7;
+    this._getBottomText = function(chord) {
+      var bottomText = '';
+      if(chord.quality != 'Major' || chord.extended || chord.added) {
+        const ADDED_MAP = {
+          'Add9': 'Add9',
+          'Add11': 'Add11',
+          'Major6': 'Add6',
+          'SixNine': '69',
+          'PowerChord': 'Add5'
+        };
+        if(chord.extended) {
+          const EXTENDED_MAP = {
+            'Major7': this.viewer.PATHS.delta_char,
+            'Minor7': '-7',
+            'Dominant7': '7',
+            'Diminished7': 'O7',
+            'Major9': this.viewer.PATHS.delta_char + '9',
+            'Major11': this.viewer.PATHS.delta_char + '11',
+            'Major13': this.viewer.PATHS.delta_char + '13',
+            'AugmentedDominant7': '+7',
+            'AugmentedMajor7': '+' + this.viewer.PATHS.delta_char + '7',
+            'Minor9': '-9'
+          };
+          bottomText += EXTENDED_MAP[chord.extended];
+          if(chord.added) {
+            bottomText += ADDED_MAP[chord.added];
+          }
+        } else { // quality != Major
+          if(chord.quality == 'Minor') {
+            bottomText += '-';
+          } else if(chord.quality == 'Diminished') {
+            bottomText += 'O';
+          } else if(chord.quality == 'Augmented') {
+            bottomText += '+';
+          }
+          
+          if(chord.added == 'Major6') {
+            bottomText += '6';
+          } else if(chord.added) {
+            bottomText += ADDED_MAP[chord.added];
+          }
+        }
+        if(chord.suspended) bottomText += chord.suspended;
+      }
+      return bottomText;
+    };
     
-    // ACCIDENTALS
-    if(chord.rawRoot[1]) {
-      let accidental = document.createElementNS(this.viewer.SVG_NS, 'path');
-      let goal_height = (this.viewer.H_HEIGHT * 0.6);
-      let x = rootbb.width + PADDING_RIGHT;
-      let y;
-      let orig_height;
-      if(chord.rawRoot[1] == '#') {
-        accidental.setAttributeNS(null, 'd',this.viewer.PATHS.sharp);
+    /**
+     * Render an accidental in the correct size and place.
+     * @param {String} acc WIth accidental to render: either 'b' or '#'.
+     * @private
+     */
+    this._renderAccidental = function(acc) {
+      var path = document.createElementNS(this.viewer.SVG_NS, 'path');
+      var goal_height = (this.viewer.H_HEIGHT * 0.6);
+      var x = rootbb.width + PADDING_RIGHT;
+      var y;
+      var orig_height;
+      if(acc == '#') {
+        path.setAttributeNS(null, 'd',this.viewer.PATHS.sharp);
         orig_height = this.viewer.PATHS.sharp_height;
         y = -0.6 * this.viewer.H_HEIGHT;
       } else {
-        accidental.setAttributeNS(null, 'd',this.viewer.PATHS.flat);
+        path.setAttributeNS(null, 'd',this.viewer.PATHS.flat);
         orig_height = this.viewer.PATHS.flat_height;
         y = (-1 * goal_height) - (0.6 * this.viewer.H_HEIGHT);
       }
       let scale = goal_height / orig_height;
-      accidental.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
-      group.appendChild(accidental);
-    }
+      path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+      group.appendChild(path);
+    };
     
-    // MORE BITS
-    // If the chord is anything besides a major triad, it needs more bits
-    // (quality, 7ths, etc.)
-    if(chord.quality != 'Major' || chord.extended || chord.added) {
-      let bottomText = '';
-      const ADDED_MAP = {
-        'Add9': 'Add9',
-        'Add11': 'Add11',
-        'Major6': 'Add6',
-        'SixNine': '69',
-        'PowerChord': 'Add5'
-      };
-      if(chord.extended) {
-        const EXTENDED_MAP = {
-          'Major7': this.viewer.PATHS.maj_triangle,
-          'Minor7': '-7',
-          'Dominant7': '7',
-          'Diminished7': 'O7',
-          'Major9': this.viewer.PATHS.maj_triangle + '9',
-          'Major11': this.viewer.PATHS.maj_triangle + '11',
-          'Major13': this.viewer.PATHS.maj_triangle + '13',
-          'AugmentedDominant7': '+7',
-          'AugmentedMajor7': '+' + this.viewer.PATHS.maj_triangle + '7',
-          'Minor9': '-9'
-        };
-        bottomText += EXTENDED_MAP[chord.extended];
-        if(chord.added) {
-          bottomText += ADDED_MAP[chord.added];
-        }
-      } else { // quality != Major
-        if(chord.quality == 'Minor') {
-          bottomText += '-';
-        } else if(chord.quality == 'Diminished') {
-          bottomText += 'O';
-        } else if(chord.quality == 'Augmented') {
-          bottomText += '+';
-        }
-        
-        if(chord.added == 'Major6') {
-          bottomText += '6';
-        } else if(chord.added) {
-          bottomText += ADDED_MAP[chord.added];
+    /**
+     * If the chord is anything besodes a major triad, it'll need extra symbols
+     * to describe quality, suspensions, 7ths, etc. This renders those.
+     * @param {String} bottomText Bottom text to render.
+     * @private
+     */
+    this._renderBottomText = function(bottomText) {
+      var regex = new RegExp(`(${this.viewer.PATHS.delta_char})`, 'g');
+      var split = bottomText.split(regex);
+      var bottomGroup = document.createElementNS(this.viewer.SVG_NS, 'g');
+      group.appendChild(bottomGroup);
+      for(let str of split) {
+        if(!str) continue;
+        let x = rootbb.width + PADDING_RIGHT + bottomGroup.getBBox().width;
+        if(str == this.viewer.PATHS.delta_char) {
+          let path = document.createElementNS(this.viewer.SVG_NS, 'path');
+          path.setAttributeNS(null, 'd',this.viewer.PATHS.delta_path);
+          let orig_height = this.viewer.PATHS.delta_height;
+          let goal_height = (this.viewer.H_HEIGHT * 0.5);
+          let y = -0.5 * this.viewer.H_HEIGHT;
+          let scale = goal_height / orig_height;
+          path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+          bottomGroup.appendChild(path);
+        } else {
+          let text = this.viewer.textToPath(str);
+          let y = 0;
+          let scale = 0.5;
+          text.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+          bottomGroup.appendChild(text);
         }
       }
-      if(chord.suspended) bottomText += chord.suspended;
-      
-      let bottom = this.viewer.textToPath(bottomText);
-      let x = rootbb.width + PADDING_RIGHT;
-      let y = 0;
-      let scale = 0.5;
-      bottom.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
-      group.appendChild(bottom);
+    };
+    
+    // ACCIDENTALS
+    if(chord.rawRoot[1]) {
+      this._renderAccidental(chord.rawRoot[1]);
     }
+    // BOTTOM BITS
+    // If the chord is anything besides a major triad, it needs more bits
+    var bottomText = this._getBottomText(chord);
+    if(bottomText) {
+      this._renderBottomText(bottomText);
+    }
+  
     if(chord.overridingRoot) {
       // @todo scale down group and return a bigger group
     } else {

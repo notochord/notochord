@@ -49,7 +49,7 @@
     this.oligophony.createEvent('Viewer.ready', true);
     //this.oligophony.onEvent('Viewer.ready', this.renderAllMeasures);
     
-    /**
+    /*
      * I keep changing my mind about the prettiest font to use.
      * It's not easy to request fonts from Google as WOFF.
      * @const
@@ -105,8 +105,14 @@
      * @private
      */
     this._svgElem = document.createElementNS(this.SVG_NS, 'svg');
-    this._svgElem.setAttribute('width', this.width);
-    this._svgElem.setAttribute('height', this.height);
+    this._svgElem.setAttributeNS(null, 'width', this.width);
+    this._svgElem.setAttributeNS(null, 'height', this.height);
+    
+    var styledata = require('./viewer.css.js');
+    var style = document.createElementNS(this.SVG_NS, 'style');
+    style.setAttributeNS(null, 'type', 'text/css');
+    style.appendChild(document.createTextNode(styledata));
+    this._svgElem.appendChild(style);
     
     /**
      * Append editor element to a parent element.
