@@ -8,7 +8,7 @@
    * @class
    * @param {Oligophony} oligophony The parent composition.
    * @param {?Number} index Optional: index at which to insert measure.
-   * @param {null|Array.String} chords Optional: Array of chords as Strings.
+   * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
    */
   var Measure = function(oligophony, index, chords) {
     this.oligophony = oligophony;
@@ -130,7 +130,7 @@
      
     /**
      * Database of Oligophony events.
-     * @type {Object.Object}
+     * @type {Object.<Object>}
      * @private
      */
     this._eventsDB = {};
@@ -221,7 +221,7 @@
     
     /**
      * Parse a song from an Array containing nulls (newlines) or Arrays of beats.
-     * @param {Array.null|Array} array The array to parse into a song.
+     * @param {Array.<null, Array>} array The array to parse into a song.
      * @public
      */
     this.parseArray = function(array) {
