@@ -160,13 +160,14 @@
     }
     
     var self = this;
+    var measureIndex = this.measureView.measure.getIndex();
     this.oligophony.onEvent('Player.playBeat', (args) => {
-      if(args.measure == self.measureView.measure && args.beatNumber == self.index) {
+      if(args.measure == measureIndex && args.beat == self.index) {
         self._svgGroup.classList.add('OligophonyPlayedBeat');
       }
     });
     this.oligophony.onEvent('Player.stopBeat', (args) => {
-      if(args.measure == self.measureView.measure && args.beatNumber == self.index) {
+      if(args.measure == measureIndex && args.beat == self.index) {
         self._svgGroup.classList.remove('OligophonyPlayedBeat');
       }
     });

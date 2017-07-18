@@ -10,9 +10,11 @@ var o_options = {
 window.oligophony = new Oligophony(o_options);
 
 var viewer_options = {
-    'width': 1000,
-    'height': 80,
+    'width': 950,
+    'height': 220,
+    'topMargin': 60,
     'rowHeight': 60,
+    'rowYMargin': 10,
     'fontSize': 50
   };
 // a Viewer displays an Oligophony as an SVG.
@@ -26,14 +28,22 @@ var player_options = {
 // a Player plays an Oligophony as audio.
 window.player = new Player(oligophony, player_options);
 
-flyMeToTheMoon = [
-  ['A-7', null, 'A', null],
-  ['D-7', null, null, null],
-  ['G7', null, null, null],
-  ['CM9', null, 'C7', null]
-];
-
-oligophony.parseArray(flyMeToTheMoon);
+flyMeToTheMoon = {
+  'title': 'Fly Me To The Moon',
+  'composer': 'Bart Howard',
+  'chords': [
+    ['A-7', null, 'A7', null],
+    ['D-7', null, null, null],
+    ['G7', null, null, null],
+    ['CM9', null, 'C7', null],
+    null, // newline.
+    ['FM7', null, null, null],
+    ['Bdim7', null, null, null],
+    ['E7b9', null, null, null],
+    ['A-7', null, 'A7', null]
+  ]
+};
+oligophony.import(flyMeToTheMoon)
 
 },{"../src/Oligophony":45,"../src/Player":46,"../src/viewer/Viewer":49}],2:[function(require,module,exports){
 'use strict'
@@ -20801,7 +20811,7 @@ module.exports = tonal;
     
     this.oligophony.dispatchEvent('Measure.create', {measure: this});
   };
-  
+  // @todo: options as @param options.blah
   /**
    * Stores the chord data for a song.
    * @class
@@ -20811,7 +20821,7 @@ module.exports = tonal;
     // handle options
     /**
      * Time signature for the song as an Array of length 2.
-     * @type {Number[2]}
+     * @type {Number[]}
      * @const
      * @public
      */
@@ -20822,6 +20832,7 @@ module.exports = tonal;
      * @type {Number}
      */
     this.transpose = (options && options['transpose']) || 0;
+    // @todo: setTranspose
     
     /**
      * Oligophony's instance of ChordMagic, see that module's documentations for details.
@@ -20944,6 +20955,26 @@ module.exports = tonal;
         }
       }
     };
+    
+    this.createEvent('Oligophony.import', false);
+    
+    // @todo docs!!
+    this.title = '';
+    this.composer = '';
+    /**
+     * Parse a song from an Object.
+     * @param {Object} song The song to load.
+     * @param {String} song.title Title of the song.
+     * @param {String} song.composer Composer of the song.
+     * @param {Array.<null, Array>} song.chords The chords array to parse.
+     * @public
+     */
+    this.import = function(song) {
+      this.title = song.title;
+      this.composer = song.composer;
+      this.parseArray(song.chords);
+      this.dispatchEvent('Oligophony.import', {});
+    };
   };
 
   module.exports = Oligophony;
@@ -20970,7 +21001,7 @@ module.exports = tonal;
      * @type {Number}
      */
     this.beatLength = (60 * 1000) / this.tempo;
-    
+    // @todo: options as @param options.blah
     /**
      * Player's instance of MIDI.js, see that module's documentations for details.
      * @public
@@ -21003,37 +21034,57 @@ module.exports = tonal;
       return chordAsMIDINums;
     };
     
-    var measure = 0;
-    var beat = 0;
-    function playNextChord() {
-      var chord = this.oligophony.measures[measure].getBeat(beat);
-      if(chord) {
-        var chordAsArray = this.chordToArray(chord);
-        for(let note of chordAsArray) {
-          this.MIDI.noteOn(0, note, 100, 0);
-          this.MIDI.noteOff(0, note, 1);
-        }
-        var args = {
-          beatNumber: beat,
-          measureNumber: measure,
-          measure: this.oligophony.measures[measure]
-        };
-        this.oligophony.dispatchEvent('Player.playBeat', args);
-        setTimeout(() => {
-          this.oligophony.dispatchEvent('Player.stopBeat', args);
-        }, this.beatLength);
+    this.playChord = function(chord) {
+      var chordAsArray = this.chordToArray(chord);
+      for(let note of chordAsArray) {
+        this.MIDI.noteOn(0, note, 100, 0);
+        this.MIDI.noteOff(0, note, 1);
       }
+      // Shallow-copy playback so the correct data is dispatched with stopBeat event.
+      var args = Object.assign({}, playback);
+      this.oligophony.dispatchEvent('Player.playBeat', args);
       setTimeout(() => {
-        beat++;
-        if(beat >= this.oligophony.timeSignature[0]) {
-          beat = 0;
-          measure++;
-        }
-        if(measure >= this.oligophony.measures.length) return;
-        playNextChord.call(self);
+        this.oligophony.dispatchEvent('Player.stopBeat', args);
       }, this.beatLength);
-    }
-    this.oligophony.onEvent('Player.ready', () => playNextChord.call(self));
+    };
+    
+    var playback;
+    
+    this.incrementPlayback = function() {
+      playback.beat++;
+      if(playback.beat >= this.oligophony.timeSignature[0]) {
+        playback.beat = 0;
+        playback.measure++;
+      }
+      if(playback.measure < this.oligophony.measures.length) {
+        this.playNextChord();
+      }
+    };
+    
+    this.playNextChord = function() {
+      var measure = this.oligophony.measures[playback.measure];
+      if(measure) {
+        var chord = measure.getBeat(playback.beat);
+        if(chord) {
+          this.playChord(chord);
+        }
+        setTimeout(() => this.incrementPlayback.call(this), this.beatLength);
+      } else {
+        // if there's no measure, it's a newline, so play next beat immediately.
+        this.incrementPlayback();
+      }
+    };
+    
+    // @todo SO MUCH DOCS???? WHAT'S PUBLIC EVEN?
+    
+    this.play = function() {
+      playback = {
+        measure: 0,
+        beat: 0
+      };
+      this.playNextChord();
+    };
+    this.oligophony.onEvent('Player.ready', () => self.play.call(self));
   };
   module.exports = Player;
 })();
@@ -21201,13 +21252,14 @@ module.exports = tonal;
     }
     
     var self = this;
+    var measureIndex = this.measureView.measure.getIndex();
     this.oligophony.onEvent('Player.playBeat', (args) => {
-      if(args.measure == self.measureView.measure && args.beatNumber == self.index) {
+      if(args.measure == measureIndex && args.beat == self.index) {
         self._svgGroup.classList.add('OligophonyPlayedBeat');
       }
     });
     this.oligophony.onEvent('Player.stopBeat', (args) => {
-      if(args.measure == self.measureView.measure && args.beatNumber == self.index) {
+      if(args.measure == measureIndex && args.beat == self.index) {
         self._svgGroup.classList.remove('OligophonyPlayedBeat');
       }
     });
@@ -21331,7 +21383,8 @@ module.exports = tonal;
  * a separate file so that that functionality is only loaded as needed.
  */
 (function() {
-  'use strict';  
+  'use strict';
+  // @todo: options as @param options.blah
   /**
    * Viewer constructor. A Viewer displays an Oligophony.
    * @class
@@ -21352,10 +21405,20 @@ module.exports = tonal;
      */
     this.height = (options && options['height']) || 700;
     /**
+     * Distance above first row of measures, can be user-customized.
+     * @type {Number}
+     */
+    this.topMargin = (options && options['topMargin']) || 60;
+    /**
      * SVG height of each row of measures, can be user-customized.
      * @type {Number}
      */
     this.rowHeight = (options && options['rowHeight']) || 60;
+    /**
+     * Distance between each row of measures, can be user-customized.
+     * @type {Number}
+     */
+    this.rowYMargin = (options && options['rowYMargin']) || 10;
     
     /**
      * Font size for big text (smaller text will be relatively scaled)
@@ -21400,6 +21463,30 @@ module.exports = tonal;
         self.H_HEIGHT = self.textToPath('H').getBBox().height;
         self.oligophony.dispatchEvent('Viewer.ready', {});
       }
+    });
+    
+    this.setTitleAndComposer = function() {
+      var titleText = this.textToPath(this.oligophony.title);
+      this._svgElem.appendChild(titleText);
+      var titleBB = titleText.getBBox();
+      var ttscale = 0.7;
+      var ttx = (this.width - (titleBB.width * ttscale)) / 2;
+      var tty = titleBB.height * ttscale;
+      titleText.setAttributeNS(null, 'transform',`translate(${ttx}, ${tty}) scale(${ttscale})`);
+      
+      var composerText = this.textToPath(this.oligophony.composer);
+      this._svgElem.appendChild(composerText);
+      var composerBB = composerText.getBBox();
+      var ctscale = 0.5;
+      var ctx = (this.width - (composerBB.width * ctscale)) / 2;
+      var cty = tty + this.rowYMargin + (composerBB.height * ctscale);
+      composerText.setAttributeNS(null, 'transform',`translate(${ctx}, ${cty}) scale(${ctscale})`);
+    };
+    
+    this.oligophony.onEvent('Viewer.ready', () => this.setTitleAndComposer.call(self));
+    this.oligophony.onEvent('Oligophony.import', () => {
+      // @todo viewer.ready?? eventDispatched??
+      if(this.font) this.setTitleAndComposer.call(self);
     });
     
     /**
@@ -21486,7 +21573,7 @@ module.exports = tonal;
           row++;
           if(measure === null) continue;
         }
-        let y = this.rowHeight * row;
+        let y = this.topMargin + ((this.rowHeight + this.rowYMargin) * row);
         measure.measureView.setPosition(x,y);
       }
     };

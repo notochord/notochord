@@ -18,7 +18,7 @@
      * @type {Number}
      */
     this.beatLength = (60 * 1000) / this.tempo;
-    
+    // @todo: options as @param options.blah
     /**
      * Player's instance of MIDI.js, see that module's documentations for details.
      * @public
@@ -51,37 +51,57 @@
       return chordAsMIDINums;
     };
     
-    var measure = 0;
-    var beat = 0;
-    function playNextChord() {
-      var chord = this.oligophony.measures[measure].getBeat(beat);
-      if(chord) {
-        var chordAsArray = this.chordToArray(chord);
-        for(let note of chordAsArray) {
-          this.MIDI.noteOn(0, note, 100, 0);
-          this.MIDI.noteOff(0, note, 1);
-        }
-        var args = {
-          beatNumber: beat,
-          measureNumber: measure,
-          measure: this.oligophony.measures[measure]
-        };
-        this.oligophony.dispatchEvent('Player.playBeat', args);
-        setTimeout(() => {
-          this.oligophony.dispatchEvent('Player.stopBeat', args);
-        }, this.beatLength);
+    this.playChord = function(chord) {
+      var chordAsArray = this.chordToArray(chord);
+      for(let note of chordAsArray) {
+        this.MIDI.noteOn(0, note, 100, 0);
+        this.MIDI.noteOff(0, note, 1);
       }
+      // Shallow-copy playback so the correct data is dispatched with stopBeat event.
+      var args = Object.assign({}, playback);
+      this.oligophony.dispatchEvent('Player.playBeat', args);
       setTimeout(() => {
-        beat++;
-        if(beat >= this.oligophony.timeSignature[0]) {
-          beat = 0;
-          measure++;
-        }
-        if(measure >= this.oligophony.measures.length) return;
-        playNextChord.call(self);
+        this.oligophony.dispatchEvent('Player.stopBeat', args);
       }, this.beatLength);
-    }
-    this.oligophony.onEvent('Player.ready', () => playNextChord.call(self));
+    };
+    
+    var playback;
+    
+    this.incrementPlayback = function() {
+      playback.beat++;
+      if(playback.beat >= this.oligophony.timeSignature[0]) {
+        playback.beat = 0;
+        playback.measure++;
+      }
+      if(playback.measure < this.oligophony.measures.length) {
+        this.playNextChord();
+      }
+    };
+    
+    this.playNextChord = function() {
+      var measure = this.oligophony.measures[playback.measure];
+      if(measure) {
+        var chord = measure.getBeat(playback.beat);
+        if(chord) {
+          this.playChord(chord);
+        }
+        setTimeout(() => this.incrementPlayback.call(this), this.beatLength);
+      } else {
+        // if there's no measure, it's a newline, so play next beat immediately.
+        this.incrementPlayback();
+      }
+    };
+    
+    // @todo SO MUCH DOCS???? WHAT'S PUBLIC EVEN?
+    
+    this.play = function() {
+      playback = {
+        measure: 0,
+        beat: 0
+      };
+      this.playNextChord();
+    };
+    this.oligophony.onEvent('Player.ready', () => self.play.call(self));
   };
   module.exports = Player;
 })();

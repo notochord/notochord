@@ -3,7 +3,8 @@
  * a separate file so that that functionality is only loaded as needed.
  */
 (function() {
-  'use strict';  
+  'use strict';
+  // @todo: options as @param options.blah
   /**
    * Viewer constructor. A Viewer displays an Oligophony.
    * @class
@@ -24,10 +25,20 @@
      */
     this.height = (options && options['height']) || 700;
     /**
+     * Distance above first row of measures, can be user-customized.
+     * @type {Number}
+     */
+    this.topMargin = (options && options['topMargin']) || 60;
+    /**
      * SVG height of each row of measures, can be user-customized.
      * @type {Number}
      */
     this.rowHeight = (options && options['rowHeight']) || 60;
+    /**
+     * Distance between each row of measures, can be user-customized.
+     * @type {Number}
+     */
+    this.rowYMargin = (options && options['rowYMargin']) || 10;
     
     /**
      * Font size for big text (smaller text will be relatively scaled)
@@ -72,6 +83,30 @@
         self.H_HEIGHT = self.textToPath('H').getBBox().height;
         self.oligophony.dispatchEvent('Viewer.ready', {});
       }
+    });
+    
+    this.setTitleAndComposer = function() {
+      var titleText = this.textToPath(this.oligophony.title);
+      this._svgElem.appendChild(titleText);
+      var titleBB = titleText.getBBox();
+      var ttscale = 0.7;
+      var ttx = (this.width - (titleBB.width * ttscale)) / 2;
+      var tty = titleBB.height * ttscale;
+      titleText.setAttributeNS(null, 'transform',`translate(${ttx}, ${tty}) scale(${ttscale})`);
+      
+      var composerText = this.textToPath(this.oligophony.composer);
+      this._svgElem.appendChild(composerText);
+      var composerBB = composerText.getBBox();
+      var ctscale = 0.5;
+      var ctx = (this.width - (composerBB.width * ctscale)) / 2;
+      var cty = tty + this.rowYMargin + (composerBB.height * ctscale);
+      composerText.setAttributeNS(null, 'transform',`translate(${ctx}, ${cty}) scale(${ctscale})`);
+    };
+    
+    this.oligophony.onEvent('Viewer.ready', () => this.setTitleAndComposer.call(self));
+    this.oligophony.onEvent('Oligophony.import', () => {
+      // @todo viewer.ready?? eventDispatched??
+      if(this.font) this.setTitleAndComposer.call(self);
     });
     
     /**
@@ -158,7 +193,7 @@
           row++;
           if(measure === null) continue;
         }
-        let y = this.rowHeight * row;
+        let y = this.topMargin + ((this.rowHeight + this.rowYMargin) * row);
         measure.measureView.setPosition(x,y);
       }
     };
