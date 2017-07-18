@@ -90,28 +90,20 @@
     
     this.oligophony.dispatchEvent('Measure.create', {measure: this});
   };
-  // @todo: options as @param options.blah
   /**
    * Stores the chord data for a song.
    * @class
-   * @param {undefined|Object} options Optional configuration for the song.
+   * @param {Object} [options] Optional: configuration for the song.
+   * @param {Number[]} [options.timeSignature=[4,4]] Time signature for the song as an Array of length 2.
+   * @param {Number} [options.transpose=0] Controls transposition.
    */
   var Oligophony = function(options) {
-    // handle options
-    /**
-     * Time signature for the song as an Array of length 2.
-     * @type {Number[]}
-     * @const
-     * @public
-     */
+    // @todo docs for this??
     this.timeSignature = (options && options['timeSignature']) || [4,4];
-    
-    /**
-     * Controls transposition (believe it or not!)
-     * @type {Number}
-     */
     this.transpose = (options && options['transpose']) || 0;
     // @todo: setTranspose
+    this.title = '';
+    this.composer = '';
     
     /**
      * Oligophony's instance of ChordMagic, see that module's documentations for details.
@@ -237,9 +229,6 @@
     
     this.createEvent('Oligophony.import', false);
     
-    // @todo docs!!
-    this.title = '';
-    this.composer = '';
     /**
      * Parse a song from an Object.
      * @param {Object} song The song to load.

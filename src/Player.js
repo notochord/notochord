@@ -3,22 +3,14 @@
    * Player constructor. A Player renders an Oligophony as audio.
    * @class
    * @param {Oligophony} oligophony The Oligophony to play.
-   * @param {undefined|Object} options Optional: options for the Player.
+   * @param {Object} [options] Optional: options for the Player.
+   * @param {Number} [options.tempo=120] Tempo for the player.
    */
   var Player = function(oligophony, options) {
     this.oligophony = oligophony;
-    
-    /**
-     * Tempo for playback, in BPM (beats-per-minute).
-     * @type {Number}
-     */
     this.tempo = (options && options['tempo']) || 120;
-    /**
-     * Length of a beat, in milliseconds.
-     * @type {Number}
-     */
+    // Length of a beat, in milliseconds.
     this.beatLength = (60 * 1000) / this.tempo;
-    // @todo: options as @param options.blah
     /**
      * Player's instance of MIDI.js, see that module's documentations for details.
      * @public

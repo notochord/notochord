@@ -20992,7 +20992,8 @@ module.exports = tonal;
    * Player constructor. A Player renders an Oligophony as audio.
    * @class
    * @param {Oligophony} oligophony The Oligophony to play.
-   * @param {undefined|Object} options Optional: options for the Player.
+   * @param {Object} [options] Optional: options for the Player.
+   * @param {Number} [options.tempo=120] Tempo for the player.
    */
   var Player = function(oligophony, options) {
     this.oligophony = oligophony;
@@ -21407,52 +21408,29 @@ module.exports = tonal;
  */
 (function() {
   'use strict';
-  // @todo: options as @param options.blah
   /**
    * Viewer constructor. A Viewer displays an Oligophony.
    * @class
    * @param {Oligophony} oligophony The Oligophony to display.
-   * @param {undefined|Object} options Optional: options for the Viewer.
+   * @param {Object} [options] Optional: options for the Viewer.
+   * @param {Number} [options.width=1400] SVG width.
+   * @param {Number} [options.topMargin=60] Distance above first row of measures.
+   * @param {Number} [options.rowHeight=60] SVG height of each row of measures.
+   * @param {Number} [options.rowYMargin=10] Distance between each row of measures.
+   * @param {Number} [options.fontSize=50] Font size for big text (smaller text will be relatively scaled).
    */
   var Viewer = function(oligophony, options) {
     this.oligophony = oligophony;
-    
-    /**
-     * SVG width, can be user-customized. May change w/ resize??
-     * @type {Number}
-     */
     this.width = (options && options['width']) || 1400;
-    /**
-     * Distance above first row of measures, can be user-customized.
-     * @type {Number}
-     */
     this.topMargin = (options && options['topMargin']) || 60;
-    /**
-     * SVG height of each row of measures, can be user-customized.
-     * @type {Number}
-     */
     this.rowHeight = (options && options['rowHeight']) || 60;
-    /**
-     * Distance between each row of measures, can be user-customized.
-     * @type {Number}
-     */
     this.rowYMargin = (options && options['rowYMargin']) || 10;
-    
-    /**
-     * Font size for big text (smaller text will be relatively scaled)
-     * @type {Number}
-     */
     this.fontSize = (options && options['fontSize']) || 50;
     
-    /**
-     * SVG width for each measure.
-     * @type {Number}
-     */
+    // SVG width for each measure.
+    // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
     this.colWidth = this.width / 4;
-    /**
-     * SVG distance between beats in a measure.
-     * @type {Number}
-     */
+    // SVG distance between beats in a measure.
     this.beatOffset = this.colWidth / 4;
     
     this.oligophony.createEvent('Viewer.ready', true);
@@ -21461,7 +21439,6 @@ module.exports = tonal;
     /*
      * I keep changing my mind about the prettiest font to use.
      * It's not easy to request fonts from Google as WOFF.
-     * @const
      */
     const FONT_URLS = {
       openSans: 'https://fonts.gstatic.com/s/opensans/v14/cJZKeOuBrn4kERxqtaUH3T8E0i7KZn-EPnyo3HZu7kw.woff',
@@ -21473,10 +21450,7 @@ module.exports = tonal;
       if (err) {
         alert('Could not load font: ' + err);
       } else {
-        /**
-         * opentype.js Font object for whatever our chosen font is.
-         * @type {Font}
-         */
+        // opentype.js Font object for whatever our chosen font is.
         self.font = font;
         self.H_HEIGHT = self.textToPath('H').getBBox().height;
         self.oligophony.dispatchEvent('Viewer.ready', {});
@@ -21500,11 +21474,13 @@ module.exports = tonal;
       var cty = tty + this.rowYMargin + (composerBB.height * ctscale);
       composerText.setAttributeNS(null, 'transform',`translate(${ctx}, ${cty}) scale(${ctscale})`);
     };
-    
-    this.oligophony.onEvent('Viewer.ready', () => this.setTitleAndComposer.call(self));
     this.oligophony.onEvent('Oligophony.import', () => {
       // @todo viewer.ready?? eventDispatched??
-      if(this.font) this.setTitleAndComposer.call(self);
+      if(this.font) {
+        this.setTitleAndComposer.call(self);
+      } else {
+        this.oligophony.onEvent('Viewer.ready', () => this.setTitleAndComposer.call(self));
+      }
     });
     
     /**
