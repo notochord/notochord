@@ -48,6 +48,8 @@
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
         return this.oligophony.tonal.note.midi(note + '4');
       });
+      var bassNote = this.oligophony.tonal.note.midi(chordAsNoteNames[0] + '3');
+      chordAsMIDINums.unshift(bassNote);
       return chordAsMIDINums;
     };
     
