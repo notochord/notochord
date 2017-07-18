@@ -104,6 +104,7 @@
     // @todo: setTranspose
     this.title = '';
     this.composer = '';
+    this.key = 'C'; // stop judging me ok
     
     /**
      * Oligophony's instance of ChordMagic, see that module's documentations for details.
@@ -232,16 +233,18 @@
     /**
      * Parse a song from an Object.
      * @param {Object} song The song to load.
-     * @param {String} song.title Title of the song.
-     * @param {String} song.composer Composer of the song.
-     * @param {Number[]} song.timeSignature Time Signature of the song.
+     * @param {String} [song.title] Title of the song.
+     * @param {String} [song.composer] Composer of the song.
+     * @param {Number[]} [song.timeSignature] Time Signature of the song.
+     * @param {String} [song.key] Original key of the song.
      * @param {Array.<null, Array>} song.chords The chords array to parse.
      * @public
      */
     this.import = function(song) {
-      this.title = song.title;
-      this.composer = song.composer;
-      this.timeSignature = song.timeSignature;
+      if(song.title) this.title = song.title;
+      if(song.composer) this.composer = song.composer;
+      if(song.timeSignature) this.timeSignature = song.timeSignature;
+      if(song.key) this.key = song.key;
       this.parseArray(song.chords);
       this.dispatchEvent('Oligophony.import', {});
     };

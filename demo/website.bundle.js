@@ -21,11 +21,12 @@ window.viewer = new Viewer(oligophony, viewer_options);
 viewer.appendTo(document.querySelector('#oligophonyContainer'));
 
 var player_options = {
-  'tempo': 120
+  'tempo': 120,
+  'autoplay': true
 };
 // a Player plays an Oligophony as audio.
 window.player = new Player(oligophony, player_options);
-// setup play and stop buttons
+// Setup play and stop buttons once the Player is ready.
 oligophony.onEvent('Player.ready', () => {
   document.querySelector('#play').addEventListener('click', player.play);
   document.querySelector('#stop').addEventListener('click', player.stop);
@@ -35,6 +36,7 @@ flyMeToTheMoon = {
   'title': 'Fly Me To The Moon',
   'composer': 'Bart Howard',
   'timeSignature': [4,4],
+  'key': 'C',
   'chords': [
     // Each array is a measure, and each item in an array is a beat.
     // null inside a measure means there's no chord set for that beat.
@@ -20815,28 +20817,21 @@ module.exports = tonal;
     
     this.oligophony.dispatchEvent('Measure.create', {measure: this});
   };
-  // @todo: options as @param options.blah
   /**
    * Stores the chord data for a song.
    * @class
-   * @param {undefined|Object} options Optional configuration for the song.
+   * @param {Object} [options] Optional: configuration for the song.
+   * @param {Number[]} [options.timeSignature=[4,4]] Time signature for the song as an Array of length 2.
+   * @param {Number} [options.transpose=0] Controls transposition.
    */
   var Oligophony = function(options) {
-    // handle options
-    /**
-     * Time signature for the song as an Array of length 2.
-     * @type {Number[]}
-     * @const
-     * @public
-     */
+    // @todo docs for this??
     this.timeSignature = (options && options['timeSignature']) || [4,4];
-    
-    /**
-     * Controls transposition (believe it or not!)
-     * @type {Number}
-     */
     this.transpose = (options && options['transpose']) || 0;
     // @todo: setTranspose
+    this.title = '';
+    this.composer = '';
+    this.key = 'C'; // stop judging me ok
     
     /**
      * Oligophony's instance of ChordMagic, see that module's documentations for details.
@@ -20962,22 +20957,21 @@ module.exports = tonal;
     
     this.createEvent('Oligophony.import', false);
     
-    // @todo docs!!
-    this.title = '';
-    this.composer = '';
     /**
      * Parse a song from an Object.
      * @param {Object} song The song to load.
-     * @param {String} song.title Title of the song.
-     * @param {String} song.composer Composer of the song.
-     * @param {Number[]} song.timeSignature Time Signature of the song.
+     * @param {String} [song.title] Title of the song.
+     * @param {String} [song.composer] Composer of the song.
+     * @param {Number[]} [song.timeSignature] Time Signature of the song.
+     * @param {String} [song.key] Original key of the song.
      * @param {Array.<null, Array>} song.chords The chords array to parse.
      * @public
      */
     this.import = function(song) {
-      this.title = song.title;
-      this.composer = song.composer;
-      this.timeSignature = song.timeSignature;
+      if(song.title) this.title = song.title;
+      if(song.composer) this.composer = song.composer;
+      if(song.timeSignature) this.timeSignature = song.timeSignature;
+      if(song.key) this.key = song.key;
       this.parseArray(song.chords);
       this.dispatchEvent('Oligophony.import', {});
     };
@@ -20994,21 +20988,14 @@ module.exports = tonal;
    * @param {Oligophony} oligophony The Oligophony to play.
    * @param {Object} [options] Optional: options for the Player.
    * @param {Number} [options.tempo=120] Tempo for the player.
+   * @param {Boolean} [options.autoplay=false] Whether to play as soon as possible.
    */
   var Player = function(oligophony, options) {
     this.oligophony = oligophony;
-    
-    /**
-     * Tempo for playback, in BPM (beats-per-minute).
-     * @type {Number}
-     */
     this.tempo = (options && options['tempo']) || 120;
-    /**
-     * Length of a beat, in milliseconds.
-     * @type {Number}
-     */
+    this.autoplay = (options && options['autoplay']) || false;
+    // Length of a beat, in milliseconds.
     this.beatLength = (60 * 1000) / this.tempo;
-    // @todo: options as @param options.blah
     /**
      * Player's instance of MIDI.js, see that module's documentations for details.
      * @public
@@ -21100,7 +21087,17 @@ module.exports = tonal;
       };
       self.playNextChord.call(self);
     };
-    this.oligophony.onEvent('Player.ready', () => self.play.call(self));
+    if(this.autoplay) {
+      this.oligophony.onEvent('Player.ready', () => {
+        if(this.oligophony.title) {
+          this.play();
+        } else {
+          this.oligophony.onEvent('Oligophony.import', () => {
+            self.play.call(self);
+          });
+        }
+      });
+    }
     
     /**
      * Stop playing the Oligophony.

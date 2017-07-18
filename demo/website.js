@@ -20,11 +20,12 @@ window.viewer = new Viewer(oligophony, viewer_options);
 viewer.appendTo(document.querySelector('#oligophonyContainer'));
 
 var player_options = {
-  'tempo': 120
+  'tempo': 120,
+  'autoplay': true
 };
 // a Player plays an Oligophony as audio.
 window.player = new Player(oligophony, player_options);
-// setup play and stop buttons
+// Setup play and stop buttons once the Player is ready.
 oligophony.onEvent('Player.ready', () => {
   document.querySelector('#play').addEventListener('click', player.play);
   document.querySelector('#stop').addEventListener('click', player.stop);
@@ -34,6 +35,7 @@ flyMeToTheMoon = {
   'title': 'Fly Me To The Moon',
   'composer': 'Bart Howard',
   'timeSignature': [4,4],
+  'key': 'C',
   'chords': [
     // Each array is a measure, and each item in an array is a beat.
     // null inside a measure means there's no chord set for that beat.

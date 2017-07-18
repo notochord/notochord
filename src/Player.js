@@ -5,10 +5,12 @@
    * @param {Oligophony} oligophony The Oligophony to play.
    * @param {Object} [options] Optional: options for the Player.
    * @param {Number} [options.tempo=120] Tempo for the player.
+   * @param {Boolean} [options.autoplay=false] Whether to play as soon as possible.
    */
   var Player = function(oligophony, options) {
     this.oligophony = oligophony;
     this.tempo = (options && options['tempo']) || 120;
+    this.autoplay = (options && options['autoplay']) || false;
     // Length of a beat, in milliseconds.
     this.beatLength = (60 * 1000) / this.tempo;
     /**
@@ -102,7 +104,17 @@
       };
       self.playNextChord.call(self);
     };
-    this.oligophony.onEvent('Player.ready', () => self.play.call(self));
+    if(this.autoplay) {
+      this.oligophony.onEvent('Player.ready', () => {
+        if(this.oligophony.title) {
+          this.play();
+        } else {
+          this.oligophony.onEvent('Oligophony.import', () => {
+            self.play.call(self);
+          });
+        }
+      });
+    }
     
     /**
      * Stop playing the Oligophony.

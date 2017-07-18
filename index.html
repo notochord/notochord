@@ -28,6 +28,16 @@
         display: inline-block;
         padding: 10px 25px;
       }
+      #controls {
+        display: inline-block;
+        padding: 20px;
+        background: white;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 5px 5px 3px #ccc;
+      }
+      #controls > * {
+        padding: 15px;
+      }
     </style>
   </head>
   <body>
@@ -41,9 +51,10 @@
       <h2>Example</h2>
       <div id="oligophonyContainer" class="centeredBlock"></div>
       <div id="controls">
-        <button id="play">Play</button>
-        <button id="stop">Stop</button>
-        <select id="Transpose" disabled>
+        <button id="play">&#9654; Play</button>
+        <button id="stop">&#9632; Stop</button>
+        <select id="transpose" disabled>
+          <option>Transpose</option>
         </select>
       </div>
       <p>Here's the code that made that happen:</p>
