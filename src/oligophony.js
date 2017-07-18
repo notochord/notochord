@@ -245,12 +245,14 @@
      * @param {Object} song The song to load.
      * @param {String} song.title Title of the song.
      * @param {String} song.composer Composer of the song.
+     * @param {Number[]} song.timeSignature Time Signature of the song.
      * @param {Array.<null, Array>} song.chords The chords array to parse.
      * @public
      */
     this.import = function(song) {
       this.title = song.title;
       this.composer = song.composer;
+      this.timeSignature = song.timeSignature;
       this.parseArray(song.chords);
       this.dispatchEvent('Oligophony.import', {});
     };

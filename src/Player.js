@@ -60,7 +60,10 @@
         this.MIDI.noteOff(0, note, 1);
       }
       // Shallow-copy playback so the correct data is dispatched with stopBeat event.
-      var args = Object.assign({}, playback);
+      var args = {
+        measure: playback.measure,
+        beat: playback.beat
+      };
       this.oligophony.dispatchEvent('Player.playBeat', args);
       setTimeout(() => {
         this.oligophony.dispatchEvent('Player.stopBeat', args);
@@ -87,23 +90,35 @@
         if(chord) {
           this.playChord(chord);
         }
-        setTimeout(() => this.incrementPlayback.call(this), this.beatLength);
+        playback.timeout = setTimeout(() => this.incrementPlayback.call(this), this.beatLength);
       } else {
         // if there's no measure, it's a newline, so play next beat immediately.
         this.incrementPlayback();
       }
     };
     
-    // @todo SO MUCH DOCS???? WHAT'S PUBLIC EVEN?
-    
+    /**
+     * Play the Oligophony from the beginning.
+     * @public
+     */
     this.play = function() {
+      if(playback && playback.timeout) clearTimeout(playback.timeout);
       playback = {
         measure: 0,
-        beat: 0
+        beat: 0,
+        timeout: null
       };
-      this.playNextChord();
+      self.playNextChord.call(self);
     };
     this.oligophony.onEvent('Player.ready', () => self.play.call(self));
+    
+    /**
+     * Stop playing the Oligophony.
+     * @public
+     */
+    this.stop = function() {
+      if(playback && playback.timeout) clearTimeout(playback.timeout);
+    };
   };
   module.exports = Player;
 })();

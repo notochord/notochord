@@ -4,14 +4,12 @@ const Oligophony = require('../src/Oligophony'),
       Player     = require('../src/Player');
 
 var o_options = {
-    'timeSignature': [4,4],
     'transpose': 3 // the original chords are in A-, transpose up to C-.
   };
 window.oligophony = new Oligophony(o_options);
 
 var viewer_options = {
     'width': 950,
-    'height': 220,
     'topMargin': 60,
     'rowHeight': 60,
     'rowYMargin': 10,
@@ -27,20 +25,26 @@ var player_options = {
 };
 // a Player plays an Oligophony as audio.
 window.player = new Player(oligophony, player_options);
+// setup play and stop buttons
+oligophony.onEvent('Player.ready', () => {
+  document.querySelector('#play').addEventListener('click', player.play);
+  document.querySelector('#stop').addEventListener('click', player.stop);
+});
 
 flyMeToTheMoon = {
   'title': 'Fly Me To The Moon',
   'composer': 'Bart Howard',
+  'timeSignature': [4,4],
   'chords': [
-    ['A-7', null, 'A7', null],
-    ['D-7', null, null, null],
-    ['G7', null, null, null],
-    ['CM9', null, 'C7', null],
+    // Each array is a measure, and each item in an array is a beat.
+    // null inside a measure means there's no chord set for that beat.
+    ['A-7', null, 'A7', null], ['D-7', null, null, null], ['G7', null, null, null], ['CM9', null, 'C7', null],
     null, // newline.
-    ['FM7', null, null, null],
-    ['Bdim7', null, null, null],
-    ['E7b9', null, null, null],
-    ['A-7', null, 'A7', null]
+    ['FM7', null, null, null], ['Bdim7', null, null, null], ['E7b9', null, null, null], ['A-7', null, 'A7', null],
+    null,
+    ['D-7', null, null, null], ['G7', null, null, null], ['CM7', null, 'F7', null], ['Ey', null, 'A7', null],
+    null,
+    ['D-7', null, null, null], ['G7', null, null, null], ['CM7', null, null, null], ['Bdim7', null, 'E7b9', null]
   ]
 };
 oligophony.import(flyMeToTheMoon)
@@ -20966,12 +20970,14 @@ module.exports = tonal;
      * @param {Object} song The song to load.
      * @param {String} song.title Title of the song.
      * @param {String} song.composer Composer of the song.
+     * @param {Number[]} song.timeSignature Time Signature of the song.
      * @param {Array.<null, Array>} song.chords The chords array to parse.
      * @public
      */
     this.import = function(song) {
       this.title = song.title;
       this.composer = song.composer;
+      this.timeSignature = song.timeSignature;
       this.parseArray(song.chords);
       this.dispatchEvent('Oligophony.import', {});
     };
@@ -21043,7 +21049,10 @@ module.exports = tonal;
         this.MIDI.noteOff(0, note, 1);
       }
       // Shallow-copy playback so the correct data is dispatched with stopBeat event.
-      var args = Object.assign({}, playback);
+      var args = {
+        measure: playback.measure,
+        beat: playback.beat
+      };
       this.oligophony.dispatchEvent('Player.playBeat', args);
       setTimeout(() => {
         this.oligophony.dispatchEvent('Player.stopBeat', args);
@@ -21070,23 +21079,35 @@ module.exports = tonal;
         if(chord) {
           this.playChord(chord);
         }
-        setTimeout(() => this.incrementPlayback.call(this), this.beatLength);
+        playback.timeout = setTimeout(() => this.incrementPlayback.call(this), this.beatLength);
       } else {
         // if there's no measure, it's a newline, so play next beat immediately.
         this.incrementPlayback();
       }
     };
     
-    // @todo SO MUCH DOCS???? WHAT'S PUBLIC EVEN?
-    
+    /**
+     * Play the Oligophony from the beginning.
+     * @public
+     */
     this.play = function() {
+      if(playback && playback.timeout) clearTimeout(playback.timeout);
       playback = {
         measure: 0,
-        beat: 0
+        beat: 0,
+        timeout: null
       };
-      this.playNextChord();
+      self.playNextChord.call(self);
     };
     this.oligophony.onEvent('Player.ready', () => self.play.call(self));
+    
+    /**
+     * Stop playing the Oligophony.
+     * @public
+     */
+    this.stop = function() {
+      if(playback && playback.timeout) clearTimeout(playback.timeout);
+    };
   };
   module.exports = Player;
 })();
@@ -21402,11 +21423,6 @@ module.exports = tonal;
      */
     this.width = (options && options['width']) || 1400;
     /**
-     * SVG height, can be user-customized.
-     * @type {Number}
-     */
-    this.height = (options && options['height']) || 700;
-    /**
      * Distance above first row of measures, can be user-customized.
      * @type {Number}
      */
@@ -21516,6 +21532,8 @@ module.exports = tonal;
      * @const
      */
     this.SVG_NS = 'http://www.w3.org/2000/svg';
+    
+    this.height = 700;
     /**
      * The SVG element with which the user will interact.
      * @type {SVGDocument}
@@ -21567,6 +21585,7 @@ module.exports = tonal;
     this.reflow = function() {
       var row = 1;
       var col = 0;
+      var y;
       for(let measure of this.oligophony.measures) {
         let x = this.colWidth * col++;
         if(x + this.colWidth > this.width || measure === null) {
@@ -21575,9 +21594,11 @@ module.exports = tonal;
           row++;
           if(measure === null) continue;
         }
-        let y = this.topMargin + ((this.rowHeight + this.rowYMargin) * row);
+        y = this.topMargin + ((this.rowHeight + this.rowYMargin) * row);
         measure.measureView.setPosition(x,y);
       }
+      this.height = y + this.rowYMargin;
+      this._svgElem.setAttributeNS(null, 'height', this.height);
     };
     this.oligophony.onEvent('Measure.create', () => this.reflow.call(self));
     this.oligophony.onEvent('Oligophony.addNewline', () => this.reflow.call(self));

@@ -20,11 +20,6 @@
      */
     this.width = (options && options['width']) || 1400;
     /**
-     * SVG height, can be user-customized.
-     * @type {Number}
-     */
-    this.height = (options && options['height']) || 700;
-    /**
      * Distance above first row of measures, can be user-customized.
      * @type {Number}
      */
@@ -134,6 +129,8 @@
      * @const
      */
     this.SVG_NS = 'http://www.w3.org/2000/svg';
+    
+    this.height = 700;
     /**
      * The SVG element with which the user will interact.
      * @type {SVGDocument}
@@ -185,6 +182,7 @@
     this.reflow = function() {
       var row = 1;
       var col = 0;
+      var y;
       for(let measure of this.oligophony.measures) {
         let x = this.colWidth * col++;
         if(x + this.colWidth > this.width || measure === null) {
@@ -193,9 +191,11 @@
           row++;
           if(measure === null) continue;
         }
-        let y = this.topMargin + ((this.rowHeight + this.rowYMargin) * row);
+        y = this.topMargin + ((this.rowHeight + this.rowYMargin) * row);
         measure.measureView.setPosition(x,y);
       }
+      this.height = y + this.rowYMargin;
+      this._svgElem.setAttributeNS(null, 'height', this.height);
     };
     this.oligophony.onEvent('Measure.create', () => this.reflow.call(self));
     this.oligophony.onEvent('Oligophony.addNewline', () => this.reflow.call(self));

@@ -3,14 +3,12 @@ const Oligophony = require('../src/Oligophony'),
       Player     = require('../src/Player');
 
 var o_options = {
-    'timeSignature': [4,4],
     'transpose': 3 // the original chords are in A-, transpose up to C-.
   };
 window.oligophony = new Oligophony(o_options);
 
 var viewer_options = {
     'width': 950,
-    'height': 220,
     'topMargin': 60,
     'rowHeight': 60,
     'rowYMargin': 10,
@@ -26,20 +24,26 @@ var player_options = {
 };
 // a Player plays an Oligophony as audio.
 window.player = new Player(oligophony, player_options);
+// setup play and stop buttons
+oligophony.onEvent('Player.ready', () => {
+  document.querySelector('#play').addEventListener('click', player.play);
+  document.querySelector('#stop').addEventListener('click', player.stop);
+});
 
 flyMeToTheMoon = {
   'title': 'Fly Me To The Moon',
   'composer': 'Bart Howard',
+  'timeSignature': [4,4],
   'chords': [
-    ['A-7', null, 'A7', null],
-    ['D-7', null, null, null],
-    ['G7', null, null, null],
-    ['CM9', null, 'C7', null],
+    // Each array is a measure, and each item in an array is a beat.
+    // null inside a measure means there's no chord set for that beat.
+    ['A-7', null, 'A7', null], ['D-7', null, null, null], ['G7', null, null, null], ['CM9', null, 'C7', null],
     null, // newline.
-    ['FM7', null, null, null],
-    ['Bdim7', null, null, null],
-    ['E7b9', null, null, null],
-    ['A-7', null, 'A7', null]
+    ['FM7', null, null, null], ['Bdim7', null, null, null], ['E7b9', null, null, null], ['A-7', null, 'A7', null],
+    null,
+    ['D-7', null, null, null], ['G7', null, null, null], ['CM7', null, 'F7', null], ['Ey', null, 'A7', null],
+    null,
+    ['D-7', null, null, null], ['G7', null, null, null], ['CM7', null, null, null], ['Bdim7', null, 'E7b9', null]
   ]
 };
 oligophony.import(flyMeToTheMoon)
