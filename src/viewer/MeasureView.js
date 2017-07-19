@@ -9,7 +9,7 @@
    */
   var MeasureView = function(viewer, measure) {
     this.viewer = viewer;
-    this.oligophony = this.viewer.oligophony;
+    this.notochord = this.viewer.notochord;
     this.measure = measure;
     
     // link measure back to this
@@ -41,7 +41,7 @@
       if(this._svgGroup.parentNode) {
         this._svgGroup.parentNode.removeChild(this._svgGroup);
       }
-      if(newIndex == this.oligophony.measures.length - 1) {
+      if(newIndex == this.notochord.measures.length - 1) {
         this.viewer._svgElem.appendChild(this._svgGroup);
       } else {
         this.viewer._svgElem.insertBefore(this._svgGroup, newIndex);
@@ -64,7 +64,7 @@
      */
     this.render = function() {
       if(!this.viewer.font) return null;
-      for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
+      for(let i = 0; i < this.notochord.timeSignature[0]; i++) {
         let chord = this.measure.getBeat(i);
         if(chord) {
           let offset = i * this.viewer.beatOffset;
@@ -76,7 +76,7 @@
         }
       }
       
-      this.oligophony.onEvent('Oligophony.transpose', () => {
+      this.notochord.onEvent('Notochord.transpose', () => {
         for(let i in this.beatViews) {
           let beat = this.beatViews[i];
           if(beat) {
@@ -91,7 +91,7 @@
        * @type {SVGPathElement}
        * @private
        */
-      if(this.oligophony.measures[this.measure.getIndex() - 1]) {
+      if(this.notochord.measures[this.measure.getIndex() - 1]) {
         this._leftBar = document.createElementNS(this.viewer.SVG_NS, 'path');
         this._leftBar.setAttributeNS(null, 'd', this.viewer.PATHS.bar);
         let x = -0.25 * this.viewer.beatOffset;
@@ -104,7 +104,7 @@
     };
     this.render();
     var self = this;
-    this.oligophony.onEvent('Viewer.ready', () => this.render.call(self));
+    this.notochord.onEvent('Viewer.ready', () => this.render.call(self));
   };
 
   module.exports = MeasureView;

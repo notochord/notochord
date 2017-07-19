@@ -11,7 +11,7 @@
    */
   var BeatView = function(viewer, measureView, index, xoffset) {
     this.viewer = viewer;
-    this.oligophony = this.viewer.oligophony;
+    this.notochord = this.viewer.notochord;
     this.measureView = measureView;
     this.index = index;
     if(!this.viewer.font) return null;
@@ -170,14 +170,14 @@
     
     var self = this;
     var measureIndex = this.measureView.measure.getIndex();
-    this.oligophony.onEvent('Player.playBeat', (args) => {
+    this.notochord.onEvent('Player.playBeat', (args) => {
       if(args.measure == measureIndex && args.beat == self.index) {
-        self._svgGroup.classList.add('OligophonyPlayedBeat');
+        self._svgGroup.classList.add('NotochordPlayedBeat');
       }
     });
-    this.oligophony.onEvent('Player.stopBeat', (args) => {
+    this.notochord.onEvent('Player.stopBeat', (args) => {
       if(args.measure == measureIndex && args.beat == self.index) {
-        self._svgGroup.classList.remove('OligophonyPlayedBeat');
+        self._svgGroup.classList.remove('NotochordPlayedBeat');
       }
     });
   };

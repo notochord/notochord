@@ -1,4 +1,4 @@
-const Oligophony = require('../src/Oligophony'),
+const Notochord = require('../src/Notochord'),
       Viewer     = require('../src/viewer/Viewer'),
       Player     = require('../src/Player');
 
@@ -9,7 +9,7 @@ var o_options = {
     'transpose': 'Am'
     */
   };
-window.oligophony = new Oligophony(o_options);
+window.notochord = new Notochord(o_options);
 
 var viewer_options = {
     'width': 950,
@@ -18,22 +18,22 @@ var viewer_options = {
     'rowYMargin': 10,
     'fontSize': 50
   };
-// a Viewer displays an Oligophony as an SVG.
-window.viewer = new Viewer(oligophony, viewer_options);
+// a Viewer displays an Notochord as an SVG.
+window.viewer = new Viewer(notochord, viewer_options);
 // add the SVG to the document.
-viewer.appendTo(document.querySelector('#oligophonyContainer'));
+viewer.appendTo(document.querySelector('#notochordContainer'));
 
 var player_options = {
   'tempo': 120,
   'autoplay': true
 };
-// a Player plays an Oligophony as audio.
-window.player = new Player(oligophony, player_options);
+// a Player plays an Notochord as audio.
+window.player = new Player(notochord, player_options);
 // Setup play and stop buttons once the Player is ready.
 document.querySelector('#play').addEventListener('click', player.play);
 document.querySelector('#stop').addEventListener('click', player.stop);
 document.querySelector('#transpose').addEventListener('change', e => {
-  oligophony.setTranspose(document.querySelector('#transpose').value);
+  notochord.setTranspose(document.querySelector('#transpose').value);
 })
 
 flyMeToTheMoon = {
@@ -53,4 +53,4 @@ flyMeToTheMoon = {
     ['D-7', null, null, null], ['G7', null, null, null], ['CM7', null, null, null], ['Bdim7', null, 'E7b9', null]
   ]
 };
-oligophony.import(flyMeToTheMoon)
+notochord.import(flyMeToTheMoon)

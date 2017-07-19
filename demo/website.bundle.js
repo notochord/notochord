@@ -1,5 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-const Oligophony = require('../src/Oligophony'),
+const Notochord = require('../src/Notochord'),
       Viewer     = require('../src/viewer/Viewer'),
       Player     = require('../src/Player');
 
@@ -10,7 +10,7 @@ var o_options = {
     'transpose': 'Am'
     */
   };
-window.oligophony = new Oligophony(o_options);
+window.notochord = new Notochord(o_options);
 
 var viewer_options = {
     'width': 950,
@@ -19,22 +19,22 @@ var viewer_options = {
     'rowYMargin': 10,
     'fontSize': 50
   };
-// a Viewer displays an Oligophony as an SVG.
-window.viewer = new Viewer(oligophony, viewer_options);
+// a Viewer displays an Notochord as an SVG.
+window.viewer = new Viewer(notochord, viewer_options);
 // add the SVG to the document.
-viewer.appendTo(document.querySelector('#oligophonyContainer'));
+viewer.appendTo(document.querySelector('#notochordContainer'));
 
 var player_options = {
   'tempo': 120,
   'autoplay': true
 };
-// a Player plays an Oligophony as audio.
-window.player = new Player(oligophony, player_options);
+// a Player plays an Notochord as audio.
+window.player = new Player(notochord, player_options);
 // Setup play and stop buttons once the Player is ready.
 document.querySelector('#play').addEventListener('click', player.play);
 document.querySelector('#stop').addEventListener('click', player.stop);
 document.querySelector('#transpose').addEventListener('change', e => {
-  oligophony.setTranspose(document.querySelector('#transpose').value);
+  notochord.setTranspose(document.querySelector('#transpose').value);
 })
 
 flyMeToTheMoon = {
@@ -54,9 +54,9 @@ flyMeToTheMoon = {
     ['D-7', null, null, null], ['G7', null, null, null], ['CM7', null, null, null], ['Bdim7', null, 'E7b9', null]
   ]
 };
-oligophony.import(flyMeToTheMoon)
+notochord.import(flyMeToTheMoon)
 
-},{"../src/Oligophony":45,"../src/Player":46,"../src/viewer/Viewer":49}],2:[function(require,module,exports){
+},{"../src/Notochord":45,"../src/Player":46,"../src/viewer/Viewer":49}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -5015,7 +5015,7 @@ return /******/ (function(modules) { // webpackBootstrap
 },{}],23:[function(require,module,exports){
 (function (Buffer){
 /**
- * https://opentype.js.org v0.7.1 | (c) Frederik De Bleser and other contributors | MIT License | Uses tiny-inflate by Devon Govett
+ * https://opentype.js.org v0.7.3 | (c) Frederik De Bleser and other contributors | MIT License | Uses tiny-inflate by Devon Govett
  */
 
 (function (global, factory) {
@@ -9020,7 +9020,7 @@ function entriesToObject(entries) {
             value = values;
         }
 
-        if (o.hasOwnProperty(key)) {
+        if (o.hasOwnProperty(key) && !isNaN(o[key])) {
             throw new Error('Object ' + o + ' already has key ' + key);
         }
 
@@ -16109,7 +16109,7 @@ Font.prototype.getPath = function(text, x, y, fontSize, options) {
 Font.prototype.getPaths = function(text, x, y, fontSize, options) {
     var glyphPaths = [];
     this.forEachGlyph(text, x, y, fontSize, options, function(glyph, gX, gY, gFontSize) {
-        var glyphPath = glyph.getPath(gX, gY, gFontSize);
+        var glyphPath = glyph.getPath(gX, gY, gFontSize, options, this);
         glyphPaths.push(glyphPath);
     });
 
@@ -20731,23 +20731,23 @@ module.exports = tonal;
 
 },{"tonal-array":24,"tonal-chord":25,"tonal-distance":27,"tonal-freq":29,"tonal-harmonizer":30,"tonal-interval":31,"tonal-key":32,"tonal-midi":33,"tonal-notation":34,"tonal-note":35,"tonal-pcset":36,"tonal-pitch":37,"tonal-pitchset":38,"tonal-progression":39,"tonal-range":40,"tonal-scale":41,"tonal-sonority":42,"tonal-transpose":43}],45:[function(require,module,exports){
 /*
- * Code to generate an Oligophony file, which stores the chord data for a song.
+ * Code to generate an Notochord file, which stores the chord data for a song.
  */
 (function() {
   'use strict'; 
   /**
    * Represents a measure of music.
    * @class
-   * @param {Oligophony} oligophony The parent composition.
+   * @param {Notochord} notochord The parent composition.
    * @param {?Number} index Optional: index at which to insert measure.
    * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
    */
-  var Measure = function(oligophony, index, chords) {
-    this.oligophony = oligophony;
+  var Measure = function(notochord, index, chords) {
+    this.notochord = notochord;
     
     // If Measure-related events don't exist yet, register them.
-    this.oligophony.createEvent('Measure.create', false);
-    this.oligophony.createEvent('Measure.move', false);
+    this.notochord.createEvent('Measure.create', false);
+    this.notochord.createEvent('Measure.move', false);
     
     /**
      * Array containing timeSignature[0] ChordMagic chords or nulls.
@@ -20756,11 +20756,11 @@ module.exports = tonal;
      */
     this._beats = [];
     if(!chords) chords = []; // If none given, pass undefined.
-    for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
+    for(let i = 0; i < this.notochord.timeSignature[0]; i++) {
       if(chords[i]) {
         // correct for a bug in chordMagic.
         let corrected = chords[i].replace('-7', 'm7');
-        let parsed = this.oligophony.chordMagic.parse(corrected);
+        let parsed = this.notochord.chordMagic.parse(corrected);
         parsed.raw = chords[i];
         this._beats.push(parsed);
       } else {
@@ -20769,10 +20769,10 @@ module.exports = tonal;
     }
     
     this.getBeat = function(beat) {
-      var transpose = this.oligophony.transpose;
+      var transpose = this.notochord.transpose;
       var oldChord = this._beats[beat];
       if(oldChord) {
-        var out = this.oligophony.chordMagic.transpose(oldChord, transpose);
+        var out = this.notochord.chordMagic.transpose(oldChord, transpose);
         out.raw = oldChord.raw;
         if(transpose) {
           out.rawRoot = out.root;
@@ -20793,20 +20793,20 @@ module.exports = tonal;
      * @public
      */
     this.setIndex = function(_index) {
-      var currentIndex = this.oligophony.measures.indexOf(this);
+      var currentIndex = this.notochord.measures.indexOf(this);
       if(currentIndex != -1) {
-        this.oligophony.measures.splice(currentIndex, 1);
+        this.notochord.measures.splice(currentIndex, 1);
       }
       if(_index > currentIndex) {
-        this.oligophony.measures.splice(_index - 1, 0, this);
+        this.notochord.measures.splice(_index - 1, 0, this);
       } else {
-        this.oligophony.measures.splice(_index, 0, this);
+        this.notochord.measures.splice(_index, 0, this);
       }
-      this.oligophony.dispatchEvent('Measure.move', {measure: this});
+      this.notochord.dispatchEvent('Measure.move', {measure: this});
     };
     
     if(index === null) {
-      this.oligophony.measures.push(this);
+      this.notochord.measures.push(this);
     } else {
       this.setIndex(index);
     }
@@ -20817,10 +20817,10 @@ module.exports = tonal;
      * @public
      */
     this.getIndex = function() {
-      return this.oligophony.measures.indexOf(this);
+      return this.notochord.measures.indexOf(this);
     };
     
-    this.oligophony.dispatchEvent('Measure.create', {measure: this});
+    this.notochord.dispatchEvent('Measure.create', {measure: this});
   };
   /**
    * Stores the chord data for a song.
@@ -20829,7 +20829,7 @@ module.exports = tonal;
    * @param {Number[]} [options.timeSignature=[4,4]] Time signature for the song as an Array of length 2.
    * @param {Number} [options.transpose=0] Controls transposition.
    */
-  var Oligophony = function(options) {
+  var Notochord = function(options) {
     // @todo docs for this??
     this.timeSignature = (options && options['timeSignature']) || [4,4];
     
@@ -20839,12 +20839,12 @@ module.exports = tonal;
     this.key = 'C'; // stop judging me ok
     
     /**
-     * Oligophony's instance of ChordMagic, see that module's documentations for details.
+     * Notochord's instance of ChordMagic, see that module's documentations for details.
      * @public
      */
     this.chordMagic = require('chord-magic');
     /**
-     * Oligophony's instance of Tonal, see that module's documentations for details.
+     * Notochord's instance of Tonal, see that module's documentations for details.
      * @public
      */
     this.tonal = require('tonal');
@@ -20855,13 +20855,13 @@ module.exports = tonal;
      */
      
     /**
-     * Database of Oligophony events.
+     * Database of Notochord events.
      * @type {Object.<Object>}
      * @private
      */
     this._eventsDB = {};
     /**
-     * Register an Oligophony event, if it doesn't already exist.
+     * Register an Notochord event, if it doesn't already exist.
      * @param {String} eventName Name of the event to register.
      * @param {Boolean} oneTime If true, future functions added to the event run immediately.
      * @returns {Object} Object that stores information about the event.
@@ -20911,7 +20911,7 @@ module.exports = tonal;
       return true;
     };
     
-    this.createEvent('Oligophony.transpose', false);
+    this.createEvent('Notochord.transpose', false);
     if(options && options['transpose']) {
       this.setTranspose(options['transpose']);
     } else {
@@ -20939,7 +20939,7 @@ module.exports = tonal;
           }
         }
       }
-      this.dispatchEvent('Oligophony.transpose', {});
+      this.dispatchEvent('Notochord.transpose', {});
     };
     
     
@@ -20961,7 +20961,7 @@ module.exports = tonal;
       return new Measure(this, index, chords);
     };
     
-    this.createEvent('Oligophony.addNewline', false);
+    this.createEvent('Notochord.addNewline', false);
     /**
      * Append a measure to the piece
      * @param {?Number} index Optional: Index for the newline in measures array.
@@ -20973,7 +20973,7 @@ module.exports = tonal;
       } else {
         this.measures.splice(index, 0, null);
       }
-      this.dispatchEvent('Oligophony.addNewline', {});
+      this.dispatchEvent('Notochord.addNewline', {});
     };
     
     /**
@@ -20991,7 +20991,7 @@ module.exports = tonal;
       }
     };
     
-    this.createEvent('Oligophony.import', false);
+    this.createEvent('Notochord.import', false);
     
     /**
      * Parse a song from an Object.
@@ -21009,25 +21009,25 @@ module.exports = tonal;
       if(song.timeSignature) this.timeSignature = song.timeSignature;
       if(song.key) this.key = song.key;
       this.parseArray(song.chords);
-      this.dispatchEvent('Oligophony.import', {});
+      this.dispatchEvent('Notochord.import', {});
     };
   };
 
-  module.exports = Oligophony;
+  module.exports = Notochord;
 })();
 
 },{"chord-magic":11,"tonal":44}],46:[function(require,module,exports){
 (function() {
   /**
-   * Player constructor. A Player renders an Oligophony as audio.
+   * Player constructor. A Player renders an Notochord as audio.
    * @class
-   * @param {Oligophony} oligophony The Oligophony to play.
+   * @param {Notochord} notochord The Notochord to play.
    * @param {Object} [options] Optional: options for the Player.
    * @param {Number} [options.tempo=120] Tempo for the player.
    * @param {Boolean} [options.autoplay=false] Whether to play as soon as possible.
    */
-  var Player = function(oligophony, options) {
-    this.oligophony = oligophony;
+  var Player = function(notochord, options) {
+    this.notochord = notochord;
     this.tempo = (options && options['tempo']) || 120;
     this.autoplay = (options && options['autoplay']) || false;
     // Length of a beat, in milliseconds.
@@ -21038,14 +21038,14 @@ module.exports = tonal;
      */
     this.MIDI = require('midi.js');
     
-    this.oligophony.createEvent('Player.ready', true);
-    this.oligophony.createEvent('Player.playBeat', false);
+    this.notochord.createEvent('Player.ready', true);
+    this.notochord.createEvent('Player.playBeat', false);
     
     var self = this;
     this.MIDI.loadPlugin({
       soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
       onsuccess: function() {
-        self.oligophony.dispatchEvent('Player.ready', {});
+        self.notochord.dispatchEvent('Player.ready', {});
       }
     });
     
@@ -21056,12 +21056,12 @@ module.exports = tonal;
      * @public
      */
     this.chordToArray = function(chord) {
-      var chordAsString = this.oligophony.chordMagic.prettyPrint(chord);
-      var chordAsNoteNames = this.oligophony.tonal.chord(chordAsString);
+      var chordAsString = this.notochord.chordMagic.prettyPrint(chord);
+      var chordAsNoteNames = this.notochord.tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
-        return this.oligophony.tonal.note.midi(note + '4');
+        return this.notochord.tonal.note.midi(note + '4');
       });
-      var bassNote = this.oligophony.tonal.note.midi(chordAsNoteNames[0] + '3');
+      var bassNote = this.notochord.tonal.note.midi(chordAsNoteNames[0] + '3');
       chordAsMIDINums.unshift(bassNote);
       return chordAsMIDINums;
     };
@@ -21077,9 +21077,9 @@ module.exports = tonal;
         measure: playback.measure,
         beat: playback.beat
       };
-      this.oligophony.dispatchEvent('Player.playBeat', args);
+      this.notochord.dispatchEvent('Player.playBeat', args);
       setTimeout(() => {
-        this.oligophony.dispatchEvent('Player.stopBeat', args);
+        this.notochord.dispatchEvent('Player.stopBeat', args);
       }, this.beatLength);
     };
     
@@ -21087,17 +21087,17 @@ module.exports = tonal;
     
     this.incrementPlayback = function() {
       playback.beat++;
-      if(playback.beat >= this.oligophony.timeSignature[0]) {
+      if(playback.beat >= this.notochord.timeSignature[0]) {
         playback.beat = 0;
         playback.measure++;
       }
-      if(playback.measure < this.oligophony.measures.length) {
+      if(playback.measure < this.notochord.measures.length) {
         this.playNextChord();
       }
     };
     
     this.playNextChord = function() {
-      var measure = this.oligophony.measures[playback.measure];
+      var measure = this.notochord.measures[playback.measure];
       if(measure) {
         var chord = measure.getBeat(playback.beat);
         if(chord) {
@@ -21111,7 +21111,7 @@ module.exports = tonal;
     };
     
     /**
-     * Play the Oligophony from the beginning.
+     * Play the Notochord from the beginning.
      * @public
      */
     this.play = function() {
@@ -21124,11 +21124,11 @@ module.exports = tonal;
       self.playNextChord.call(self);
     };
     if(this.autoplay) {
-      this.oligophony.onEvent('Player.ready', () => {
-        if(this.oligophony.title) {
+      this.notochord.onEvent('Player.ready', () => {
+        if(this.notochord.title) {
           this.play();
         } else {
-          this.oligophony.onEvent('Oligophony.import', () => {
+          this.notochord.onEvent('Notochord.import', () => {
             self.play.call(self);
           });
         }
@@ -21136,7 +21136,7 @@ module.exports = tonal;
     }
     
     /**
-     * Stop playing the Oligophony.
+     * Stop playing the Notochord.
      * @public
      */
     this.stop = function() {
@@ -21160,7 +21160,7 @@ module.exports = tonal;
    */
   var BeatView = function(viewer, measureView, index, xoffset) {
     this.viewer = viewer;
-    this.oligophony = this.viewer.oligophony;
+    this.notochord = this.viewer.notochord;
     this.measureView = measureView;
     this.index = index;
     if(!this.viewer.font) return null;
@@ -21319,14 +21319,14 @@ module.exports = tonal;
     
     var self = this;
     var measureIndex = this.measureView.measure.getIndex();
-    this.oligophony.onEvent('Player.playBeat', (args) => {
+    this.notochord.onEvent('Player.playBeat', (args) => {
       if(args.measure == measureIndex && args.beat == self.index) {
-        self._svgGroup.classList.add('OligophonyPlayedBeat');
+        self._svgGroup.classList.add('NotochordPlayedBeat');
       }
     });
-    this.oligophony.onEvent('Player.stopBeat', (args) => {
+    this.notochord.onEvent('Player.stopBeat', (args) => {
       if(args.measure == measureIndex && args.beat == self.index) {
-        self._svgGroup.classList.remove('OligophonyPlayedBeat');
+        self._svgGroup.classList.remove('NotochordPlayedBeat');
       }
     });
   };
@@ -21345,7 +21345,7 @@ module.exports = tonal;
    */
   var MeasureView = function(viewer, measure) {
     this.viewer = viewer;
-    this.oligophony = this.viewer.oligophony;
+    this.notochord = this.viewer.notochord;
     this.measure = measure;
     
     // link measure back to this
@@ -21377,7 +21377,7 @@ module.exports = tonal;
       if(this._svgGroup.parentNode) {
         this._svgGroup.parentNode.removeChild(this._svgGroup);
       }
-      if(newIndex == this.oligophony.measures.length - 1) {
+      if(newIndex == this.notochord.measures.length - 1) {
         this.viewer._svgElem.appendChild(this._svgGroup);
       } else {
         this.viewer._svgElem.insertBefore(this._svgGroup, newIndex);
@@ -21400,7 +21400,7 @@ module.exports = tonal;
      */
     this.render = function() {
       if(!this.viewer.font) return null;
-      for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
+      for(let i = 0; i < this.notochord.timeSignature[0]; i++) {
         let chord = this.measure.getBeat(i);
         if(chord) {
           let offset = i * this.viewer.beatOffset;
@@ -21412,7 +21412,7 @@ module.exports = tonal;
         }
       }
       
-      this.oligophony.onEvent('Oligophony.transpose', () => {
+      this.notochord.onEvent('Notochord.transpose', () => {
         for(let i in this.beatViews) {
           let beat = this.beatViews[i];
           if(beat) {
@@ -21427,7 +21427,7 @@ module.exports = tonal;
        * @type {SVGPathElement}
        * @private
        */
-      if(this.oligophony.measures[this.measure.getIndex() - 1]) {
+      if(this.notochord.measures[this.measure.getIndex() - 1]) {
         this._leftBar = document.createElementNS(this.viewer.SVG_NS, 'path');
         this._leftBar.setAttributeNS(null, 'd', this.viewer.PATHS.bar);
         let x = -0.25 * this.viewer.beatOffset;
@@ -21440,7 +21440,7 @@ module.exports = tonal;
     };
     this.render();
     var self = this;
-    this.oligophony.onEvent('Viewer.ready', () => this.render.call(self));
+    this.notochord.onEvent('Viewer.ready', () => this.render.call(self));
   };
 
   module.exports = MeasureView;
@@ -21454,9 +21454,9 @@ module.exports = tonal;
 (function() {
   'use strict';
   /**
-   * Viewer constructor. A Viewer displays an Oligophony.
+   * Viewer constructor. A Viewer displays an Notochord.
    * @class
-   * @param {Oligophony} oligophony The Oligophony to display.
+   * @param {Notochord} notochord The Notochord to display.
    * @param {Object} [options] Optional: options for the Viewer.
    * @param {Number} [options.width=1400] SVG width.
    * @param {Number} [options.topMargin=60] Distance above first row of measures.
@@ -21464,8 +21464,8 @@ module.exports = tonal;
    * @param {Number} [options.rowYMargin=10] Distance between each row of measures.
    * @param {Number} [options.fontSize=50] Font size for big text (smaller text will be relatively scaled).
    */
-  var Viewer = function(oligophony, options) {
-    this.oligophony = oligophony;
+  var Viewer = function(notochord, options) {
+    this.notochord = notochord;
     this.width = (options && options['width']) || 1400;
     this.topMargin = (options && options['topMargin']) || 60;
     this.rowHeight = (options && options['rowHeight']) || 60;
@@ -21478,8 +21478,8 @@ module.exports = tonal;
     // SVG distance between beats in a measure.
     this.beatOffset = this.colWidth / 4;
     
-    this.oligophony.createEvent('Viewer.ready', true);
-    //this.oligophony.onEvent('Viewer.ready', this.renderAllMeasures);
+    this.notochord.createEvent('Viewer.ready', true);
+    //this.notochord.onEvent('Viewer.ready', this.renderAllMeasures);
     
     /*
      * I keep changing my mind about the prettiest font to use.
@@ -21498,12 +21498,12 @@ module.exports = tonal;
         // opentype.js Font object for whatever our chosen font is.
         self.font = font;
         self.H_HEIGHT = self.textToPath('H').getBBox().height;
-        self.oligophony.dispatchEvent('Viewer.ready', {});
+        self.notochord.dispatchEvent('Viewer.ready', {});
       }
     });
     
     this.setTitleAndComposer = function() {
-      var titleText = this.textToPath(this.oligophony.title);
+      var titleText = this.textToPath(this.notochord.title);
       this._svgElem.appendChild(titleText);
       var titleBB = titleText.getBBox();
       var ttscale = 0.7;
@@ -21511,7 +21511,7 @@ module.exports = tonal;
       var tty = titleBB.height * ttscale;
       titleText.setAttributeNS(null, 'transform',`translate(${ttx}, ${tty}) scale(${ttscale})`);
       
-      var composerText = this.textToPath(this.oligophony.composer);
+      var composerText = this.textToPath(this.notochord.composer);
       this._svgElem.appendChild(composerText);
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;
@@ -21519,12 +21519,12 @@ module.exports = tonal;
       var cty = tty + this.rowYMargin + (composerBB.height * ctscale);
       composerText.setAttributeNS(null, 'transform',`translate(${ctx}, ${cty}) scale(${ctscale})`);
     };
-    this.oligophony.onEvent('Oligophony.import', () => {
+    this.notochord.onEvent('Notochord.import', () => {
       // @todo viewer.ready?? eventDispatched??
       if(this.font) {
         this.setTitleAndComposer.call(self);
       } else {
-        this.oligophony.onEvent('Viewer.ready', () => this.setTitleAndComposer.call(self));
+        this.notochord.onEvent('Viewer.ready', () => this.setTitleAndComposer.call(self));
       }
     });
     
@@ -21584,7 +21584,7 @@ module.exports = tonal;
     this.BeatView = require('./BeatView');
     
     /**
-     * Called by Oligophony to create a MeasureView for a Measure and link them.
+     * Called by Notochord to create a MeasureView for a Measure and link them.
      * @param {Measure} measure The corresponding Measure.
      * @public
      */
@@ -21592,10 +21592,10 @@ module.exports = tonal;
       new this.MeasureView(this, measure);
     };
     // account for measures that already exist
-    for(let measure of this.oligophony.measures) {
+    for(let measure of this.notochord.measures) {
       this.createMeasureView(measure);
     }
-    this.oligophony.onEvent('Measure.create', (args) => {
+    this.notochord.onEvent('Measure.create', (args) => {
       this.createMeasureView(args.measure);
     });
     
@@ -21607,7 +21607,7 @@ module.exports = tonal;
       var row = 1;
       var col = 0;
       var y;
-      for(let measure of this.oligophony.measures) {
+      for(let measure of this.notochord.measures) {
         let x = this.colWidth * col++;
         if(x + this.colWidth > this.width || measure === null) {
           x = 0;
@@ -21621,8 +21621,8 @@ module.exports = tonal;
       this.height = y + this.rowYMargin;
       this._svgElem.setAttributeNS(null, 'height', this.height);
     };
-    this.oligophony.onEvent('Measure.create', () => this.reflow.call(self));
-    this.oligophony.onEvent('Oligophony.addNewline', () => this.reflow.call(self));
+    this.notochord.onEvent('Measure.create', () => this.reflow.call(self));
+    this.notochord.onEvent('Notochord.addNewline', () => this.reflow.call(self));
   };
 
   module.exports = Viewer;
@@ -21639,14 +21639,15 @@ module.exports = {
   'bar': 'M 0,0 0,-100',
   'bar_height': 100,
   'delta_char': '\u0394',
+  // https://commons.wikimedia.org/wiki/File:Greek_uc_delta.svg
   'delta_path': 'M 19.424709,0 9.7665062,21.9805 c -5.31,12.09 -9.70171875,22.1 -9.76171875,22.25 -0.09,0.25 0.90023458,0.2695 19.49023455,0.2695 10.77,0 19.549765,-0.059 19.509765,-0.1191 -0.03,-0.06 -4.209297,-10.07 -9.279297,-22.25 L 20.516506,0 19.965725,0 19.424709,0 Z m -1.308594,10.0117 c 0.06,0 12.718594,30.5984 13.058594,31.5684 0.03,0.09 -5.09,0.1504 -13.5,0.1504 l -13.5585934,0 0.4199218,-0.9688 c 2.2600001,-5.28 13.5200776,-30.75 13.5800776,-30.75 z',
   'delta_height': 44.5
 };
 
 },{}],51:[function(require,module,exports){
 module.exports = `/*<![CDATA[*/
-  .OligophonyPlayedBeat path,
-  .OligophonyPlayedBeat text {
+  .NotochordPlayedBeat path,
+  .NotochordPlayedBeat text {
     fill: lightblue;
   }
 /*]]>*/`;

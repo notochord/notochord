@@ -1,14 +1,14 @@
 (function() {
   /**
-   * Player constructor. A Player renders an Oligophony as audio.
+   * Player constructor. A Player renders an Notochord as audio.
    * @class
-   * @param {Oligophony} oligophony The Oligophony to play.
+   * @param {Notochord} notochord The Notochord to play.
    * @param {Object} [options] Optional: options for the Player.
    * @param {Number} [options.tempo=120] Tempo for the player.
    * @param {Boolean} [options.autoplay=false] Whether to play as soon as possible.
    */
-  var Player = function(oligophony, options) {
-    this.oligophony = oligophony;
+  var Player = function(notochord, options) {
+    this.notochord = notochord;
     this.tempo = (options && options['tempo']) || 120;
     this.autoplay = (options && options['autoplay']) || false;
     // Length of a beat, in milliseconds.
@@ -19,14 +19,14 @@
      */
     this.MIDI = require('midi.js');
     
-    this.oligophony.createEvent('Player.ready', true);
-    this.oligophony.createEvent('Player.playBeat', false);
+    this.notochord.createEvent('Player.ready', true);
+    this.notochord.createEvent('Player.playBeat', false);
     
     var self = this;
     this.MIDI.loadPlugin({
       soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
       onsuccess: function() {
-        self.oligophony.dispatchEvent('Player.ready', {});
+        self.notochord.dispatchEvent('Player.ready', {});
       }
     });
     
@@ -37,12 +37,12 @@
      * @public
      */
     this.chordToArray = function(chord) {
-      var chordAsString = this.oligophony.chordMagic.prettyPrint(chord);
-      var chordAsNoteNames = this.oligophony.tonal.chord(chordAsString);
+      var chordAsString = this.notochord.chordMagic.prettyPrint(chord);
+      var chordAsNoteNames = this.notochord.tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
-        return this.oligophony.tonal.note.midi(note + '4');
+        return this.notochord.tonal.note.midi(note + '4');
       });
-      var bassNote = this.oligophony.tonal.note.midi(chordAsNoteNames[0] + '3');
+      var bassNote = this.notochord.tonal.note.midi(chordAsNoteNames[0] + '3');
       chordAsMIDINums.unshift(bassNote);
       return chordAsMIDINums;
     };
@@ -58,9 +58,9 @@
         measure: playback.measure,
         beat: playback.beat
       };
-      this.oligophony.dispatchEvent('Player.playBeat', args);
+      this.notochord.dispatchEvent('Player.playBeat', args);
       setTimeout(() => {
-        this.oligophony.dispatchEvent('Player.stopBeat', args);
+        this.notochord.dispatchEvent('Player.stopBeat', args);
       }, this.beatLength);
     };
     
@@ -68,17 +68,17 @@
     
     this.incrementPlayback = function() {
       playback.beat++;
-      if(playback.beat >= this.oligophony.timeSignature[0]) {
+      if(playback.beat >= this.notochord.timeSignature[0]) {
         playback.beat = 0;
         playback.measure++;
       }
-      if(playback.measure < this.oligophony.measures.length) {
+      if(playback.measure < this.notochord.measures.length) {
         this.playNextChord();
       }
     };
     
     this.playNextChord = function() {
-      var measure = this.oligophony.measures[playback.measure];
+      var measure = this.notochord.measures[playback.measure];
       if(measure) {
         var chord = measure.getBeat(playback.beat);
         if(chord) {
@@ -92,7 +92,7 @@
     };
     
     /**
-     * Play the Oligophony from the beginning.
+     * Play the Notochord from the beginning.
      * @public
      */
     this.play = function() {
@@ -105,11 +105,11 @@
       self.playNextChord.call(self);
     };
     if(this.autoplay) {
-      this.oligophony.onEvent('Player.ready', () => {
-        if(this.oligophony.title) {
+      this.notochord.onEvent('Player.ready', () => {
+        if(this.notochord.title) {
           this.play();
         } else {
-          this.oligophony.onEvent('Oligophony.import', () => {
+          this.notochord.onEvent('Notochord.import', () => {
             self.play.call(self);
           });
         }
@@ -117,7 +117,7 @@
     }
     
     /**
-     * Stop playing the Oligophony.
+     * Stop playing the Notochord.
      * @public
      */
     this.stop = function() {

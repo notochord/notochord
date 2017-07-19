@@ -1,22 +1,22 @@
 {
-  "name": "oligophony",
+  "name": "notochord",
   "version": "1.0.0",
   "description": "A lead-sheet editor and chord player a la iReal (which you should buy because it's far more useful)",
-  "main": "src/oligophony.js",
+  "main": "src/notochord.js",
   "scripts": {
     "test": "echo \"No tests yet, try building?\"",
     "build": "node build.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrjacobbloom/oligophony.git"
+    "url": "git@github.com:notochord/notochord.git"
   },
   "author": "Jacob Bloom",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mrjacobbloom/oligophony/issues"
+    "url": "https://github.com/notochord/notochord/issues"
   },
-  "homepage": "https://github.com/mrjacobbloom/oligophony#readme",
+  "homepage": "https://github.com/notochord/notochord#readme",
   "devDependencies": {
     "browserify": "^14.4.0",
     "eslint": "^4.2.0",
@@ -25,6 +25,7 @@
   "dependencies": {
     "chord-magic": "1.0.0",
     "midi.js": "0.3.1",
+    "opentype.js": "^0.7.3",
     "tonal": "0.69.7"
   }
 }

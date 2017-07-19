@@ -1,21 +1,21 @@
 /*
- * Code to generate an Oligophony file, which stores the chord data for a song.
+ * Code to generate an Notochord file, which stores the chord data for a song.
  */
 (function() {
   'use strict'; 
   /**
    * Represents a measure of music.
    * @class
-   * @param {Oligophony} oligophony The parent composition.
+   * @param {Notochord} notochord The parent composition.
    * @param {?Number} index Optional: index at which to insert measure.
    * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
    */
-  var Measure = function(oligophony, index, chords) {
-    this.oligophony = oligophony;
+  var Measure = function(notochord, index, chords) {
+    this.notochord = notochord;
     
     // If Measure-related events don't exist yet, register them.
-    this.oligophony.createEvent('Measure.create', false);
-    this.oligophony.createEvent('Measure.move', false);
+    this.notochord.createEvent('Measure.create', false);
+    this.notochord.createEvent('Measure.move', false);
     
     /**
      * Array containing timeSignature[0] ChordMagic chords or nulls.
@@ -24,11 +24,11 @@
      */
     this._beats = [];
     if(!chords) chords = []; // If none given, pass undefined.
-    for(let i = 0; i < this.oligophony.timeSignature[0]; i++) {
+    for(let i = 0; i < this.notochord.timeSignature[0]; i++) {
       if(chords[i]) {
         // correct for a bug in chordMagic.
         let corrected = chords[i].replace('-7', 'm7');
-        let parsed = this.oligophony.chordMagic.parse(corrected);
+        let parsed = this.notochord.chordMagic.parse(corrected);
         parsed.raw = chords[i];
         this._beats.push(parsed);
       } else {
@@ -37,10 +37,10 @@
     }
     
     this.getBeat = function(beat) {
-      var transpose = this.oligophony.transpose;
+      var transpose = this.notochord.transpose;
       var oldChord = this._beats[beat];
       if(oldChord) {
-        var out = this.oligophony.chordMagic.transpose(oldChord, transpose);
+        var out = this.notochord.chordMagic.transpose(oldChord, transpose);
         out.raw = oldChord.raw;
         if(transpose) {
           out.rawRoot = out.root;
@@ -61,20 +61,20 @@
      * @public
      */
     this.setIndex = function(_index) {
-      var currentIndex = this.oligophony.measures.indexOf(this);
+      var currentIndex = this.notochord.measures.indexOf(this);
       if(currentIndex != -1) {
-        this.oligophony.measures.splice(currentIndex, 1);
+        this.notochord.measures.splice(currentIndex, 1);
       }
       if(_index > currentIndex) {
-        this.oligophony.measures.splice(_index - 1, 0, this);
+        this.notochord.measures.splice(_index - 1, 0, this);
       } else {
-        this.oligophony.measures.splice(_index, 0, this);
+        this.notochord.measures.splice(_index, 0, this);
       }
-      this.oligophony.dispatchEvent('Measure.move', {measure: this});
+      this.notochord.dispatchEvent('Measure.move', {measure: this});
     };
     
     if(index === null) {
-      this.oligophony.measures.push(this);
+      this.notochord.measures.push(this);
     } else {
       this.setIndex(index);
     }
@@ -85,10 +85,10 @@
      * @public
      */
     this.getIndex = function() {
-      return this.oligophony.measures.indexOf(this);
+      return this.notochord.measures.indexOf(this);
     };
     
-    this.oligophony.dispatchEvent('Measure.create', {measure: this});
+    this.notochord.dispatchEvent('Measure.create', {measure: this});
   };
   /**
    * Stores the chord data for a song.
@@ -97,7 +97,7 @@
    * @param {Number[]} [options.timeSignature=[4,4]] Time signature for the song as an Array of length 2.
    * @param {Number} [options.transpose=0] Controls transposition.
    */
-  var Oligophony = function(options) {
+  var Notochord = function(options) {
     // @todo docs for this??
     this.timeSignature = (options && options['timeSignature']) || [4,4];
     
@@ -107,12 +107,12 @@
     this.key = 'C'; // stop judging me ok
     
     /**
-     * Oligophony's instance of ChordMagic, see that module's documentations for details.
+     * Notochord's instance of ChordMagic, see that module's documentations for details.
      * @public
      */
     this.chordMagic = require('chord-magic');
     /**
-     * Oligophony's instance of Tonal, see that module's documentations for details.
+     * Notochord's instance of Tonal, see that module's documentations for details.
      * @public
      */
     this.tonal = require('tonal');
@@ -123,13 +123,13 @@
      */
      
     /**
-     * Database of Oligophony events.
+     * Database of Notochord events.
      * @type {Object.<Object>}
      * @private
      */
     this._eventsDB = {};
     /**
-     * Register an Oligophony event, if it doesn't already exist.
+     * Register an Notochord event, if it doesn't already exist.
      * @param {String} eventName Name of the event to register.
      * @param {Boolean} oneTime If true, future functions added to the event run immediately.
      * @returns {Object} Object that stores information about the event.
@@ -179,7 +179,7 @@
       return true;
     };
     
-    this.createEvent('Oligophony.transpose', false);
+    this.createEvent('Notochord.transpose', false);
     if(options && options['transpose']) {
       this.setTranspose(options['transpose']);
     } else {
@@ -207,7 +207,7 @@
           }
         }
       }
-      this.dispatchEvent('Oligophony.transpose', {});
+      this.dispatchEvent('Notochord.transpose', {});
     };
     
     
@@ -229,7 +229,7 @@
       return new Measure(this, index, chords);
     };
     
-    this.createEvent('Oligophony.addNewline', false);
+    this.createEvent('Notochord.addNewline', false);
     /**
      * Append a measure to the piece
      * @param {?Number} index Optional: Index for the newline in measures array.
@@ -241,7 +241,7 @@
       } else {
         this.measures.splice(index, 0, null);
       }
-      this.dispatchEvent('Oligophony.addNewline', {});
+      this.dispatchEvent('Notochord.addNewline', {});
     };
     
     /**
@@ -259,7 +259,7 @@
       }
     };
     
-    this.createEvent('Oligophony.import', false);
+    this.createEvent('Notochord.import', false);
     
     /**
      * Parse a song from an Object.
@@ -277,9 +277,9 @@
       if(song.timeSignature) this.timeSignature = song.timeSignature;
       if(song.key) this.key = song.key;
       this.parseArray(song.chords);
-      this.dispatchEvent('Oligophony.import', {});
+      this.dispatchEvent('Notochord.import', {});
     };
   };
 
-  module.exports = Oligophony;
+  module.exports = Notochord;
 })();

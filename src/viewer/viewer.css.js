@@ -1,6 +1,6 @@
 module.exports = `/*<![CDATA[*/
-  .OligophonyPlayedBeat path,
-  .OligophonyPlayedBeat text {
+  .NotochordPlayedBeat path,
+  .NotochordPlayedBeat text {
     fill: lightblue;
   }
 /*]]>*/`;

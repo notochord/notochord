@@ -5,9 +5,9 @@
 (function() {
   'use strict';
   /**
-   * Viewer constructor. A Viewer displays an Oligophony.
+   * Viewer constructor. A Viewer displays an Notochord.
    * @class
-   * @param {Oligophony} oligophony The Oligophony to display.
+   * @param {Notochord} notochord The Notochord to display.
    * @param {Object} [options] Optional: options for the Viewer.
    * @param {Number} [options.width=1400] SVG width.
    * @param {Number} [options.topMargin=60] Distance above first row of measures.
@@ -15,8 +15,8 @@
    * @param {Number} [options.rowYMargin=10] Distance between each row of measures.
    * @param {Number} [options.fontSize=50] Font size for big text (smaller text will be relatively scaled).
    */
-  var Viewer = function(oligophony, options) {
-    this.oligophony = oligophony;
+  var Viewer = function(notochord, options) {
+    this.notochord = notochord;
     this.width = (options && options['width']) || 1400;
     this.topMargin = (options && options['topMargin']) || 60;
     this.rowHeight = (options && options['rowHeight']) || 60;
@@ -29,8 +29,8 @@
     // SVG distance between beats in a measure.
     this.beatOffset = this.colWidth / 4;
     
-    this.oligophony.createEvent('Viewer.ready', true);
-    //this.oligophony.onEvent('Viewer.ready', this.renderAllMeasures);
+    this.notochord.createEvent('Viewer.ready', true);
+    //this.notochord.onEvent('Viewer.ready', this.renderAllMeasures);
     
     /*
      * I keep changing my mind about the prettiest font to use.
@@ -49,12 +49,12 @@
         // opentype.js Font object for whatever our chosen font is.
         self.font = font;
         self.H_HEIGHT = self.textToPath('H').getBBox().height;
-        self.oligophony.dispatchEvent('Viewer.ready', {});
+        self.notochord.dispatchEvent('Viewer.ready', {});
       }
     });
     
     this.setTitleAndComposer = function() {
-      var titleText = this.textToPath(this.oligophony.title);
+      var titleText = this.textToPath(this.notochord.title);
       this._svgElem.appendChild(titleText);
       var titleBB = titleText.getBBox();
       var ttscale = 0.7;
@@ -62,7 +62,7 @@
       var tty = titleBB.height * ttscale;
       titleText.setAttributeNS(null, 'transform',`translate(${ttx}, ${tty}) scale(${ttscale})`);
       
-      var composerText = this.textToPath(this.oligophony.composer);
+      var composerText = this.textToPath(this.notochord.composer);
       this._svgElem.appendChild(composerText);
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;
@@ -70,12 +70,12 @@
       var cty = tty + this.rowYMargin + (composerBB.height * ctscale);
       composerText.setAttributeNS(null, 'transform',`translate(${ctx}, ${cty}) scale(${ctscale})`);
     };
-    this.oligophony.onEvent('Oligophony.import', () => {
+    this.notochord.onEvent('Notochord.import', () => {
       // @todo viewer.ready?? eventDispatched??
       if(this.font) {
         this.setTitleAndComposer.call(self);
       } else {
-        this.oligophony.onEvent('Viewer.ready', () => this.setTitleAndComposer.call(self));
+        this.notochord.onEvent('Viewer.ready', () => this.setTitleAndComposer.call(self));
       }
     });
     
@@ -135,7 +135,7 @@
     this.BeatView = require('./BeatView');
     
     /**
-     * Called by Oligophony to create a MeasureView for a Measure and link them.
+     * Called by Notochord to create a MeasureView for a Measure and link them.
      * @param {Measure} measure The corresponding Measure.
      * @public
      */
@@ -143,10 +143,10 @@
       new this.MeasureView(this, measure);
     };
     // account for measures that already exist
-    for(let measure of this.oligophony.measures) {
+    for(let measure of this.notochord.measures) {
       this.createMeasureView(measure);
     }
-    this.oligophony.onEvent('Measure.create', (args) => {
+    this.notochord.onEvent('Measure.create', (args) => {
       this.createMeasureView(args.measure);
     });
     
@@ -158,7 +158,7 @@
       var row = 1;
       var col = 0;
       var y;
-      for(let measure of this.oligophony.measures) {
+      for(let measure of this.notochord.measures) {
         let x = this.colWidth * col++;
         if(x + this.colWidth > this.width || measure === null) {
           x = 0;
@@ -172,8 +172,8 @@
       this.height = y + this.rowYMargin;
       this._svgElem.setAttributeNS(null, 'height', this.height);
     };
-    this.oligophony.onEvent('Measure.create', () => this.reflow.call(self));
-    this.oligophony.onEvent('Oligophony.addNewline', () => this.reflow.call(self));
+    this.notochord.onEvent('Measure.create', () => this.reflow.call(self));
+    this.notochord.onEvent('Notochord.addNewline', () => this.reflow.call(self));
   };
 
   module.exports = Viewer;
