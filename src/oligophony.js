@@ -100,7 +100,7 @@
   var Oligophony = function(options) {
     // @todo docs for this??
     this.timeSignature = (options && options['timeSignature']) || [4,4];
-    this.transpose = (options && options['transpose']) || 0;
+    
     this.title = '';
     this.composer = '';
     // the original key of the song, won't change despite transposition.
@@ -180,6 +180,12 @@
     };
     
     this.createEvent('Oligophony.transpose', false);
+    if(options && options['transpose']) {
+      this.setTranspose(options['transpose']);
+    } else {
+      this.transpose = 0;
+    }
+    
     /**
      * Change the transposition.
      * @param {Number|String} transpose Either an integer of semitones or a chord name.

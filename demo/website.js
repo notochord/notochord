@@ -3,7 +3,11 @@ const Oligophony = require('../src/Oligophony'),
       Player     = require('../src/Player');
 
 var o_options = {
-    'transpose': 3 // the original chords are in A-, transpose up to C-.
+    'transpose': 0
+    /* also works:
+    'transpose': 'C'
+    'transpose': 'Am'
+    */
   };
 window.oligophony = new Oligophony(o_options);
 
