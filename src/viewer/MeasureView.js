@@ -68,20 +68,23 @@
         let chord = this.measure.getBeat(i);
         if(chord) {
           let offset = i * this.viewer.beatOffset;
-          let node = new this.viewer.BeatView(chord, this.viewer, this, i, offset);
-          this.beatViews.push({
-            node: node,
-            chord: chord,
-            index: i
-          });
+          let beat = new this.viewer.BeatView(this.viewer, this, i, offset);
+          beat.renderChord(chord);
+          this.beatViews.push(beat);
         } else {
-          this.beatViews.push({
-            node: null,
-            chord: null,
-            index: i
-          });
+          this.beatViews.push(null);
         }
       }
+      
+      this.oligophony.onEvent('Oligophony.transpose', () => {
+        for(let i in this.beatViews) {
+          let beat = this.beatViews[i];
+          if(beat) {
+            let chord = this.measure.getBeat(i);
+            beat.renderChord(chord);
+          }
+        }
+      });
       
       /**
        * Left bar of the measure. Only happens if not the first meassure on the line.

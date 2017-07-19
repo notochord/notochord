@@ -101,9 +101,9 @@
     // @todo docs for this??
     this.timeSignature = (options && options['timeSignature']) || [4,4];
     this.transpose = (options && options['transpose']) || 0;
-    // @todo: setTranspose
     this.title = '';
     this.composer = '';
+    // the original key of the song, won't change despite transposition.
     this.key = 'C'; // stop judging me ok
     
     /**
@@ -177,6 +177,31 @@
         func(event.args);
       }
       return true;
+    };
+    
+    this.createEvent('Oligophony.transpose', false);
+    /**
+     * Change the transposition.
+     * @param {Number|String} transpose Either an integer of semitones or a chord name.
+     */
+    this.setTranspose = function(transpose) {
+      if(Number.isInteger(transpose)) {
+        this.transpose = transpose % 12;
+      } else {
+        let orig_chord = this.chordMagic.parse(this.key);
+        let new_chord = this.chordMagic.parse(transpose);
+        this.transpose = this.tonal.semitones(orig_chord.root + '4', new_chord.root + '4');
+        if(orig_chord.quality != new_chord.quality) {
+          // for example, if the song is in CM and user transposes to Am
+          // assume it's major or minor, if you try to transpose to some other thing I'll cry.
+          if(new_chord.quality == 'Minor') {
+            this.transpose = (this.transpose + 3) % 12;
+          } else {
+            this.transpose = (this.transpose - 3) % 12;
+          }
+        }
+      }
+      this.dispatchEvent('Oligophony.transpose', {});
     };
     
     

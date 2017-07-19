@@ -26,10 +26,11 @@ var player_options = {
 // a Player plays an Oligophony as audio.
 window.player = new Player(oligophony, player_options);
 // Setup play and stop buttons once the Player is ready.
-oligophony.onEvent('Player.ready', () => {
-  document.querySelector('#play').addEventListener('click', player.play);
-  document.querySelector('#stop').addEventListener('click', player.stop);
-});
+document.querySelector('#play').addEventListener('click', player.play);
+document.querySelector('#stop').addEventListener('click', player.stop);
+document.querySelector('#transpose').addEventListener('change', e => {
+  oligophony.setTranspose(document.querySelector('#transpose').value);
+})
 
 flyMeToTheMoon = {
   'title': 'Fly Me To The Moon',

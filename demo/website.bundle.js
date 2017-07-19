@@ -27,10 +27,11 @@ var player_options = {
 // a Player plays an Oligophony as audio.
 window.player = new Player(oligophony, player_options);
 // Setup play and stop buttons once the Player is ready.
-oligophony.onEvent('Player.ready', () => {
-  document.querySelector('#play').addEventListener('click', player.play);
-  document.querySelector('#stop').addEventListener('click', player.stop);
-});
+document.querySelector('#play').addEventListener('click', player.play);
+document.querySelector('#stop').addEventListener('click', player.stop);
+document.querySelector('#transpose').addEventListener('change', e => {
+  oligophony.setTranspose(document.querySelector('#transpose').value);
+})
 
 flyMeToTheMoon = {
   'title': 'Fly Me To The Moon',
@@ -20828,9 +20829,9 @@ module.exports = tonal;
     // @todo docs for this??
     this.timeSignature = (options && options['timeSignature']) || [4,4];
     this.transpose = (options && options['transpose']) || 0;
-    // @todo: setTranspose
     this.title = '';
     this.composer = '';
+    // the original key of the song, won't change despite transposition.
     this.key = 'C'; // stop judging me ok
     
     /**
@@ -20904,6 +20905,31 @@ module.exports = tonal;
         func(event.args);
       }
       return true;
+    };
+    
+    this.createEvent('Oligophony.transpose', false);
+    /**
+     * Change the transposition.
+     * @param {Number|String} transpose Either an integer of semitones or a chord name.
+     */
+    this.setTranspose = function(transpose) {
+      if(Number.isInteger(transpose)) {
+        this.transpose = transpose % 12;
+      } else {
+        let orig_chord = this.chordMagic.parse(this.key);
+        let new_chord = this.chordMagic.parse(transpose);
+        this.transpose = this.tonal.semitones(orig_chord.root + '4', new_chord.root + '4');
+        if(orig_chord.quality != new_chord.quality) {
+          // for example, if the song is in CM and user transposes to Am
+          // assume it's major or minor, if you try to transpose to some other thing I'll cry.
+          if(new_chord.quality == 'Minor') {
+            this.transpose = (this.transpose + 3) % 12;
+          } else {
+            this.transpose = (this.transpose - 3) % 12;
+          }
+        }
+      }
+      this.dispatchEvent('Oligophony.transpose', {});
     };
     
     
@@ -21117,13 +21143,12 @@ module.exports = tonal;
   /**
    * Handles the visual representation of a beat within a MeasureView.
    * @class
-   * @param {Object} chord A ChordMagic chord object to render.
    * @param {Viewer} viewer The Viewer to which the BeatView belongs.
    * @param {MeasureView} measureView The BeatView's parent measureView.
    * @param {Number} index Which beat this represents in the Measure.
    * @param {Number} xoffset The beat's horizontal offset in the MeasureView.
    */
-  var BeatView = function(chord, viewer, measureView, index, xoffset) {
+  var BeatView = function(viewer, measureView, index, xoffset) {
     this.viewer = viewer;
     this.oligophony = this.viewer.oligophony;
     this.measureView = measureView;
@@ -21133,15 +21158,10 @@ module.exports = tonal;
     // Padding between the root of the chord and the accidental/other bits.
     const PADDING_RIGHT = 7;
     
-    var group = document.createElementNS(this.viewer.SVG_NS, 'g');
-    group.setAttributeNS(null, 'transform', `translate(${xoffset}, 0)`);
+    this._svgGroup = document.createElementNS(this.viewer.SVG_NS, 'g');
+    this._svgGroup.setAttributeNS(null, 'transform', `translate(${xoffset}, 0)`);
     // Append right away so we can compute size.
-    this.measureView._svgGroup.appendChild(group);
-    
-    var root = this.viewer.textToPath(chord.rawRoot[0]);
-    group.appendChild(root);
-    
-    var rootbb = root.getBBox();
+    this.measureView._svgGroup.appendChild(this._svgGroup);
     
     /**
      * If the chord is anything besodes a major triad, it'll need extra symbols
@@ -21200,9 +21220,10 @@ module.exports = tonal;
     /**
      * Render an accidental in the correct size and place.
      * @param {String} acc WIth accidental to render: either 'b' or '#'.
+     * @param {SVGRect} rootbb Bounding box of the root.
      * @private
      */
-    this._renderAccidental = function(acc) {
+    this._renderAccidental = function(acc, rootbb) {
       var path = document.createElementNS(this.viewer.SVG_NS, 'path');
       var goal_height = (this.viewer.H_HEIGHT * 0.6);
       var x = rootbb.width + PADDING_RIGHT;
@@ -21219,20 +21240,21 @@ module.exports = tonal;
       }
       let scale = goal_height / orig_height;
       path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
-      group.appendChild(path);
+      this._svgGroup.appendChild(path);
     };
     
     /**
      * If the chord is anything besodes a major triad, it'll need extra symbols
      * to describe quality, suspensions, 7ths, etc. This renders those.
      * @param {String} bottomText Bottom text to render.
+     * @param {SVGRect} rootbb Bounding box of the root.
      * @private
      */
-    this._renderBottomText = function(bottomText) {
+    this._renderBottomText = function(bottomText, rootbb) {
       var regex = new RegExp(`(${this.viewer.PATHS.delta_char})`, 'g');
       var split = bottomText.split(regex);
       var bottomGroup = document.createElementNS(this.viewer.SVG_NS, 'g');
-      group.appendChild(bottomGroup);
+      this._svgGroup.appendChild(bottomGroup);
       for(let str of split) {
         if(!str) continue;
         let x = rootbb.width + PADDING_RIGHT + bottomGroup.getBBox().width;
@@ -21254,23 +21276,36 @@ module.exports = tonal;
         }
       }
     };
+    /**
+     * Render a chord.
+     * @param {Object} chord A ChordMagic chord object to render.
+     */
+    this.renderChord = function(chord) {
+      // delete whatever might be in this._svgGroup
+      while(this._svgGroup.firstChild) this._svgGroup.removeChild(this._svgGroup.firstChild);
+      
+      var root = this.viewer.textToPath(chord.rawRoot[0]);
+      this._svgGroup.appendChild(root);
+      
+      var rootbb = root.getBBox();
+      
+      // ACCIDENTALS
+      if(chord.rawRoot[1]) {
+        this._renderAccidental(chord.rawRoot[1], rootbb);
+      }
+      // BOTTOM BITS
+      // If the chord is anything besides a major triad, it needs more bits
+      var bottomText = this._getBottomText(chord);
+      if(bottomText) {
+        this._renderBottomText(bottomText, rootbb);
+      }
     
-    // ACCIDENTALS
-    if(chord.rawRoot[1]) {
-      this._renderAccidental(chord.rawRoot[1]);
-    }
-    // BOTTOM BITS
-    // If the chord is anything besides a major triad, it needs more bits
-    var bottomText = this._getBottomText(chord);
-    if(bottomText) {
-      this._renderBottomText(bottomText);
-    }
-  
-    if(chord.overridingRoot) {
-      // @todo scale down group and return a bigger group
-    } else {
-      this._svgGroup = group;
-    }
+      /*if(chord.overridingRoot) {
+        // @todo scale down this._svgGroup and return a bigger this._svgGroup
+      } else {
+        
+      }*/
+    };
     
     var self = this;
     var measureIndex = this.measureView.measure.getIndex();
@@ -21359,20 +21394,23 @@ module.exports = tonal;
         let chord = this.measure.getBeat(i);
         if(chord) {
           let offset = i * this.viewer.beatOffset;
-          let node = new this.viewer.BeatView(chord, this.viewer, this, i, offset);
-          this.beatViews.push({
-            node: node,
-            chord: chord,
-            index: i
-          });
+          let beat = new this.viewer.BeatView(this.viewer, this, i, offset);
+          beat.renderChord(chord);
+          this.beatViews.push(beat);
         } else {
-          this.beatViews.push({
-            node: null,
-            chord: null,
-            index: i
-          });
+          this.beatViews.push(null);
         }
       }
+      
+      this.oligophony.onEvent('Oligophony.transpose', () => {
+        for(let i in this.beatViews) {
+          let beat = this.beatViews[i];
+          if(beat) {
+            let chord = this.measure.getBeat(i);
+            beat.renderChord(chord);
+          }
+        }
+      });
       
       /**
        * Left bar of the measure. Only happens if not the first meassure on the line.
