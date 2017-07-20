@@ -1,12 +1,20 @@
 // Notochord.viewer displays an Notochord as an SVG.
-// add the SVG to the document.
+// Add the SVG to the document.
 Notochord.viewer.appendTo(document.querySelector('#notochordContainer'));
+// COnfogure the viewer.
 Notochord.viewer.config({
     'width': 950,
     'topMargin': 60,
     'rowHeight': 60,
     'rowYMargin': 10,
     'fontSize': 50
+  });
+
+// Notochord.player plays a song as audio.
+// Configure the player as well.
+Notochord.player.config({
+    'tempo': 120
+    // Styles coming soon??
   });
 
 // Setup play and stop buttons

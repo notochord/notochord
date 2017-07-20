@@ -1,6 +1,9 @@
 (function() {
   'use strict';
-  var EventSystem = function() {
+  var Events = (function() {
+    // Attach everything public to this object, which is returned at the end.
+    var events = {};
+    
     /*
      * Event system to keep track of things
      * Events take the form 'Measure.create' or 'Viewer.ready' etc.
@@ -11,7 +14,7 @@
      * @type {Object.<Object>}
      * @private
      */
-    this._eventsDB = {};
+    events._eventsDB = {};
     /**
      * Register an Notochord event, if it doesn't already exist.
      * @param {String} eventName Name of the event to register.
@@ -19,16 +22,16 @@
      * @returns {Object} Object that stores information about the event.
      * @public
      */
-    this.create = function(eventName, oneTime) {
-      if(!this._eventsDB[eventName]) {
-        this._eventsDB[eventName] = {
+    events.create = function(eventName, oneTime) {
+      if(!events._eventsDB[eventName]) {
+        events._eventsDB[eventName] = {
           funcs: [],
           dispatchCount: 0,
           oneTime: oneTime,
           args: {}
         };
       }
-      return this._eventsDB[eventName];
+      return events._eventsDB[eventName];
     };
     /**
      * Add a function to run the next time the event is dispatched (or immediately)
@@ -36,9 +39,11 @@
      * @param {Function} func Function to run.
      * @public
      */
-    this.on = function(eventName, func) {
-      var event = this._eventsDB[eventName];
-      if(!event) event = this.create(eventName, false);
+    events.on = function(eventName, func) {
+      var event = events._eventsDB[eventName];
+      if(!event) {
+        event = events.create(eventName, false);
+      }
       if(event.oneTime && event.dispatchCount !== 0) {
         // Pass it any arguments from the first run.
         func(event.args);
@@ -53,8 +58,8 @@
      * @return {Boolean} Whether an event eventName exists.
      * @public
      */
-    this.dispatch = function(eventName, args) {
-      var event = this._eventsDB[eventName];
+    events.dispatch = function(eventName, args) {
+      var event = events._eventsDB[eventName];
       if(!event) return false;
       event.args = args;
       for(let func of event.funcs) {
@@ -62,7 +67,8 @@
       }
       return true;
     };
-  };
+    return events;
+  })();
   
-  module.exports = EventSystem;
+  module.exports = Events;
 })();

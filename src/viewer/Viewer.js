@@ -5,7 +5,7 @@
 (function() {
   'use strict';
   /**
-   * Viewer constructor. A Viewer displays an Notochord.
+   * Viewer constructor. A Viewer displays a Notochord as an SVG.
    * @class
    * @param {Notochord} notochord The Notochord to display.
    */
@@ -51,7 +51,6 @@
     this.config();
     
     notochord.events.create('Viewer.ready', true);
-    //notochord.events.on('Viewer.ready', this.renderAllMeasures);
     
     /*
      * I keep changing my mind about the prettiest font to use.

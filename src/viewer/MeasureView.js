@@ -105,8 +105,6 @@
       this._svgGroup.appendChild(this._leftBar);
     };
     this.render();
-    var self = this;
-    notochord.events.on('notochord.viewer.ready', () => this.render.call(self));
   };
 
   module.exports = MeasureView;

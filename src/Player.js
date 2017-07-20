@@ -3,15 +3,22 @@
    * Player constructor. A Player renders an Notochord as audio.
    * @class
    * @param {Notochord} notochord The Notochord to play.
-   * @param {Object} [options] Optional: options for the Player.
-   * @param {Number} [options.tempo=120] Tempo for the player.
-   * @param {Boolean} [options.autoplay=false] Whether to play as soon as possible.
    */
-  var Player = function(notochord, options) {
-    this.tempo = (options && options['tempo']) || 120;
-    this.autoplay = (options && options['autoplay']) || false;
-    // Length of a beat, in milliseconds.
-    this.beatLength = (60 * 1000) / this.tempo;
+  var Player = function(notochord) {
+    /**
+     * Configure the player.
+     * @param {Object} [options] Optional: options for the Player.
+     * @param {Number} [options.tempo=120] Tempo for the player.
+     * @public
+     */
+    this.config = function(options) {
+      this.stop();
+      this.tempo = (options && options.tempo) || 120;
+      // Length of a beat, in milliseconds.
+      this.beatLength = (60 * 1000) / this.tempo;
+    };
+    this.config();
+    
     /**
      * Player's instance of MIDI.js, see that module's documentations for details.
      * @public
@@ -20,11 +27,14 @@
     
     notochord.events.create('Player.ready', true);
     notochord.events.create('Player.playBeat', false);
+    notochord.events.create('Player.stopBeat', false);
     
     var self = this;
+    var ready = false;
     this.MIDI.loadPlugin({
       soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
       onsuccess: function() {
+        ready = true;
         notochord.events.dispatch('Player.ready', {});
       }
     });
@@ -95,9 +105,7 @@
      * @public
      */
     this.play = function() {
-      // if not ready, wait 'till we're ready. Kinda an abuse of the function
-      // but idc.
-      notochord.events.on('Player.ready', () => {
+      if(ready) {
         self.stop();
         playback = {
           measure: 0,
@@ -105,7 +113,9 @@
           timeout: null
         };
         self.playNextChord.call(self);
-      });
+      } else {
+        notochord.events.on('Player.ready', self.play);
+      }
     };
     
     /**

@@ -20672,107 +20672,100 @@ if (typeof window !== 'undefined') window.Tonal = tonal;
 module.exports = tonal;
 
 },{"tonal-array":23,"tonal-chord":24,"tonal-distance":26,"tonal-freq":28,"tonal-harmonizer":29,"tonal-interval":30,"tonal-key":31,"tonal-midi":32,"tonal-notation":33,"tonal-note":34,"tonal-pcset":35,"tonal-pitch":36,"tonal-pitchset":37,"tonal-progression":38,"tonal-range":39,"tonal-scale":40,"tonal-sonority":41,"tonal-transpose":42}],44:[function(require,module,exports){
-/*
- * Code to generate an Notochord file, which stores the chord data for a song.
- */
 (function() {
   'use strict'; 
   /**
-   * Stores the chord data for a song.
-   * @class
-   * @param {Object} [options] Optional: configuration for the song.
-   * @param {Number[]} [options.timeSignature=[4,4]] Time signature for the song as an Array of length 2.
-   * @param {Number} [options.transpose=0] Controls transposition.
+   * Ties all of the Notochord submodules together.
    */
-  var Notochord = function(options) {
+  var Notochord = (function() {
+    // Attach everything public to this object, which is returned at the end.
+    var notochord = {};
+    
     /**
      * Notochord's instance of ChordMagic, see that module's documentations for details.
      * @public
      */
-    this.chordMagic = require('chord-magic');
+    notochord.chordMagic = require('chord-magic');
     /**
      * Notochord's instance of Tonal, see that module's documentations for details.
      * @public
      */
-    this.tonal = require('tonal');
+    notochord.tonal = require('tonal');
     
+    // Mini-closure to instantiate things.
+    notochord.events = require('./events');
+    
+    // everything refers here to grab the current song
+    notochord.currentSong = null;
+    notochord.events.create('Notochord.load', false);
     
     // Mini-closure to instantiate things.
     {
-      var EventSystem = require('./events');
-      this.events = new EventSystem();
-      
       var Viewer = require('./viewer/viewer');
-      this.viewer = new Viewer(this);
+      notochord.viewer = new Viewer(notochord);
       
       // Bind Song constructor to self.
       var Song = require('./song/song');
-      this.Song = Song(this);
+      notochord.Song = Song(notochord);
       
       var Player = require('./player');
-      this.player = new Player(this);
+      notochord.player = new Player(notochord);
     }
-    
-    // everything refers here to grab the current song
-    this.currentSong = null;
-    this.events.create('Notochord.load', false);
     
     /**
      * Load a Song object.
      * @param {Song} song The Notochord.Song file to load.
      */
-    this.loadSong = function(song) {
-      this.currentSong = song;
-      this.events.dispatch('Notochord.load');
+    notochord.loadSong = function(song) {
+      notochord.currentSong = song;
+      notochord.events.dispatch('Notochord.load');
     };
     
-    this.events.create('Notochord.transpose', false);
-    if(options && options['transpose']) {
-      this.setTranspose(options['transpose']);
-    } else {
-      this.transpose = 0;
-    }
+    notochord.events.create('Notochord.transpose', false);
+    notochord.transpose = 0;
     /**
      * Change the transposition.
      * @param {Number|String} transpose Either an integer of semitones or a chord name.
      */
-    this.setTranspose = function(transpose) {
+    notochord.setTranspose = function(transpose) {
       if(Number.isInteger(transpose)) {
-        this.transpose = transpose % 12;
+        notochord.transpose = transpose % 12;
       } else {
-        let orig_chord = this.chordMagic.parse(this.currentSong.key);
-        let new_chord = this.chordMagic.parse(transpose);
-        this.transpose = this.tonal.semitones(orig_chord.root + '4', new_chord.root + '4');
+        let orig_chord = notochord.chordMagic.parse(notochord.currentSong.key);
+        let new_chord = notochord.chordMagic.parse(transpose);
+        notochord.transpose = notochord.tonal.semitones(orig_chord.root + '4', new_chord.root + '4');
         if(orig_chord.quality != new_chord.quality) {
           // for example, if the song is in CM and user transposes to Am
           // assume it's major or minor, if you try to transpose to some other thing I'll cry.
           if(new_chord.quality == 'Minor') {
-            this.transpose = (this.transpose + 3) % 12;
+            notochord.transpose = (notochord.transpose + 3) % 12;
           } else {
-            this.transpose = (this.transpose - 3) % 12;
+            notochord.transpose = (notochord.transpose - 3) % 12;
           }
         }
       }
-      this.events.dispatch('Notochord.transpose', {});
+      notochord.events.dispatch('Notochord.transpose', {});
     };
-  };
-  
-  // say what you will about unnecessary constructors, the "module pattern" frustrates me.
-  var notochord = new Notochord();
+    
+    return notochord;
+  })();
   
   // prepare to run in browser or export module
   if(window) {
-    window.Notochord = notochord;
+    window.Notochord = Notochord;
   }
   if(module && module.exports) {
-    module.exports = notochord;
+    module.exports = Notochord;
   }
 })();
 
 },{"./events":45,"./player":46,"./song/song":48,"./viewer/viewer":53,"chord-magic":10,"tonal":43}],45:[function(require,module,exports){
 (function() {
   'use strict';
-  var EventSystem = function() {
+  var Events = (function() {
+    // Attach everything public to this object, which is returned at the end.
+    var events = {};
+    
     /*
      * Event system to keep track of things
      * Events take the form 'Measure.create' or 'Viewer.ready' etc.
@@ -20783,7 +20776,7 @@ module.exports = tonal;
      * @type {Object.<Object>}
      * @private
      */
-    this._eventsDB = {};
+    events._eventsDB = {};
     /**
      * Register an Notochord event, if it doesn't already exist.
      * @param {String} eventName Name of the event to register.
@@ -20791,16 +20784,16 @@ module.exports = tonal;
      * @returns {Object} Object that stores information about the event.
      * @public
      */
-    this.create = function(eventName, oneTime) {
-      if(!this._eventsDB[eventName]) {
-        this._eventsDB[eventName] = {
+    events.create = function(eventName, oneTime) {
+      if(!events._eventsDB[eventName]) {
+        events._eventsDB[eventName] = {
           funcs: [],
           dispatchCount: 0,
           oneTime: oneTime,
           args: {}
         };
       }
-      return this._eventsDB[eventName];
+      return events._eventsDB[eventName];
     };
     /**
      * Add a function to run the next time the event is dispatched (or immediately)
@@ -20808,9 +20801,11 @@ module.exports = tonal;
      * @param {Function} func Function to run.
      * @public
      */
-    this.on = function(eventName, func) {
-      var event = this._eventsDB[eventName];
-      if(!event) event = this.create(eventName, false);
+    events.on = function(eventName, func) {
+      var event = events._eventsDB[eventName];
+      if(!event) {
+        event = events.create(eventName, false);
+      }
       if(event.oneTime && event.dispatchCount !== 0) {
         // Pass it any arguments from the first run.
         func(event.args);
@@ -20825,8 +20820,8 @@ module.exports = tonal;
      * @return {Boolean} Whether an event eventName exists.
      * @public
      */
-    this.dispatch = function(eventName, args) {
-      var event = this._eventsDB[eventName];
+    events.dispatch = function(eventName, args) {
+      var event = events._eventsDB[eventName];
       if(!event) return false;
       event.args = args;
       for(let func of event.funcs) {
@@ -20834,9 +20829,10 @@ module.exports = tonal;
       }
       return true;
     };
-  };
+    return events;
+  })();
   
-  module.exports = EventSystem;
+  module.exports = Events;
 })();
 
 },{}],46:[function(require,module,exports){
@@ -20845,15 +20841,20 @@ module.exports = tonal;
    * Player constructor. A Player renders an Notochord as audio.
    * @class
    * @param {Notochord} notochord The Notochord to play.
-   * @param {Object} [options] Optional: options for the Player.
-   * @param {Number} [options.tempo=120] Tempo for the player.
-   * @param {Boolean} [options.autoplay=false] Whether to play as soon as possible.
    */
-  var Player = function(notochord, options) {
-    this.tempo = (options && options['tempo']) || 120;
-    this.autoplay = (options && options['autoplay']) || false;
-    // Length of a beat, in milliseconds.
-    this.beatLength = (60 * 1000) / this.tempo;
+  var Player = function(notochord) {
+    /**
+     * Configure the player.
+     * @param {Object} [options] Optional: options for the Player.
+     * @param {Number} [options.tempo=120] Tempo for the player.
+     * @public
+     */
+    this.config = function(options) {
+      this.stop();
+      this.tempo = (options && options.tempo) || 120;
+      // Length of a beat, in milliseconds.
+      this.beatLength = (60 * 1000) / this.tempo;
+    };
     /**
      * Player's instance of MIDI.js, see that module's documentations for details.
      * @public
@@ -20862,11 +20863,14 @@ module.exports = tonal;
     
     notochord.events.create('Player.ready', true);
     notochord.events.create('Player.playBeat', false);
+    notochord.events.create('Player.stopBeat', false);
     
     var self = this;
+    var ready = false;
     this.MIDI.loadPlugin({
       soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
       onsuccess: function() {
+        ready = true;
         notochord.events.dispatch('Player.ready', {});
       }
     });
@@ -20937,9 +20941,7 @@ module.exports = tonal;
      * @public
      */
     this.play = function() {
-      // if not ready, wait 'till we're ready. Kinda an abuse of the function
-      // but idc.
-      notochord.events.on('Player.ready', () => {
+      if(ready) {
         self.stop();
         playback = {
           measure: 0,
@@ -20947,7 +20949,9 @@ module.exports = tonal;
           timeout: null
         };
         self.playNextChord.call(self);
-      });
+      } else {
+        notochord.events.on('Player.ready', self.play);
+      }
     };
     
     /**
@@ -21419,8 +21423,6 @@ module.exports = tonal;
       this._svgGroup.appendChild(this._leftBar);
     };
     this.render();
-    var self = this;
-    notochord.events.on('notochord.viewer.ready', () => this.render.call(self));
   };
 
   module.exports = MeasureView;
@@ -21458,7 +21460,7 @@ module.exports = `/*<![CDATA[*/
 (function() {
   'use strict';
   /**
-   * Viewer constructor. A Viewer displays an Notochord.
+   * Viewer constructor. A Viewer displays a Notochord as an SVG.
    * @class
    * @param {Notochord} notochord The Notochord to display.
    */
@@ -21504,7 +21506,6 @@ module.exports = `/*<![CDATA[*/
     this.config();
     
     notochord.events.create('Viewer.ready', true);
-    //notochord.events.on('Viewer.ready', this.renderAllMeasures);
     
     /*
      * I keep changing my mind about the prettiest font to use.
