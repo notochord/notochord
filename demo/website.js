@@ -1,16 +1,3 @@
-const Notochord = require('../src/Notochord'),
-      Viewer     = require('../src/viewer/Viewer'),
-      Player     = require('../src/Player');
-
-var o_options = {
-    'transpose': 0
-    /* also works:
-    'transpose': 'C'
-    'transpose': 'Am'
-    */
-  };
-window.notochord = new Notochord(o_options);
-
 var viewer_options = {
     'width': 950,
     'topMargin': 60,
@@ -19,24 +6,24 @@ var viewer_options = {
     'fontSize': 50
   };
 // a Viewer displays an Notochord as an SVG.
-window.viewer = new Viewer(notochord, viewer_options);
+//window.viewer = new Viewer(notochord, viewer_options);
 // add the SVG to the document.
-viewer.appendTo(document.querySelector('#notochordContainer'));
+Notochord.viewer.appendTo(document.querySelector('#notochordContainer'));
+Notochord.viewer.config(viewer_options);
 
 var player_options = {
   'tempo': 120,
   'autoplay': true
 };
-// a Player plays an Notochord as audio.
-window.player = new Player(notochord, player_options);
-// Setup play and stop buttons once the Player is ready.
-document.querySelector('#play').addEventListener('click', player.play);
-document.querySelector('#stop').addEventListener('click', player.stop);
+
+// Setup play and stop buttons
+document.querySelector('#play').addEventListener('click', Notochord.player.play);
+document.querySelector('#stop').addEventListener('click', Notochord.player.stop);
 document.querySelector('#transpose').addEventListener('change', e => {
-  notochord.setTranspose(document.querySelector('#transpose').value);
+  Notochord.setTranspose(document.querySelector('#transpose').value);
 })
 
-flyMeToTheMoon = {
+flyMeToTheMoon = new Notochord.Song({
   'title': 'Fly Me To The Moon',
   'composer': 'Bart Howard',
   'timeSignature': [4,4],
@@ -52,5 +39,6 @@ flyMeToTheMoon = {
     null,
     ['D-7', null, null, null], ['G7', null, null, null], ['CM7', null, null, null], ['Bdim7', null, 'E7b9', null]
   ]
-};
-notochord.import(flyMeToTheMoon)
+});
+Notochord.loadSong(flyMeToTheMoon);
+Notochord.player.play();

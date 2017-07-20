@@ -8,29 +8,50 @@
    * Viewer constructor. A Viewer displays an Notochord.
    * @class
    * @param {Notochord} notochord The Notochord to display.
-   * @param {Object} [options] Optional: options for the Viewer.
-   * @param {Number} [options.width=1400] SVG width.
-   * @param {Number} [options.topMargin=60] Distance above first row of measures.
-   * @param {Number} [options.rowHeight=60] SVG height of each row of measures.
-   * @param {Number} [options.rowYMargin=10] Distance between each row of measures.
-   * @param {Number} [options.fontSize=50] Font size for big text (smaller text will be relatively scaled).
    */
-  var Viewer = function(notochord, options) {
-    this.notochord = notochord;
-    this.width = (options && options['width']) || 1400;
-    this.topMargin = (options && options['topMargin']) || 60;
-    this.rowHeight = (options && options['rowHeight']) || 60;
-    this.rowYMargin = (options && options['rowYMargin']) || 10;
-    this.fontSize = (options && options['fontSize']) || 50;
+  var Viewer = function(notochord) {
+    /**
+     * When generating SVG-related elements in JS, they must be namespaced.
+     * @type {String}
+     * @const
+     */
+    this.SVG_NS = 'http://www.w3.org/2000/svg';
     
-    // SVG width for each measure.
-    // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
-    this.colWidth = this.width / 4;
-    // SVG distance between beats in a measure.
-    this.beatOffset = this.colWidth / 4;
+    /**
+     * The SVG element with which the user will interact.
+     * @type {SVGDocument}
+     * @private
+     */
+    this._svgElem = document.createElementNS(this.SVG_NS, 'svg');
     
-    this.notochord.createEvent('Viewer.ready', true);
-    //this.notochord.onEvent('Viewer.ready', this.renderAllMeasures);
+    /**
+     * Configure the viewer
+     * @param {Object} [options] Optional: options for the Viewer.
+     * @param {Number} [options.width=1400] SVG width.
+     * @param {Number} [options.topMargin=60] Distance above first row of measures.
+     * @param {Number} [options.rowHeight=60] SVG height of each row of measures.
+     * @param {Number} [options.rowYMargin=10] Distance between each row of measures.
+     * @param {Number} [options.fontSize=50] Font size for big text (smaller text will be relatively scaled).
+     */
+    this.config = function(options) {
+      this.width = (options && options['width']) || 1400;
+      this.topMargin = (options && options['topMargin']) || 60;
+      this.rowHeight = (options && options['rowHeight']) || 60;
+      this.rowYMargin = (options && options['rowYMargin']) || 10;
+      this.fontSize = (options && options['fontSize']) || 50;
+      // SVG width for each measure.
+      // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
+      this.colWidth = this.width / 4;
+      // SVG distance between beats in a measure.
+      this.beatOffset = this.colWidth / 4;
+      
+      this._svgElem.setAttributeNS(null, 'width', this.width);
+      this._svgElem.setAttributeNS(null, 'height', this.height || 0);
+    };
+    this.config();
+    
+    notochord.events.create('Viewer.ready', true);
+    //notochord.events.on('Viewer.ready', this.renderAllMeasures);
     
     /*
      * I keep changing my mind about the prettiest font to use.
@@ -49,33 +70,7 @@
         // opentype.js Font object for whatever our chosen font is.
         self.font = font;
         self.H_HEIGHT = self.textToPath('H').getBBox().height;
-        self.notochord.dispatchEvent('Viewer.ready', {});
-      }
-    });
-    
-    this.setTitleAndComposer = function() {
-      var titleText = this.textToPath(this.notochord.title);
-      this._svgElem.appendChild(titleText);
-      var titleBB = titleText.getBBox();
-      var ttscale = 0.7;
-      var ttx = (this.width - (titleBB.width * ttscale)) / 2;
-      var tty = titleBB.height * ttscale;
-      titleText.setAttributeNS(null, 'transform',`translate(${ttx}, ${tty}) scale(${ttscale})`);
-      
-      var composerText = this.textToPath(this.notochord.composer);
-      this._svgElem.appendChild(composerText);
-      var composerBB = composerText.getBBox();
-      var ctscale = 0.5;
-      var ctx = (this.width - (composerBB.width * ctscale)) / 2;
-      var cty = tty + this.rowYMargin + (composerBB.height * ctscale);
-      composerText.setAttributeNS(null, 'transform',`translate(${ctx}, ${cty}) scale(${ctscale})`);
-    };
-    this.notochord.onEvent('Notochord.import', () => {
-      // @todo viewer.ready?? eventDispatched??
-      if(this.font) {
-        this.setTitleAndComposer.call(self);
-      } else {
-        this.notochord.onEvent('Viewer.ready', () => this.setTitleAndComposer.call(self));
+        notochord.events.dispatch('Viewer.ready', {});
       }
     });
     
@@ -98,23 +93,6 @@
      */
     this.PATHS = require('./svg_constants');
     
-    /**
-     * When generating SVG-related elements in JS, they must be namespaced.
-     * @type {String}
-     * @const
-     */
-    this.SVG_NS = 'http://www.w3.org/2000/svg';
-    
-    this.height = 700;
-    /**
-     * The SVG element with which the user will interact.
-     * @type {SVGDocument}
-     * @private
-     */
-    this._svgElem = document.createElementNS(this.SVG_NS, 'svg');
-    this._svgElem.setAttributeNS(null, 'width', this.width);
-    this._svgElem.setAttributeNS(null, 'height', this.height);
-    
     var styledata = require('./viewer.css.js');
     var style = document.createElementNS(this.SVG_NS, 'style');
     style.setAttributeNS(null, 'type', 'text/css');
@@ -131,8 +109,8 @@
     };
     
     // for extensibility.
-    this.MeasureView = require('./MeasureView');
-    this.BeatView = require('./BeatView');
+    this.MeasureView = require('./measureView');
+    this.BeatView = require('./beatView');
     
     /**
      * Called by Notochord to create a MeasureView for a Measure and link them.
@@ -140,25 +118,40 @@
      * @public
      */
     this.createMeasureView = function(measure) {
-      new this.MeasureView(this, measure);
+      if(!measure) return;
+      new this.MeasureView(notochord, measure);
     };
-    // account for measures that already exist
-    for(let measure of this.notochord.measures) {
-      this.createMeasureView(measure);
-    }
-    this.notochord.onEvent('Measure.create', (args) => {
-      this.createMeasureView(args.measure);
-    });
     
     /**
-     * Layout measures and newlines.
+     * Render the songs title and composer.
+     */
+    this.setTitleAndComposer = function() {
+      var titleText = this.textToPath(notochord.currentSong.title);
+      this._svgElem.appendChild(titleText);
+      var titleBB = titleText.getBBox();
+      var ttscale = 0.7;
+      var ttx = (this.width - (titleBB.width * ttscale)) / 2;
+      var tty = titleBB.height * ttscale;
+      titleText.setAttributeNS(null, 'transform',`translate(${ttx}, ${tty}) scale(${ttscale})`);
+      
+      var composerText = this.textToPath(notochord.currentSong.composer);
+      this._svgElem.appendChild(composerText);
+      var composerBB = composerText.getBBox();
+      var ctscale = 0.5;
+      var ctx = (this.width - (composerBB.width * ctscale)) / 2;
+      var cty = tty + this.rowYMargin + (composerBB.height * ctscale);
+      composerText.setAttributeNS(null, 'transform',`translate(${ctx}, ${cty}) scale(${ctscale})`);
+    };
+    
+    /**
+     * Layout measures and newlines in the SVG.
      * @public
      */
     this.reflow = function() {
       var row = 1;
       var col = 0;
       var y;
-      for(let measure of this.notochord.measures) {
+      for(let measure of notochord.currentSong.measures) {
         let x = this.colWidth * col++;
         if(x + this.colWidth > this.width || measure === null) {
           x = 0;
@@ -172,8 +165,23 @@
       this.height = y + this.rowYMargin;
       this._svgElem.setAttributeNS(null, 'height', this.height);
     };
-    this.notochord.onEvent('Measure.create', () => this.reflow.call(self));
-    this.notochord.onEvent('Notochord.addNewline', () => this.reflow.call(self));
+    
+    /**
+     * Renders the current song to the SVG. Runs automatically when a song is loaded.
+     * @private
+     */
+    this.renderSong = function() {
+      // remove previous measure/beat views?
+      for(let measure of notochord.currentSong.measures) {
+        this.createMeasureView(measure);
+      }
+      this.setTitleAndComposer(notochord.currentSong);
+      this.reflow(notochord.currentSong);
+    };
+    
+    notochord.events.on('Notochord.load', () => {
+      notochord.events.on('Viewer.ready', () => this.renderSong.call(self, notochord.currentSong));
+    });
   };
 
   module.exports = Viewer;

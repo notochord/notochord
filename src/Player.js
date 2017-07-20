@@ -8,7 +8,6 @@
    * @param {Boolean} [options.autoplay=false] Whether to play as soon as possible.
    */
   var Player = function(notochord, options) {
-    this.notochord = notochord;
     this.tempo = (options && options['tempo']) || 120;
     this.autoplay = (options && options['autoplay']) || false;
     // Length of a beat, in milliseconds.
@@ -19,14 +18,14 @@
      */
     this.MIDI = require('midi.js');
     
-    this.notochord.createEvent('Player.ready', true);
-    this.notochord.createEvent('Player.playBeat', false);
+    notochord.events.create('Player.ready', true);
+    notochord.events.create('Player.playBeat', false);
     
     var self = this;
     this.MIDI.loadPlugin({
       soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
       onsuccess: function() {
-        self.notochord.dispatchEvent('Player.ready', {});
+        notochord.events.dispatch('Player.ready', {});
       }
     });
     
@@ -37,12 +36,12 @@
      * @public
      */
     this.chordToArray = function(chord) {
-      var chordAsString = this.notochord.chordMagic.prettyPrint(chord);
-      var chordAsNoteNames = this.notochord.tonal.chord(chordAsString);
+      var chordAsString = notochord.chordMagic.prettyPrint(chord);
+      var chordAsNoteNames = notochord.tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
-        return this.notochord.tonal.note.midi(note + '4');
+        return notochord.tonal.note.midi(note + '4');
       });
-      var bassNote = this.notochord.tonal.note.midi(chordAsNoteNames[0] + '3');
+      var bassNote = notochord.tonal.note.midi(chordAsNoteNames[0] + '3');
       chordAsMIDINums.unshift(bassNote);
       return chordAsMIDINums;
     };
@@ -58,9 +57,9 @@
         measure: playback.measure,
         beat: playback.beat
       };
-      this.notochord.dispatchEvent('Player.playBeat', args);
+      notochord.events.dispatch('Player.playBeat', args);
       setTimeout(() => {
-        this.notochord.dispatchEvent('Player.stopBeat', args);
+        notochord.events.dispatch('Player.stopBeat', args);
       }, this.beatLength);
     };
     
@@ -68,17 +67,17 @@
     
     this.incrementPlayback = function() {
       playback.beat++;
-      if(playback.beat >= this.notochord.timeSignature[0]) {
+      if(playback.beat >= notochord.currentSong.timeSignature[0]) {
         playback.beat = 0;
         playback.measure++;
       }
-      if(playback.measure < this.notochord.measures.length) {
+      if(playback.measure < notochord.currentSong.measures.length) {
         this.playNextChord();
       }
     };
     
     this.playNextChord = function() {
-      var measure = this.notochord.measures[playback.measure];
+      var measure = notochord.currentSong.measures[playback.measure];
       if(measure) {
         var chord = measure.getBeat(playback.beat);
         if(chord) {
@@ -96,32 +95,25 @@
      * @public
      */
     this.play = function() {
-      if(playback && playback.timeout) clearTimeout(playback.timeout);
-      playback = {
-        measure: 0,
-        beat: 0,
-        timeout: null
-      };
-      self.playNextChord.call(self);
-    };
-    if(this.autoplay) {
-      this.notochord.onEvent('Player.ready', () => {
-        if(this.notochord.title) {
-          this.play();
-        } else {
-          this.notochord.onEvent('Notochord.import', () => {
-            self.play.call(self);
-          });
-        }
+      // if not ready, wait 'till we're ready. Kinda an abuse of the function
+      // but idc.
+      notochord.events.on('Player.ready', () => {
+        self.stop();
+        playback = {
+          measure: 0,
+          beat: 0,
+          timeout: null
+        };
+        self.playNextChord.call(self);
       });
-    }
+    };
     
     /**
      * Stop playing the Notochord.
      * @public
      */
     this.stop = function() {
-      if(playback && playback.timeout) clearTimeout(playback.timeout);
+      if(playback && playback.timeout) playback.timeout = clearTimeout(playback.timeout);
     };
   };
   module.exports = Player;

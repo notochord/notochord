@@ -1,8 +1,8 @@
 {
   "name": "notochord",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A lead-sheet editor and chord player a la iReal (which you should buy because it's far more useful)",
-  "main": "src/notochord.js",
+  "main": "notochord.js",
   "scripts": {
     "test": "echo \"No tests yet, try building?\"",
     "build": "node build.js"

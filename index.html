@@ -73,11 +73,17 @@
         [this probably isn't displaying because the protocol is file:// -- you can view the code <a href="./demo/website.js">here</a>.]
       </pre>
     </div>
-    <script src="demo/website.bundle.js"></script>
+    <script src="notochord.js"></script>
+    <script src="demo/website.js"></script>
     <script>
-    fetch('./demo/website.js').then(r => r.text()).then(r => {
-      document.querySelector('#code').innerHTML = r;
-    });
+    if(location.protocol.indexOf('file') == -1) {
+      fetch('./demo/website.js').then(r => {
+        if(!r.ok) throw r;
+        return r.text()
+      }).then(r => {
+        document.querySelector('#code').innerHTML = r;
+      }).catch(e => e);
+    }
     </script>
   </body>
 </html>
