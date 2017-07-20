@@ -1,20 +1,13 @@
-var viewer_options = {
+// Notochord.viewer displays an Notochord as an SVG.
+// add the SVG to the document.
+Notochord.viewer.appendTo(document.querySelector('#notochordContainer'));
+Notochord.viewer.config({
     'width': 950,
     'topMargin': 60,
     'rowHeight': 60,
     'rowYMargin': 10,
     'fontSize': 50
-  };
-// a Viewer displays an Notochord as an SVG.
-//window.viewer = new Viewer(notochord, viewer_options);
-// add the SVG to the document.
-Notochord.viewer.appendTo(document.querySelector('#notochordContainer'));
-Notochord.viewer.config(viewer_options);
-
-var player_options = {
-  'tempo': 120,
-  'autoplay': true
-};
+  });
 
 // Setup play and stop buttons
 document.querySelector('#play').addEventListener('click', Notochord.player.play);
