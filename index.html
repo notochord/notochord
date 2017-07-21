@@ -38,6 +38,11 @@
       #controls > * {
         padding: 15px;
       }
+      .leftul {
+        display: inline-block;
+        text-align: left;
+        margin-top: 0;
+      }
     </style>
   </head>
   <body>
@@ -73,6 +78,16 @@
         [this probably isn't displaying because the protocol is file:// -- you can view the code <a href="./demo/website.js">here</a>.]
       </pre>
     </div>
+    <h2>Credit</h2>
+    <ul class="leftul">
+      <li>This uses 2 awesome packages to handle some of the Theory math:  <a href="https://github.com/nolanlawson/chord-magic">ChordMagic</a> and <a href="https://github.com/danigb/tonal">Tonal</a>.</li>
+      <li>Various symbols adapted from images from Wikimedia Commons (all are in the public domain):</li>
+      <ul>
+        <li><a href="https://commons.wikimedia.org/wiki/Category:SVG_musical_notation">Musical symbols</a></li>
+        <li><a href="https://commons.wikimedia.org/wiki/File:Greek_uc_delta.svg">Delta</a></li>
+      </ul>
+      <li>Uses a CommonJS port of <a href="https://github.com/mudcube/MIDI.js">MIDI.js</a> and a JS port of FluidR3_GM.sf2 found <a href="https://github.com/gleitz/midi-js-soundfonts">here</a>.</li>
+    </ul>
     <script src="notochord.js"></script>
     <script src="demo/website.js"></script>
     <script>
