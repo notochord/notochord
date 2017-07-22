@@ -23,15 +23,15 @@
     notochord.player = require('./player');
     notochord.player.attachEvents(notochord.events);
     
+    notochord.viewer = require('./viewer/viewer');
+    notochord.viewer.attachEvents(notochord.events);
+    
     // everything refers here to grab the current song
     notochord.currentSong = null;
     notochord.events.create('Notochord.load', false);
     
     // Mini-closure to instantiate things.
-    {
-      var Viewer = require('./viewer/viewer');
-      notochord.viewer = new Viewer(notochord);
-      
+    {  
       // Bind Song constructor to self.
       var Song = require('./song/song');
       notochord.Song = Song(notochord);
@@ -44,6 +44,7 @@
     notochord.loadSong = function(song) {
       notochord.currentSong = song;
       notochord.player.loadSong(song);
+      notochord.viewer.loadSong(song);
       notochord.events.dispatch('Notochord.load');
     };
     

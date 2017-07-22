@@ -4,20 +4,21 @@
   /**
    * Handles the visual representation of a beat within a MeasureView.
    * @class
-   * @param {Notochord} notochord Notochord.
+   * @param {Object} [events] Notochord.events object.
+   * @param {Object} viewer Notochord.viewer object.
    * @param {MeasureView} measureView The BeatView's parent measureView.
    * @param {Number} index Which beat this represents in the Measure.
    * @param {Number} xoffset The beat's horizontal offset in the MeasureView.
    */
-  var BeatView = function(notochord, measureView, index, xoffset) {
+  var BeatView = function(events, viewer, measureView, index, xoffset) {
     this.measureView = measureView;
     this.index = index;
-    if(!notochord.viewer.font) return null;
+    if(!viewer.font) return null;
     
     // Padding between the root of the chord and the accidental/other bits.
     const PADDING_RIGHT = 7;
     
-    this._svgGroup = document.createElementNS(notochord.viewer.SVG_NS, 'g');
+    this._svgGroup = document.createElementNS(viewer.SVG_NS, 'g');
     this._svgGroup.setAttributeNS(null, 'transform', `translate(${xoffset}, 0)`);
     // Append right away so we can compute size.
     this.measureView._svgGroup.appendChild(this._svgGroup);
@@ -41,15 +42,15 @@
         };
         if(chord.extended) {
           const EXTENDED_MAP = {
-            'Major7': notochord.viewer.PATHS.delta_char,
+            'Major7': viewer.PATHS.delta_char,
             'Minor7': '-7',
             'Dominant7': '7',
             'Diminished7': 'O7',
-            'Major9': notochord.viewer.PATHS.delta_char + '9',
-            'Major11': notochord.viewer.PATHS.delta_char + '11',
-            'Major13': notochord.viewer.PATHS.delta_char + '13',
+            'Major9': viewer.PATHS.delta_char + '9',
+            'Major11': viewer.PATHS.delta_char + '11',
+            'Major13': viewer.PATHS.delta_char + '13',
             'AugmentedDominant7': '+7',
-            'AugmentedMajor7': '+' + notochord.viewer.PATHS.delta_char + '7',
+            'AugmentedMajor7': '+' + viewer.PATHS.delta_char + '7',
             'Minor9': '-9'
           };
           bottomText += EXTENDED_MAP[chord.extended];
@@ -83,19 +84,19 @@
      * @private
      */
     this._renderAccidental = function(acc, rootbb) {
-      var path = document.createElementNS(notochord.viewer.SVG_NS, 'path');
-      var goal_height = (notochord.viewer.H_HEIGHT * 0.6);
+      var path = document.createElementNS(viewer.SVG_NS, 'path');
+      var goal_height = (viewer.H_HEIGHT * 0.6);
       var x = rootbb.width + PADDING_RIGHT;
       var y;
       var orig_height;
       if(acc == '#') {
-        path.setAttributeNS(null, 'd',notochord.viewer.PATHS.sharp);
-        orig_height = notochord.viewer.PATHS.sharp_height;
-        y = -0.6 * notochord.viewer.H_HEIGHT;
+        path.setAttributeNS(null, 'd',viewer.PATHS.sharp);
+        orig_height = viewer.PATHS.sharp_height;
+        y = -0.6 * viewer.H_HEIGHT;
       } else {
-        path.setAttributeNS(null, 'd',notochord.viewer.PATHS.flat);
-        orig_height = notochord.viewer.PATHS.flat_height;
-        y = (-1 * goal_height) - (0.6 * notochord.viewer.H_HEIGHT);
+        path.setAttributeNS(null, 'd',viewer.PATHS.flat);
+        orig_height = viewer.PATHS.flat_height;
+        y = (-1 * goal_height) - (0.6 * viewer.H_HEIGHT);
       }
       let scale = goal_height / orig_height;
       path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
@@ -110,24 +111,24 @@
      * @private
      */
     this._renderBottomText = function(bottomText, rootbb) {
-      var regex = new RegExp(`(${notochord.viewer.PATHS.delta_char})`, 'g');
+      var regex = new RegExp(`(${viewer.PATHS.delta_char})`, 'g');
       var split = bottomText.split(regex);
-      var bottomGroup = document.createElementNS(notochord.viewer.SVG_NS, 'g');
+      var bottomGroup = document.createElementNS(viewer.SVG_NS, 'g');
       this._svgGroup.appendChild(bottomGroup);
       for(let str of split) {
         if(!str) continue;
         let x = rootbb.width + PADDING_RIGHT + bottomGroup.getBBox().width;
-        if(str == notochord.viewer.PATHS.delta_char) {
-          let path = document.createElementNS(notochord.viewer.SVG_NS, 'path');
-          path.setAttributeNS(null, 'd',notochord.viewer.PATHS.delta_path);
-          let orig_height = notochord.viewer.PATHS.delta_height;
-          let goal_height = (notochord.viewer.H_HEIGHT * 0.5);
-          let y = -0.5 * notochord.viewer.H_HEIGHT;
+        if(str == viewer.PATHS.delta_char) {
+          let path = document.createElementNS(viewer.SVG_NS, 'path');
+          path.setAttributeNS(null, 'd',viewer.PATHS.delta_path);
+          let orig_height = viewer.PATHS.delta_height;
+          let goal_height = (viewer.H_HEIGHT * 0.5);
+          let y = -0.5 * viewer.H_HEIGHT;
           let scale = goal_height / orig_height;
           path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
           bottomGroup.appendChild(path);
         } else {
-          let text = notochord.viewer.textToPath(str);
+          let text = viewer.textToPath(str);
           let y = 0;
           let scale = 0.5;
           text.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
@@ -143,7 +144,7 @@
       // delete whatever might be in this._svgGroup
       while(this._svgGroup.firstChild) this._svgGroup.removeChild(this._svgGroup.firstChild);
       
-      var root = notochord.viewer.textToPath(chord.rawRoot[0]);
+      var root = viewer.textToPath(chord.rawRoot[0]);
       this._svgGroup.appendChild(root);
       
       var rootbb = root.getBBox();
@@ -168,16 +169,18 @@
     
     var self = this;
     var measureIndex = this.measureView.measure.getIndex();
-    notochord.events.on('Player.playBeat', (args) => {
-      if(args.measure == measureIndex && args.beat == self.index) {
-        self._svgGroup.classList.add('NotochordPlayedBeat');
-      }
-    });
-    notochord.events.on('Player.stopBeat', (args) => {
-      if(args.measure == measureIndex && args.beat == self.index) {
-        self._svgGroup.classList.remove('NotochordPlayedBeat');
-      }
-    });
+    if(events) {
+      events.on('Player.playBeat', (args) => {
+        if(args.measure == measureIndex && args.beat == self.index) {
+          self._svgGroup.classList.add('NotochordPlayedBeat');
+        }
+      });
+      events.on('Player.stopBeat', (args) => {
+        if(args.measure == measureIndex && args.beat == self.index) {
+          self._svgGroup.classList.remove('NotochordPlayedBeat');
+        }
+      });
+    }
   };
   module.exports = BeatView;
 })();

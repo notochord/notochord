@@ -16,6 +16,7 @@
      * @private
      */
     this._beats = [];
+    this.length = song.timeSignature[0];
     if(!chords) chords = []; // If none given, pass undefined.
     for(let i = 0; i < song.timeSignature[0]; i++) {
       if(chords[i]) {
