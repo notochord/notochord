@@ -3,12 +3,12 @@
   /**
    * Represents a measure of music.
    * @class
-   * @param {Notochord} notochord Notochord.
    * @param {Song} song The song the Measure belongs to.
+   * @param {Object} chordMagic A library that helps with parsing chords and things.
    * @param {?Number} index Optional: index at which to insert measure.
    * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
    */
-  var Measure = function(notochord, song, index, chords) {
+  var Measure = function(song, chordMagic, index, chords) {
     
     /**
      * Array containing timeSignature[0] ChordMagic chords or nulls.
@@ -22,7 +22,7 @@
       if(chords[i]) {
         // correct for a bug in chordMagic.
         let corrected = chords[i].replace('-7', 'm7');
-        let parsed = notochord.chordMagic.parse(corrected);
+        let parsed = chordMagic.parse(corrected);
         parsed.raw = chords[i];
         this._beats.push(parsed);
       } else {
@@ -31,10 +31,10 @@
     }
     
     this.getBeat = function(beat) {
-      var transpose = notochord.transpose;
+      var transpose = song.transpose;
       var oldChord = this._beats[beat];
       if(oldChord) {
-        var out = notochord.chordMagic.transpose(oldChord, transpose);
+        var out = chordMagic.transpose(oldChord, transpose);
         out.raw = oldChord.raw;
         if(transpose) {
           out.rawRoot = out.root;

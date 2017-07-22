@@ -7,17 +7,6 @@
     // Attach everything public to this object, which is returned at the end.
     var notochord = {};
     
-    /**
-     * Notochord's instance of ChordMagic, see that module's documentations for details.
-     * @public
-     */
-    notochord.chordMagic = require('chord-magic');
-    /**
-     * Notochord's instance of Tonal, see that module's documentations for details.
-     * @public
-     */
-    notochord.tonal = require('tonal');
-    
     notochord.events = require('./events');
     
     notochord.player = require('./player');
@@ -30,12 +19,7 @@
     notochord.currentSong = null;
     notochord.events.create('Notochord.load', false);
     
-    // Mini-closure to instantiate things.
-    {  
-      // Bind Song constructor to self.
-      var Song = require('./song/song');
-      notochord.Song = Song(notochord);
-    }
+    notochord.Song = require('./song/song');
     
     /**
      * Load a Song object.
@@ -52,26 +36,16 @@
     notochord.transpose = 0;
     /**
      * Change the transposition.
-     * @param {Number|String} transpose Either an integer of semitones or a chord name.
+     * @param {Number|String} transpose Key to transpose to, or integer of semitones to transpose by.
+     * @public
      */
     notochord.setTranspose = function(transpose) {
-      if(Number.isInteger(transpose)) {
-        notochord.transpose = transpose % 12;
+      if(notochord.currentSong) {
+        notochord.currentSong.setTranspose(transpose);
+        notochord.events.dispatch('Notochord.transpose', {});
       } else {
-        let orig_chord = notochord.chordMagic.parse(notochord.currentSong.key);
-        let new_chord = notochord.chordMagic.parse(transpose);
-        notochord.transpose = notochord.tonal.semitones(orig_chord.root + '4', new_chord.root + '4');
-        if(orig_chord.quality != new_chord.quality) {
-          // for example, if the song is in CM and user transposes to Am
-          // assume it's major or minor, if you try to transpose to some other thing I'll cry.
-          if(new_chord.quality == 'Minor') {
-            notochord.transpose = (notochord.transpose + 3) % 12;
-          } else {
-            notochord.transpose = (notochord.transpose - 3) % 12;
-          }
-        }
+        // @todo don't fail silently?
       }
-      notochord.events.dispatch('Notochord.transpose', {});
     };
     
     return notochord;

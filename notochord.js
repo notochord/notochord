@@ -20681,17 +20681,6 @@ module.exports = tonal;
     // Attach everything public to this object, which is returned at the end.
     var notochord = {};
     
-    /**
-     * Notochord's instance of ChordMagic, see that module's documentations for details.
-     * @public
-     */
-    notochord.chordMagic = require('chord-magic');
-    /**
-     * Notochord's instance of Tonal, see that module's documentations for details.
-     * @public
-     */
-    notochord.tonal = require('tonal');
-    
     notochord.events = require('./events');
     
     notochord.player = require('./player');
@@ -20704,12 +20693,7 @@ module.exports = tonal;
     notochord.currentSong = null;
     notochord.events.create('Notochord.load', false);
     
-    // Mini-closure to instantiate things.
-    {  
-      // Bind Song constructor to self.
-      var Song = require('./song/song');
-      notochord.Song = Song(notochord);
-    }
+    notochord.Song = require('./song/song');
     
     /**
      * Load a Song object.
@@ -20726,26 +20710,16 @@ module.exports = tonal;
     notochord.transpose = 0;
     /**
      * Change the transposition.
-     * @param {Number|String} transpose Either an integer of semitones or a chord name.
+     * @param {Number|String} transpose Key to transpose to, or integer of semitones to transpose by.
+     * @public
      */
     notochord.setTranspose = function(transpose) {
-      if(Number.isInteger(transpose)) {
-        notochord.transpose = transpose % 12;
+      if(notochord.currentSong) {
+        notochord.currentSong.setTranspose(transpose);
+        notochord.events.dispatch('Notochord.transpose', {});
       } else {
-        let orig_chord = notochord.chordMagic.parse(notochord.currentSong.key);
-        let new_chord = notochord.chordMagic.parse(transpose);
-        notochord.transpose = notochord.tonal.semitones(orig_chord.root + '4', new_chord.root + '4');
-        if(orig_chord.quality != new_chord.quality) {
-          // for example, if the song is in CM and user transposes to Am
-          // assume it's major or minor, if you try to transpose to some other thing I'll cry.
-          if(new_chord.quality == 'Minor') {
-            notochord.transpose = (notochord.transpose + 3) % 12;
-          } else {
-            notochord.transpose = (notochord.transpose - 3) % 12;
-          }
-        }
+        // @todo don't fail silently?
       }
-      notochord.events.dispatch('Notochord.transpose', {});
     };
     
     return notochord;
@@ -20760,7 +20734,7 @@ module.exports = tonal;
   }
 })();
 
-},{"./events":45,"./player":46,"./song/song":48,"./viewer/viewer":53,"chord-magic":10,"tonal":43}],45:[function(require,module,exports){
+},{"./events":45,"./player":46,"./song/song":48,"./viewer/viewer":53}],45:[function(require,module,exports){
 (function() {
   'use strict';
   var Events = (function() {
@@ -21011,12 +20985,12 @@ module.exports = tonal;
   /**
    * Represents a measure of music.
    * @class
-   * @param {Notochord} notochord Notochord.
    * @param {Song} song The song the Measure belongs to.
+   * @param {Object} chordMagic A library that helps with parsing chords and things.
    * @param {?Number} index Optional: index at which to insert measure.
    * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
    */
-  var Measure = function(notochord, song, index, chords) {
+  var Measure = function(song, chordMagic, index, chords) {
     
     /**
      * Array containing timeSignature[0] ChordMagic chords or nulls.
@@ -21030,7 +21004,7 @@ module.exports = tonal;
       if(chords[i]) {
         // correct for a bug in chordMagic.
         let corrected = chords[i].replace('-7', 'm7');
-        let parsed = notochord.chordMagic.parse(corrected);
+        let parsed = chordMagic.parse(corrected);
         parsed.raw = chords[i];
         this._beats.push(parsed);
       } else {
@@ -21039,10 +21013,10 @@ module.exports = tonal;
     }
     
     this.getBeat = function(beat) {
-      var transpose = notochord.transpose;
+      var transpose = song.transpose;
       var oldChord = this._beats[beat];
       if(oldChord) {
-        var out = notochord.chordMagic.transpose(oldChord, transpose);
+        var out = chordMagic.transpose(oldChord, transpose);
         out.raw = oldChord.raw;
         if(transpose) {
           out.rawRoot = out.root;
@@ -21099,18 +21073,20 @@ module.exports = tonal;
   'use strict';
   /**
    * Parse a song from an Object.
-   * @param {Notochord} notochord Notochord.
    * @param {Object} songData The song to load.
    * @param {String} [songData.title] Title of the song.
    * @param {String} [songData.composer] Composer of the song.
+   * @param {Number|String} [songData.transpose] Key to transpose to, or integer of semitones to transpose by.
    * @param {Number[]} [songData.timeSignature] Time Signature of the song, an Array of 2 integers.
    * @param {String} [songData.key] Original key of the song.
    * @param {Array.<null, Array>} songData.chords The chords array to parse.
    * @class
    * @public
    */
-  function Song(notochord, songData) {
+  function Song(songData) {
     var Measure = require('./measure');
+    var chordMagic = require('chord-magic');
+    var tonal = require('tonal');
     
     /**
      * A list of measures and nulls, in order. Null represents a newline.
@@ -21127,7 +21103,7 @@ module.exports = tonal;
      * @public
      */
     this.addMeasure = function(chords, index) {
-      return new Measure(notochord, this, index, chords);
+      return new Measure(this, chordMagic, index, chords);
     };
     /**
      * Append a newline to the piece
@@ -21139,6 +21115,30 @@ module.exports = tonal;
         this.measures.push(null);
       } else {
         this.measures.splice(index, 0, null);
+      }
+    };
+    
+    /**
+     * Change the transposition.
+     * @param {Number|String} transpose Key to transpose to, or integer of semitones to transpose by.
+     * @public
+     */
+    this.setTranspose = function(transpose) {
+      if(Number.isInteger(transpose)) {
+        this.transpose = transpose % 12;
+      } else {
+        let orig_chord = chordMagic.parse(this.key);
+        let new_chord = chordMagic.parse(transpose);
+        this.transpose = tonal.semitones(orig_chord.root + '4', new_chord.root + '4');
+        if(orig_chord.quality != new_chord.quality) {
+          // for example, if the song is in CM and user transposes to Am
+          // assume it's major or minor, if you try to transpose to some other thing I'll cry.
+          if(new_chord.quality == 'Minor') {
+            this.transpose = (this.transpose + 3) % 12;
+          } else {
+            this.transpose = (this.transpose - 3) % 12;
+          }
+        }
       }
     };
     
@@ -21157,21 +21157,40 @@ module.exports = tonal;
       }
     };
     
+    /**
+     * Title of the song.
+     * @type {String}
+     */
     this.title = songData.title || '';
+    /**
+     * Composer of the song.
+     * @type {String}
+     */
     this.composer = songData.composer || '';
+    /**
+     * Number of semitones to transpose by -- an integer mod 12.
+     * @type {Number}
+     */
+    this.transpose = 0;
+    // I suppose this evaluates to false if songData.transpose is 0. Whatever lol.
+    if(songData.transpose) this.setTranspose(songData.transpose);
+    /**
+     * Time signature of the song.
+     * @type {Number[]}
+     */
     this.timeSignature = songData.timeSignature || [4,4];
+    /**
+     * Key of the song. A chord name.
+     * @type {String}
+     */
     this.key = songData.key || 'C'; // stop judging me ok
     this.parseArray(songData.chords);
   }
   
-  module.exports = function(notochord) {
-    // bind the Song constructor to Notochord
-    // Song itself doesn't need this but Measure needs chordMagic and transpose.
-    return Song.bind(null, notochord);
-  };
+  module.exports = Song;
 })();
 
-},{"./measure":47}],49:[function(require,module,exports){
+},{"./measure":47,"chord-magic":10,"tonal":43}],49:[function(require,module,exports){
 (function() {
   'use strict';  
 
