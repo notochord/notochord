@@ -20945,7 +20945,7 @@ module.exports = tonal;
         if(chord) {
           playChord(chord);
         }
-        playback.timeout = setTimeout(() => player.incrementPlayback.call(player), player.beatLength);
+        playback.timeout = setTimeout(incrementPlayback, player.beatLength);
       } else {
         // if there's no measure, it's a newline, so play next beat immediately.
         incrementPlayback();
@@ -20970,7 +20970,7 @@ module.exports = tonal;
         player.stop();
         playback.measure = 0;
         playback.beat = 0;
-        player.playNextChord.call(player);
+        playNextChord();
       } else if(events) {
         events.on('Player.ready', player.play);
       } else {
