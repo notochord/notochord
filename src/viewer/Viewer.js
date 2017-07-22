@@ -133,17 +133,18 @@
     /**
      * Called by Notochord to create a MeasureView for a Measure and link them.
      * @param {Measure} measure The corresponding Measure.
-     * @public
+     * @private
      */
-    viewer.createMeasureView = function(measure) {
+    var createMeasureView = function(measure) {
       if(!measure) return;
       new viewer.MeasureView(events, viewer, measure);
     };
     
     /**
      * Render the songs title and composer.
+     * @private
      */
-    viewer.setTitleAndComposer = function() {
+    var setTitleAndComposer = function() {
       var titleText = viewer.textToPath(song.title);
       viewer._svgElem.appendChild(titleText);
       var titleBB = titleText.getBBox();
@@ -163,9 +164,9 @@
     
     /**
      * Layout measures and newlines in the SVG.
-     * @public
+     * @private
      */
-    viewer.reflow = function() {
+    var reflow = function() {
       var row = 1;
       var col = 0;
       var y;
@@ -186,15 +187,15 @@
     
     /**
      * Renders the current song to the SVG. Runs automatically when a song is loaded.
-     * @private
+     * @public
      */
     viewer.renderSong = function() {
       // remove previous measure/beat views?
       for(let measure of song.measures) {
-        viewer.createMeasureView(measure);
+        createMeasureView(measure);
       }
-      viewer.setTitleAndComposer(song);
-      viewer.reflow(song);
+      setTitleAndComposer(song);
+      reflow(song);
     };
     
     return viewer;

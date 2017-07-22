@@ -169,6 +169,8 @@
     
     var self = this;
     var measureIndex = this.measureView.measure.getIndex();
+    
+    // If connected to Notochord.player, highlight when my beat is played.
     if(events) {
       events.on('Player.playBeat', (args) => {
         if(args.measure == measureIndex && args.beat == self.index) {

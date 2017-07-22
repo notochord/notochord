@@ -20871,9 +20871,9 @@ module.exports = tonal;
      * Turns a ChordMagic chord object into an array of MIDI note numbers.
      * @param {Object} chord ChordMagic chord object to analyze.
      * @returns {Number[]} Array of MIDI note numbers.
-     * @public
+     * @private
      */
-    player.chordToArray = function(chord) {
+    var chordToArray = function(chord) {
       var chordAsString = chordMagic.prettyPrint(chord);
       var chordAsNoteNames = tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
@@ -20884,8 +20884,12 @@ module.exports = tonal;
       return chordAsMIDINums;
     };
     
-    player.playChord = function(chord) {
-      var chordAsArray = player.chordToArray(chord);
+    /**
+     * Plays a ChordMagic cord.
+     * @param {Object} chord ChordMagic chord to play.
+     */
+    var playChord = function(chord) {
+      var chordAsArray = chordToArray(chord);
       for(let note of chordAsArray) {
         midi.noteOn(0, note, 100, 0);
         midi.noteOff(0, note, 1);
@@ -20896,6 +20900,7 @@ module.exports = tonal;
         beat: playback.beat
       };
       
+      // If attached to a Notochord.viewer, highlight corresponding notes.
       if(events) {
         events.dispatch('Player.playBeat', args);
         setTimeout(() => {
@@ -20904,6 +20909,9 @@ module.exports = tonal;
       }
     };
     
+    /**
+     * Atore playback information for the player.
+     */
     var playback = {
       song: null,
       measure: 0,
@@ -20911,28 +20919,36 @@ module.exports = tonal;
       timeout: null
     };
     
-    player.incrementPlayback = function() {
+    /**
+     * Update playback object to next beat/measure.
+     * @private
+     */
+    var incrementPlayback = function() {
       playback.beat++;
       if(playback.beat >= playback.song.timeSignature[0]) {
         playback.beat = 0;
         playback.measure++;
       }
       if(playback.measure < playback.song.measures.length) {
-        player.playNextChord();
+        playNextChord();
       }
     };
     
-    player.playNextChord = function() {
+    /**
+     * Plays the next chord, then has incrementPlayback call this function in a beat's time.
+     * @private
+     */
+    var playNextChord = function() {
       var measure = playback.song.measures[playback.measure];
       if(measure) {
         var chord = measure.getBeat(playback.beat);
         if(chord) {
-          player.playChord(chord);
+          playChord(chord);
         }
         playback.timeout = setTimeout(() => player.incrementPlayback.call(player), player.beatLength);
       } else {
         // if there's no measure, it's a newline, so play next beat immediately.
-        player.incrementPlayback();
+        incrementPlayback();
       }
     };
     
@@ -21327,6 +21343,8 @@ module.exports = tonal;
     
     var self = this;
     var measureIndex = this.measureView.measure.getIndex();
+    
+    // If connected to Notochord.player, highlight when my beat is played.
     if(events) {
       events.on('Player.playBeat', (args) => {
         if(args.measure == measureIndex && args.beat == self.index) {
@@ -21397,7 +21415,6 @@ module.exports = tonal;
       } else {
         viewer._svgElem.insertBefore(this._svgGroup, newIndex);
       }
-      //viewer.reflow();
     };
     this.move();
     
@@ -21427,6 +21444,7 @@ module.exports = tonal;
         }
       }
       
+      // When I receive a transpose event, re-render each beat.
       if(events) {
         events.on('Notochord.transpose', () => {
           for(let i in this.beatViews) {
@@ -21439,19 +21457,21 @@ module.exports = tonal;
         });
       }
       
-      /**
-       * Left bar of the measure. Only happens if not the first meassure on the line.
-       * @type {SVGPathElement}
-       * @private
-       */
-      this._leftBar = document.createElementNS(viewer.SVG_NS, 'path');
-      this._leftBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
-      let x = -0.25 * viewer.beatOffset;
-      let y = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
-      let scale = viewer.rowHeight / viewer.PATHS.bar_height;
-      this._leftBar.setAttributeNS(null, 'transform', `translate(${x}, ${y}) scale(${scale})`);
-      this._leftBar.setAttributeNS(null, 'style', 'stroke-width: 1px; stroke: black;');
-      this._svgGroup.appendChild(this._leftBar);
+      {
+        /**
+         * Left bar of the measure. Only happens if not the first meassure on the line.
+         * @type {SVGPathElement}
+         * @private
+         */
+        this._leftBar = document.createElementNS(viewer.SVG_NS, 'path');
+        this._leftBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
+        let x = -0.25 * viewer.beatOffset;
+        let y = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
+        let scale = viewer.rowHeight / viewer.PATHS.bar_height;
+        this._leftBar.setAttributeNS(null, 'transform', `translate(${x}, ${y}) scale(${scale})`);
+        this._leftBar.setAttributeNS(null, 'style', 'stroke-width: 1px; stroke: black;');
+        this._svgGroup.appendChild(this._leftBar);
+      }
     };
     this.render();
   };
@@ -21619,17 +21639,18 @@ module.exports = `/*<![CDATA[*/
     /**
      * Called by Notochord to create a MeasureView for a Measure and link them.
      * @param {Measure} measure The corresponding Measure.
-     * @public
+     * @private
      */
-    viewer.createMeasureView = function(measure) {
+    var createMeasureView = function(measure) {
       if(!measure) return;
       new viewer.MeasureView(events, viewer, measure);
     };
     
     /**
      * Render the songs title and composer.
+     * @private
      */
-    viewer.setTitleAndComposer = function() {
+    var setTitleAndComposer = function() {
       var titleText = viewer.textToPath(song.title);
       viewer._svgElem.appendChild(titleText);
       var titleBB = titleText.getBBox();
@@ -21649,9 +21670,9 @@ module.exports = `/*<![CDATA[*/
     
     /**
      * Layout measures and newlines in the SVG.
-     * @public
+     * @private
      */
-    viewer.reflow = function() {
+    var reflow = function() {
       var row = 1;
       var col = 0;
       var y;
@@ -21672,15 +21693,15 @@ module.exports = `/*<![CDATA[*/
     
     /**
      * Renders the current song to the SVG. Runs automatically when a song is loaded.
-     * @private
+     * @public
      */
     viewer.renderSong = function() {
       // remove previous measure/beat views?
       for(let measure of song.measures) {
-        viewer.createMeasureView(measure);
+        createMeasureView(measure);
       }
-      viewer.setTitleAndComposer(song);
-      viewer.reflow(song);
+      setTitleAndComposer(song);
+      reflow(song);
     };
     
     return viewer;

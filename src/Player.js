@@ -32,9 +32,9 @@
      * Turns a ChordMagic chord object into an array of MIDI note numbers.
      * @param {Object} chord ChordMagic chord object to analyze.
      * @returns {Number[]} Array of MIDI note numbers.
-     * @public
+     * @private
      */
-    player.chordToArray = function(chord) {
+    var chordToArray = function(chord) {
       var chordAsString = chordMagic.prettyPrint(chord);
       var chordAsNoteNames = tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
@@ -45,8 +45,12 @@
       return chordAsMIDINums;
     };
     
-    player.playChord = function(chord) {
-      var chordAsArray = player.chordToArray(chord);
+    /**
+     * Plays a ChordMagic cord.
+     * @param {Object} chord ChordMagic chord to play.
+     */
+    var playChord = function(chord) {
+      var chordAsArray = chordToArray(chord);
       for(let note of chordAsArray) {
         midi.noteOn(0, note, 100, 0);
         midi.noteOff(0, note, 1);
@@ -57,6 +61,7 @@
         beat: playback.beat
       };
       
+      // If attached to a Notochord.viewer, highlight corresponding notes.
       if(events) {
         events.dispatch('Player.playBeat', args);
         setTimeout(() => {
@@ -65,6 +70,9 @@
       }
     };
     
+    /**
+     * Atore playback information for the player.
+     */
     var playback = {
       song: null,
       measure: 0,
@@ -72,28 +80,36 @@
       timeout: null
     };
     
-    player.incrementPlayback = function() {
+    /**
+     * Update playback object to next beat/measure.
+     * @private
+     */
+    var incrementPlayback = function() {
       playback.beat++;
       if(playback.beat >= playback.song.timeSignature[0]) {
         playback.beat = 0;
         playback.measure++;
       }
       if(playback.measure < playback.song.measures.length) {
-        player.playNextChord();
+        playNextChord();
       }
     };
     
-    player.playNextChord = function() {
+    /**
+     * Plays the next chord, then has incrementPlayback call this function in a beat's time.
+     * @private
+     */
+    var playNextChord = function() {
       var measure = playback.song.measures[playback.measure];
       if(measure) {
         var chord = measure.getBeat(playback.beat);
         if(chord) {
-          player.playChord(chord);
+          playChord(chord);
         }
         playback.timeout = setTimeout(() => player.incrementPlayback.call(player), player.beatLength);
       } else {
         // if there's no measure, it's a newline, so play next beat immediately.
-        player.incrementPlayback();
+        incrementPlayback();
       }
     };
     
