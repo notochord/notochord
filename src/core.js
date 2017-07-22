@@ -18,8 +18,10 @@
      */
     notochord.tonal = require('tonal');
     
-    // Mini-closure to instantiate things.
     notochord.events = require('./events');
+    
+    notochord.player = require('./player');
+    notochord.player.attachEvents(notochord.events);
     
     // everything refers here to grab the current song
     notochord.currentSong = null;
@@ -33,9 +35,6 @@
       // Bind Song constructor to self.
       var Song = require('./song/song');
       notochord.Song = Song(notochord);
-      
-      var Player = require('./player');
-      notochord.player = new Player(notochord);
     }
     
     /**
@@ -44,6 +43,7 @@
      */
     notochord.loadSong = function(song) {
       notochord.currentSong = song;
+      notochord.player.loadSong(song);
       notochord.events.dispatch('Notochord.load');
     };
     

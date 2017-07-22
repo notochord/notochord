@@ -20692,8 +20692,10 @@ module.exports = tonal;
      */
     notochord.tonal = require('tonal');
     
-    // Mini-closure to instantiate things.
     notochord.events = require('./events');
+    
+    notochord.player = require('./player');
+    notochord.player.attachEvents(notochord.events);
     
     // everything refers here to grab the current song
     notochord.currentSong = null;
@@ -20707,9 +20709,6 @@ module.exports = tonal;
       // Bind Song constructor to self.
       var Song = require('./song/song');
       notochord.Song = Song(notochord);
-      
-      var Player = require('./player');
-      notochord.player = new Player(notochord);
     }
     
     /**
@@ -20718,6 +20717,7 @@ module.exports = tonal;
      */
     notochord.loadSong = function(song) {
       notochord.currentSong = song;
+      notochord.player.loadSong(song);
       notochord.events.dispatch('Notochord.load');
     };
     
@@ -20837,43 +20837,34 @@ module.exports = tonal;
 
 },{}],46:[function(require,module,exports){
 (function() {
-  /**
-   * Player constructor. A Player renders an Notochord as audio.
-   * @class
-   * @param {Notochord} notochord The Notochord to play.
-   */
-  var Player = function(notochord) {
-    /**
-     * Configure the player.
-     * @param {Object} [options] Optional: options for the Player.
-     * @param {Number} [options.tempo=120] Tempo for the player.
-     * @public
-     */
-    this.config = function(options) {
-      this.stop();
-      this.tempo = (options && options.tempo) || 120;
-      // Length of a beat, in milliseconds.
-      this.beatLength = (60 * 1000) / this.tempo;
-    };
-    /**
-     * Player's instance of MIDI.js, see that module's documentations for details.
-     * @public
-     */
-    this.MIDI = require('midi.js');
+  var Player = (function() {
+    // Attach everything public to this object, which is returned at the end.
+    var player = {};
     
-    notochord.events.create('Player.ready', true);
-    notochord.events.create('Player.playBeat', false);
-    notochord.events.create('Player.stopBeat', false);
+    var chordMagic = require('chord-magic');
+    var tonal = require('tonal');
+    var midi = require('midi.js');
     
-    var self = this;
     var ready = false;
-    this.MIDI.loadPlugin({
+    midi.loadPlugin({
       soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
       onsuccess: function() {
         ready = true;
-        notochord.events.dispatch('Player.ready', {});
+        events && events.dispatch('Player.ready', {});
       }
     });
+    
+    var events = null;
+    /**
+     * Attach events object so player module can communicate with the others.
+     * @param {Object} ev Notochord events system.
+     */
+    player.attachEvents = function(ev) {
+      events = ev;
+      events.create('Player.ready', true);
+      events.create('Player.playBeat', false);
+      events.create('Player.stopBeat', false);
+    };
     
     /**
      * Turns a ChordMagic chord object into an array of MIDI note numbers.
@@ -20881,76 +20872,92 @@ module.exports = tonal;
      * @returns {Number[]} Array of MIDI note numbers.
      * @public
      */
-    this.chordToArray = function(chord) {
-      var chordAsString = notochord.chordMagic.prettyPrint(chord);
-      var chordAsNoteNames = notochord.tonal.chord(chordAsString);
+    player.chordToArray = function(chord) {
+      var chordAsString = chordMagic.prettyPrint(chord);
+      var chordAsNoteNames = tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
-        return notochord.tonal.note.midi(note + '4');
+        return tonal.note.midi(note + '4');
       });
-      var bassNote = notochord.tonal.note.midi(chordAsNoteNames[0] + '3');
+      var bassNote = tonal.note.midi(chordAsNoteNames[0] + '3');
       chordAsMIDINums.unshift(bassNote);
       return chordAsMIDINums;
     };
     
-    this.playChord = function(chord) {
-      var chordAsArray = this.chordToArray(chord);
+    player.playChord = function(chord) {
+      var chordAsArray = player.chordToArray(chord);
       for(let note of chordAsArray) {
-        this.MIDI.noteOn(0, note, 100, 0);
-        this.MIDI.noteOff(0, note, 1);
+        midi.noteOn(0, note, 100, 0);
+        midi.noteOff(0, note, 1);
       }
       // Shallow-copy playback so the correct data is dispatched with stopBeat event.
       var args = {
         measure: playback.measure,
         beat: playback.beat
       };
-      notochord.events.dispatch('Player.playBeat', args);
-      setTimeout(() => {
-        notochord.events.dispatch('Player.stopBeat', args);
-      }, this.beatLength);
+      
+      if(events) {
+        events.dispatch('Player.playBeat', args);
+        setTimeout(() => {
+          events.dispatch('Player.stopBeat', args);
+        }, player.beatLength);
+      }
     };
     
-    var playback;
+    var playback = {
+      song: null,
+      measure: 0,
+      beat: 0,
+      timeout: null
+    };
     
-    this.incrementPlayback = function() {
+    player.incrementPlayback = function() {
       playback.beat++;
-      if(playback.beat >= notochord.currentSong.timeSignature[0]) {
+      if(playback.beat >= playback.song.timeSignature[0]) {
         playback.beat = 0;
         playback.measure++;
       }
-      if(playback.measure < notochord.currentSong.measures.length) {
-        this.playNextChord();
+      if(playback.measure < playback.song.measures.length) {
+        player.playNextChord();
       }
     };
     
-    this.playNextChord = function() {
-      var measure = notochord.currentSong.measures[playback.measure];
+    player.playNextChord = function() {
+      var measure = playback.song.measures[playback.measure];
       if(measure) {
         var chord = measure.getBeat(playback.beat);
         if(chord) {
-          this.playChord(chord);
+          player.playChord(chord);
         }
-        playback.timeout = setTimeout(() => this.incrementPlayback.call(this), this.beatLength);
+        playback.timeout = setTimeout(() => player.incrementPlayback.call(player), player.beatLength);
       } else {
         // if there's no measure, it's a newline, so play next beat immediately.
-        this.incrementPlayback();
+        player.incrementPlayback();
       }
     };
     
     /**
-     * Play the Notochord from the beginning.
+     * Load a song.
+     * @param {Song} song Song to load.
      * @public
      */
-    this.play = function() {
+    player.loadSong = function(song) {
+      playback.song = song;
+    };
+    
+    /**
+     * Play the song from the beginning.
+     * @public
+     */
+    player.play = function() {
       if(ready) {
-        self.stop();
-        playback = {
-          measure: 0,
-          beat: 0,
-          timeout: null
-        };
-        self.playNextChord.call(self);
+        player.stop();
+        playback.measure = 0;
+        playback.beat = 0;
+        player.playNextChord.call(player);
+      } else if(events) {
+        events.on('Player.ready', player.play);
       } else {
-        notochord.events.on('Player.ready', self.play);
+        //???? @todo
       }
     };
     
@@ -20958,14 +20965,30 @@ module.exports = tonal;
      * Stop playing the Notochord.
      * @public
      */
-    this.stop = function() {
+    player.stop = function() {
       if(playback && playback.timeout) playback.timeout = clearTimeout(playback.timeout);
     };
-  };
+    
+    /**
+     * Configure the player.
+     * @param {Object} [options] Optional: options for the Player.
+     * @param {Number} [options.tempo=120] Tempo for the player.
+     * @public
+     */
+    player.config = function(options) {
+      player.stop();
+      player.tempo = (options && options.tempo) || 120;
+      // Length of a beat, in milliseconds.
+      player.beatLength = (60 * 1000) / player.tempo;
+    };
+    player.config();
+    
+    return player;
+  })();
   module.exports = Player;
 })();
 
-},{"midi.js":20}],47:[function(require,module,exports){
+},{"chord-magic":10,"midi.js":20,"tonal":43}],47:[function(require,module,exports){
 (function() {
   'use strict'; 
   /**
