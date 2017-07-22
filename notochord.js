@@ -21076,9 +21076,9 @@ module.exports = tonal;
    * @param {Object} songData The song to load.
    * @param {String} [songData.title] Title of the song.
    * @param {String} [songData.composer] Composer of the song.
-   * @param {Number|String} [songData.transpose] Key to transpose to, or integer of semitones to transpose by.
    * @param {Number[]} [songData.timeSignature] Time Signature of the song, an Array of 2 integers.
    * @param {String} [songData.key] Original key of the song.
+   * @param {Number|String} [songData.transpose] Key to transpose to, or integer of semitones to transpose by.
    * @param {Array.<null, Array>} songData.chords The chords array to parse.
    * @class
    * @public
@@ -21168,13 +21168,6 @@ module.exports = tonal;
      */
     this.composer = songData.composer || '';
     /**
-     * Number of semitones to transpose by -- an integer mod 12.
-     * @type {Number}
-     */
-    this.transpose = 0;
-    // I suppose this evaluates to false if songData.transpose is 0. Whatever lol.
-    if(songData.transpose) this.setTranspose(songData.transpose);
-    /**
      * Time signature of the song.
      * @type {Number[]}
      */
@@ -21184,6 +21177,13 @@ module.exports = tonal;
      * @type {String}
      */
     this.key = songData.key || 'C'; // stop judging me ok
+    /**
+     * Number of semitones to transpose by -- an integer mod 12.
+     * @type {Number}
+     */
+    this.transpose = 0;
+    // I suppose this evaluates to false if songData.transpose is 0. Whatever lol.
+    if(songData.transpose) this.setTranspose(songData.transpose);
     this.parseArray(songData.chords);
   }
   

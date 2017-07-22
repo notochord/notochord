@@ -29,6 +29,7 @@ flyMeToTheMoon = new Notochord.Song({
   'composer': 'Bart Howard',
   'timeSignature': [4,4],
   'key': 'C',
+  'transpose': 'Am', // This is the same as C, but just as an example.
   'chords': [
     // Each array is a measure, and each item in an array is a beat.
     // null inside a measure means there's no chord set for that beat.
