@@ -48,6 +48,12 @@
         // @todo don't fail silently?
       }
     };
+    // @todo docs
+    notochord.setTempo = function(tempo) {
+      notochord.player.config({
+        tempo: tempo
+      });
+    };
     
     return notochord;
   })();

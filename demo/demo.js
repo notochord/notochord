@@ -17,12 +17,15 @@ Notochord.player.config({
     // Styles coming soon??
   });
 
-// Setup play and stop buttons
+// Setup plaback controls.
 document.querySelector('#play').addEventListener('click', Notochord.player.play);
 document.querySelector('#stop').addEventListener('click', Notochord.player.stop);
 document.querySelector('#transpose').addEventListener('change', e => {
   Notochord.setTranspose(document.querySelector('#transpose').value);
-})
+});
+document.querySelector('#tempo').addEventListener('change', e => {
+  Notochord.setTempo(document.querySelector('#tempo').value);
+});
 
 flyMeToTheMoon = new Notochord.Song({
   'title': 'Fly Me To The Moon',
