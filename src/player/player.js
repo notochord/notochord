@@ -26,6 +26,9 @@
     playback.chordMagic = require('chord-magic');
     playback.tonal = require('tonal');
     playback.measureNumber = 0;
+    playback.measure = null;
+    playback.beat = 0;
+    playback.playing = false;
     playback.tempo = player.tempo;
     playback.song = null;
     playback.beatLength = player.beatLength;
@@ -136,24 +139,33 @@
         return 0;
       }
     };
+    // Whether it's an even or odd measure.
+    playback.evenMeasure = false;
     /**
-     * Update playback object to next beat/measure.
-     * @returns {?Measure} Next measure, or null if the song ends.
+     * Update playback.measure object to next measure.
      * @private
      */
-    playback.getNextMeasure = function() {
-      //playback.beat++;
-      //if(playback.beat >= playback.song.timeSignature[0]) {
+    playback.nextMeasure = function() {
       playback.measureNumber++;
       if(playback.measureNumber < playback.song.measures.length) {
         var measure = playback.song.measures[playback.measureNumber];
         if(measure) {
-          return measure;
+          playback.evenMeasure = !playback.evenMeasure;
+          playback.measure = measure;
         } else {
-          return playback.getNextMeasure();
+          playback.nextMeasure();
         }
       } else {
-        return null;
+        playback.playing = false;
+      }
+    };
+    /**
+     * 
+     */
+    playback.nextBeat = function() {
+      playback.beat++;
+      if(playback.beat >= playback.measure.length) {
+        playback.beat = 0;
       }
     };
     /**
@@ -181,7 +193,19 @@
       }, data.beats);
     };
     
-    
+    {
+      // Also supply some drums.
+      // [hatClosed, hatHalfOpen, snare1, kick, snare2, cymbal, tom, woodblock]
+      playback.drums = {};
+      let drums = require('./drums');
+      for(let drumName in drums) {
+        let data = drums[drumName];
+        playback.drums[drumName] = () => {
+          let audio = new Audio(data);
+          audio.play();
+        };
+      }
+    }
     
     
     
@@ -248,6 +272,9 @@
         playback.beatLength = (60 * 1000) / playback.tempo;
         player.stop();
         playback.measureNumber = -1;
+        playback.playing = true;
+        playback.beat = 0;
+        playback.nextMeasure();
         currentStyle.play();
       } else if(events) {
         events.on('Player.loadStyle', player.play, true);

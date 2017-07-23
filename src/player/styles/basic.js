@@ -18,21 +18,16 @@
     style.load = function() {
       playback.requireInstruments([
         'acoustic_grand_piano',
-        'acoustic_bass',
-        'glockenspiel',
-        'woodblock'
+        'acoustic_bass'
       ]);
     };
     
-    var playing;
-    var beat = 0;
-    var measure;
     var playNextBeat = function() {
-      if(!playing) return;
+      if(!playback.playing) return;
       // Gets the number of rest beats following this beat.
-      var restsAfter = playback.restsAfter(beat);
+      var restsAfter = playback.restsAfter(playback.beat);
       
-      var chord = measure.getBeat(beat);
+      var chord = playback.measure.getBeat(playback.beat);
       // If there's no chord returned by getBeat, there's no chord on this beat.
       if(chord) {
         // This turns a ChordMagic chord object into an array of MIDI note
@@ -42,7 +37,7 @@
           notes: notes, // Integer or array of integers represenging notes.
           instrument: 'acoustic_grand_piano',
           beats: restsAfter // Number of beats to play the note.
-          // Optionally: 'velocity' which is a number 0-255 representing volume.
+          // Optionally: 'velocity' which is a number 0-127 representing volume.
           // Well, technically it represents how hard you play an instrument
           // but it corresponds to volume so.
         });
@@ -56,39 +51,18 @@
         
         // Highlight the nth chord of the current measure in notchord.viewer for
         // a duration of "restsAfter" beats.
-        playback.highlightBeatForBeats(beat, restsAfter);
+        playback.highlightBeatForBeats(playback.beat, restsAfter);
       }
       
       // Play metronome regardless of whether there's a chord for this beat.
-      if(beat == 0) {
-        let glocknote = playback.tonal.note.midi(
-          playback.song.getTransposedKey() + 6
-        );
-        playback.playNotes({
-          notes: glocknote,
-          instrument: 'glockenspiel',
-          beats: 1,
-          velocity: 30
-        });
+      if(playback.beat === 0) {
+        playback.drums.kick();
       } else {
-        playback.playNotes({
-          notes: 65,
-          instrument: 'woodblock',
-          beats: 1,
-          velocity: 40
-        });
+        playback.drums.woodblock();
       }
       
-      beat++;
-      // If we're on beat 5 of a 4/4 song, move to the next measure.
-      if(beat >= measure.length) {
-        measure = playback.getNextMeasure();
-        if(!measure) { // If there's no next measure, the song's over.
-          playing = false;
-          return;
-        }
-        beat = 0;
-      }
+      playback.nextBeat();
+      if(playback.beat === 0) playback.nextMeasure();
       playback.inBeats(playNextBeat, 1);
     };
     
@@ -96,9 +70,6 @@
      * Play function should begin playback of the song in the style.
      */
     style.play = function() {
-      playing = true;
-      beat = 0;
-      measure = playback.getNextMeasure();
       playNextBeat();
     };
     
@@ -106,7 +77,7 @@
      * Stop should stop playback.
      */
     style.stop = function() {
-      playing = false;
+      playback.playing = false;
     };
     
     return style;
