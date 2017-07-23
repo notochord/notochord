@@ -3,7 +3,6 @@
     var style = {};
     
     // Initialize.
-    // @todo docs
     style.load = function() {
       playback.requireInstruments([
         'acoustic_grand_piano',
@@ -42,7 +41,7 @@
         playback.highlightBeatForBeats(beat, restsAfter);
       }
       
-      // Play woodblock regardless of whether there's a chord for this beat.
+      // Play metronome regardless of whether there's a chord for this beat.
       if(beat == 0) {
         let glocknote = playback.tonal.note.midi(
           playback.song.getTransposedKey() + 6

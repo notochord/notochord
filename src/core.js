@@ -35,7 +35,9 @@
     notochord.events.create('Notochord.transpose', false);
     notochord.transpose = 0;
     /**
-     * Change the transposition.
+     * Change the transposition for the song. Transposition is saved with
+     * song data so that the next time you play the song it remembers your
+     * preferred key.
      * @param {Number|String} transpose Key to transpose to, or integer of
      * semitones to transpose by.
      * @public
@@ -48,7 +50,13 @@
         // @todo don't fail silently?
       }
     };
-    // @todo docs
+    /**
+     * Set the tempo of the player style. Unlike setTranspose, this'll stop
+     * playback. That's because, if a playback style is poorly written,
+     * changing the tempo could unsync playback.
+     * @param {Number} tempo The new tempo.
+     * @public
+     */
     notochord.setTempo = function(tempo) {
       notochord.player.config({
         tempo: tempo

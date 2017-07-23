@@ -29,7 +29,11 @@
     playback.tempo = player.tempo;
     playback.song = null;
     playback.beatLength = player.beatLength;
-    // @todo docs
+    /**
+     * Perform an action in a certain number of beats.
+     * @param {Function} func Function to run.
+     * @param {Number} beats Number of beats to wait to run func.
+     */
     playback.inBeats = function(func, beats) {
       setTimeout(() => {
         func();
@@ -50,7 +54,12 @@
       });
       return chordAsMIDINums;
     };
-    // @todo docs
+    /**
+     * If theres a beat in the viewer, highlight it for the designated duration.
+     * @param {Number} beatToHighlight Beat in the current measure to highlight.
+     * @param {Number} beats How long to highlight the beat for, in beats.
+     * @private
+     */
     playback.highlightBeatForBeats = function(beatToHighlight, beats) {
       if(events) {
         var args = {
@@ -63,9 +72,13 @@
         }, beats);
       }
     };
-    // @todo docs
     playback.instruments = new Map();
     playback.instrumentChannels = [];
+    /**
+     * Load the required instruments for a given style.
+     * @param {String[]} newInstruments An array of instrument names.
+     * @private
+     */
     playback.requireInstruments = function(newInstruments) {
       // Avoid loading the same plugin twice.
       var safeInstruments = [];
@@ -100,7 +113,13 @@
         }
       });
     };
-    // @todo docs
+    /**
+     * Get the number of beats of rest left in the measure after (and including)
+     * a given beat.
+     * @param {Number} current Current beat.
+     * @returns {Number} Number of beats of rest left, plus one.
+     * @private
+     */
     playback.restsAfter = function(current) {
       var measure = playback.song.measures[playback.measureNumber];
       if(measure) {
@@ -137,7 +156,14 @@
         return null;
       }
     };
-    // @todo docs
+    /**
+     * Play a note or notes for a number of beats.
+     * @param {Object} data Object with data about what to play.
+     * @param {Number|Number[]} data.notes Midi note number[s] to play.
+     * @param {String} data.instrument Instrument name to play notes on.
+     * @param {Number} data.beats Number of beats to play the note for.
+     * @param {Number} [data.velocity=100] Velocity (volume) for the notes.
+     */
     // notes Array|Number
     playback.playNotes = function(data) {
       if(typeof data.notes == 'number') data.notes = [data.notes];
@@ -191,8 +217,7 @@
       } else {
         let index = player.styles.indexOf(newStyle);
         // @todo fail loudly if undefined?
-        // @todo hasownproperty or whatever?
-        currentStyle = stylesDB[index].style;
+        if(stylesDB.hasOwnProperty(index)) currentStyle = stylesDB[index].style;
       }
       currentStyle.load();
     };
@@ -208,12 +233,17 @@
       playback.song = song;
     };
     
+    // Count number of times player.play has failed (since last success). If
+    // it's more than like 10 then give up and complain.
+    var failCount = 0;
+    
     /**
      * Play the song from the beginning.
      * @public
      */
     player.play = function() {
       if(ready) {
+        failCount = 0;
         playback.tempo = player.tempo;
         playback.beatLength = (60 * 1000) / playback.tempo;
         player.stop();
@@ -221,8 +251,11 @@
         currentStyle.play();
       } else if(events) {
         events.on('Player.loadStyle', player.play, true);
+      } else if(failCount < 10) {
+        setTimeout(player.play, 200);
+        failCount++;
       } else {
-        //???? @todo
+        // @todo ok so how are we logging things? eslint says no console
       }
     };
     

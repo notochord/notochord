@@ -77,7 +77,11 @@
       }
     };
     
-    // @todo docs
+    /**
+     * Get the transposed key of the song.
+     * @returns {String} the transposed key.
+     * @public
+     */
     this.getTransposedKey = function() {
       return tonal.note.pc(
         tonal.note.fromMidi(tonal.note.midi(this.key + '4') + this.transpose)
