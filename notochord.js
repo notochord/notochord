@@ -20847,28 +20847,24 @@ module.exports = tonal;
       events.create('Player.stopBeat', false);
     };
     
-    /**
-     * The current song to play.
-     */
-    var currentSong;
-    
     // False before a style has finished loading.
     var ready = false;
     
     // this is passed to each style so they don't have to duplicate code.
-    var styleTools = {};
+    var playback = {};
     
-    styleTools.midi = require('midi.js');
-    styleTools.chordMagic = require('chord-magic');
-    styleTools.tonal = require('tonal');
-    styleTools.measureNumber = 0;
-    styleTools.tempo = player.tempo;
-    styleTools.beatLength = player.beatLength;
+    playback.midi = require('midi.js');
+    playback.chordMagic = require('chord-magic');
+    playback.tonal = require('tonal');
+    playback.measureNumber = 0;
+    playback.tempo = player.tempo;
+    playback.song = null;
+    playback.beatLength = player.beatLength;
     // @todo docs
-    styleTools.inBeats = function(func, beats) {
+    playback.inBeats = function(func, beats) {
       setTimeout(() => {
         func();
-      }, beats * styleTools.beatLength);
+      }, beats * playback.beatLength);
     };
     /**
      * Turns a ChordMagic chord object into an array of MIDI note numbers.
@@ -20877,34 +20873,59 @@ module.exports = tonal;
      * @returns {Number[]} Array of MIDI note numbers.
      * @private
      */
-    styleTools.chordToMIDINums = function(chord, octave) {
-      var chordAsString = styleTools.chordMagic.prettyPrint(chord);
-      var chordAsNoteNames = styleTools.tonal.chord(chordAsString);
+    playback.chordToMIDINums = function(chord, octave) {
+      var chordAsString = playback.chordMagic.prettyPrint(chord);
+      var chordAsNoteNames = playback.tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
-        return styleTools.tonal.note.midi(note + octave);
+        return playback.tonal.note.midi(note + octave);
       });
       return chordAsMIDINums;
     };
     // @todo docs
-    styleTools.highlightBeatForBeats = function(beatToHighlight, beats) {
+    playback.highlightBeatForBeats = function(beatToHighlight, beats) {
       if(events) {
         var args = {
-          measure: styleTools.measureNumber,
+          measure: playback.measureNumber,
           beat: beatToHighlight
         };
         events.dispatch('Player.playBeat', args);
-        styleTools.inBeats(() => {
+        playback.inBeats(() => {
           events.dispatch('Player.stopBeat', args);
         }, beats);
       }
     };
     // @todo docs
-    styleTools.requireInstruments = function(instruments) {
-      // @todo avoid loading the same plugin for each style
-      styleTools.midi.loadPlugin({
+    playback.instruments = new Map();
+    playback.instrumentChannels = [];
+    playback.requireInstruments = function(newInstruments) {
+      // Avoid loading the same plugin twice.
+      var safeInstruments = [];
+      for (let instrument of newInstruments) {
+        if(!playback.instruments.has(instrument)) {
+          safeInstruments.push(instrument);
+        }
+      }
+      
+      // Load what's left.
+      playback.midi.loadPlugin({
         soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
-        instruments: instruments,
+        instruments: safeInstruments,
         onsuccess: function() {
+          for(let instrument of safeInstruments) {
+            playback.instruments.set(
+              instrument,
+              playback.midi.GM.byName[instrument].number
+            );
+          }
+          // Map each instrument to a MIDI channel.
+          playback.instrumentChannels = [];
+          for(let i in newInstruments) {
+            let instrumentNumber = playback.instruments.get(
+              newInstruments[i]
+            );
+            playback.midi.programChange(i, instrumentNumber);
+            playback.instrumentChannels[instrumentNumber] = i;
+          }
           ready = true;
           events && events.dispatch('Player.loadStyle', {});
         }
@@ -20915,16 +20936,16 @@ module.exports = tonal;
      * @returns {?Measure} Next measure, or null if the song ends.
      * @private
      */
-    styleTools.getNextMeasure = function() {
+    playback.getNextMeasure = function() {
       //playback.beat++;
-      //if(playback.beat >= currentSong.timeSignature[0]) {
-      styleTools.measureNumber++;
-      if(styleTools.measureNumber < currentSong.measures.length) {
-        var measure = currentSong.measures[styleTools.measureNumber];
+      //if(playback.beat >= playback.song.timeSignature[0]) {
+      playback.measureNumber++;
+      if(playback.measureNumber < playback.song.measures.length) {
+        var measure = playback.song.measures[playback.measureNumber];
         if(measure) {
           return measure;
         } else {
-          return styleTools.getNextMeasure();
+          return playback.getNextMeasure();
         }
       } else {
         return null;
@@ -20932,14 +20953,20 @@ module.exports = tonal;
     };
     // @todo docs
     // notes Array|Number
-    styleTools.playNotes = function(notes, instrument, beats) {
-      if(typeof notes == 'number') notes = [notes];
-      styleTools.midi.chordOn(instrument, notes, 100, 0);
-      styleTools.inBeats(() => {
+    playback.playNotes = function(data) {
+      if(typeof data.notes == 'number') data.notes = [data.notes];
+      
+      if(!data.velocity) data.velocity = 100;
+      
+      var instrumentNumber = playback.instruments.get(data.instrument);
+      var channel = playback.instrumentChannels[instrumentNumber];
+      
+      playback.midi.chordOn(channel, data.notes, data.velocity, 0);
+      playback.inBeats(() => {
         // midi.js has the option to specify a delay, but docs don't have a unit
         // so I'll do the delay manually.
-        styleTools.midi.chordOff(instrument, notes, 0);
-      }, beats);
+        playback.midi.chordOff(channel, data.notes, 0);
+      }, data.beats);
     };
     
     
@@ -20953,7 +20980,7 @@ module.exports = tonal;
     var stylesDB = [
       {
         'name': 'basic',
-        'style': require('./styles/basic')(styleTools)
+        'style': require('./styles/basic')(playback)
       }
     ];
     /**
@@ -20992,7 +21019,7 @@ module.exports = tonal;
      * @public
      */
     player.loadSong = function(song) {
-      currentSong = song;
+      playback.song = song;
     };
     
     /**
@@ -21001,10 +21028,10 @@ module.exports = tonal;
      */
     player.play = function() {
       if(ready) {
-        styleTools.tempo = player.tempo;
-        styleTools.beatLength = (60 * 1000) / styleTools.tempo;
+        playback.tempo = player.tempo;
+        playback.beatLength = (60 * 1000) / playback.tempo;
         player.stop();
-        styleTools.measureNumber = -1;
+        playback.measureNumber = -1;
         currentStyle.play();
       } else if(events) {
         events.on('Player.loadStyle', player.play, true);
@@ -21040,15 +21067,16 @@ module.exports = tonal;
 
 },{"./styles/basic":47,"chord-magic":10,"midi.js":20,"tonal":43}],47:[function(require,module,exports){
 (function() {
-  module.exports = function(styleTools) {
+  module.exports = function(playback) {
     var style = {};
     
     // Initialize.
     // @todo docs
     style.load = function() {
-      styleTools.requireInstruments([
+      playback.requireInstruments([
         'acoustic_grand_piano',
         'acoustic_bass',
+        'glockenspiel',
         'woodblock'
       ]);
     };
@@ -21062,28 +21090,57 @@ module.exports = tonal;
       if(!playing) return;
       var chord = measure.getBeat(beat);
       if(chord) {
-        var notes = styleTools.chordToMIDINums(chord, 4);
-        styleTools.playNotes(notes, 0, 1);
+        var notes = playback.chordToMIDINums(chord, 4);
+        playback.playNotes({
+          notes: notes,
+          instrument: 'acoustic_grand_piano',
+          beats: 1
+        });
         
-        var bassnote = styleTools.chordToMIDINums(chord, 3)[0];
-        styleTools.playNotes(bassnote, 0, 1);
+        var bassnote = playback.chordToMIDINums(chord, 2)[0];
+        playback.playNotes({
+          notes: bassnote,
+          instrument: 'acoustic_bass',
+          beats: 1
+        });
         
-        styleTools.highlightBeatForBeats(beat, 1);
+        playback.highlightBeatForBeats(beat, 1);
       }
+      
+      // Play woodblock regardless of whether there's a chord for this beat.
+      if(beat == 0) {
+        let glocknote = playback.tonal.note.midi(
+          playback.song.getTransposedKey() + 6
+        );
+        playback.playNotes({
+          notes: glocknote,
+          instrument: 'glockenspiel',
+          beats: 1,
+          velocity: 30
+        });
+      } else {
+        playback.playNotes({
+          notes: 65,
+          instrument: 'woodblock',
+          beats: 1,
+          velocity: 40
+        });
+      }
+      
       beat++;
       if(beat >= measure.length) {
-        measure = styleTools.getNextMeasure();
+        measure = playback.getNextMeasure();
         if(!measure) return;
         beat = 0;
       }
-      styleTools.inBeats(playNextBeat, 1);
+      playback.inBeats(playNextBeat, 1);
     };
     
     // @todo docs
     style.play = function() {
       playing = true;
       beat = 0;
-      measure = styleTools.getNextMeasure();
+      measure = playback.getNextMeasure();
       playNextBeat();
     };
     style.stop = function() {
@@ -21261,6 +21318,13 @@ module.exports = tonal;
           }
         }
       }
+    };
+    
+    // @todo docs
+    this.getTransposedKey = function() {
+      return tonal.note.pc(
+        tonal.note.fromMidi(tonal.note.midi(this.key + '4') + this.transpose)
+      );
     };
     
     /**

@@ -77,6 +77,13 @@
       }
     };
     
+    // @todo docs
+    this.getTransposedKey = function() {
+      return tonal.note.pc(
+        tonal.note.fromMidi(tonal.note.midi(this.key + '4') + this.transpose)
+      );
+    };
+    
     /**
      * Parse a song from an Array containing nulls (newline) or Arrays of beats.
      * @param {Array.<null, Array>} array The array to parse into a song.
