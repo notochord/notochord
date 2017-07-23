@@ -20709,7 +20709,9 @@ module.exports = tonal;
     notochord.events.create('Notochord.transpose', false);
     notochord.transpose = 0;
     /**
-     * Change the transposition.
+     * Change the transposition for the song. Transposition is saved with
+     * song data so that the next time you play the song it remembers your
+     * preferred key.
      * @param {Number|String} transpose Key to transpose to, or integer of
      * semitones to transpose by.
      * @public
@@ -20722,7 +20724,13 @@ module.exports = tonal;
         // @todo don't fail silently?
       }
     };
-    // @todo docs
+    /**
+     * Set the tempo of the player style. Unlike setTranspose, this'll stop
+     * playback. That's because, if a playback style is poorly written,
+     * changing the tempo could unsync playback.
+     * @param {Number} tempo The new tempo.
+     * @public
+     */
     notochord.setTempo = function(tempo) {
       notochord.player.config({
         tempo: tempo
@@ -20866,7 +20874,11 @@ module.exports = tonal;
     playback.tempo = player.tempo;
     playback.song = null;
     playback.beatLength = player.beatLength;
-    // @todo docs
+    /**
+     * Perform an action in a certain number of beats.
+     * @param {Function} func Function to run.
+     * @param {Number} beats Number of beats to wait to run func.
+     */
     playback.inBeats = function(func, beats) {
       setTimeout(() => {
         func();
@@ -20887,7 +20899,12 @@ module.exports = tonal;
       });
       return chordAsMIDINums;
     };
-    // @todo docs
+    /**
+     * If theres a beat in the viewer, highlight it for the designated duration.
+     * @param {Number} beatToHighlight Beat in the current measure to highlight.
+     * @param {Number} beats How long to highlight the beat for, in beats.
+     * @private
+     */
     playback.highlightBeatForBeats = function(beatToHighlight, beats) {
       if(events) {
         var args = {
@@ -20900,9 +20917,13 @@ module.exports = tonal;
         }, beats);
       }
     };
-    // @todo docs
     playback.instruments = new Map();
     playback.instrumentChannels = [];
+    /**
+     * Load the required instruments for a given style.
+     * @param {String[]} newInstruments An array of instrument names.
+     * @private
+     */
     playback.requireInstruments = function(newInstruments) {
       // Avoid loading the same plugin twice.
       var safeInstruments = [];
@@ -20937,7 +20958,13 @@ module.exports = tonal;
         }
       });
     };
-    // @todo docs
+    /**
+     * Get the number of beats of rest left in the measure after (and including)
+     * a given beat.
+     * @param {Number} current Current beat.
+     * @returns {Number} Number of beats of rest left, plus one.
+     * @private
+     */
     playback.restsAfter = function(current) {
       var measure = playback.song.measures[playback.measureNumber];
       if(measure) {
@@ -20974,7 +21001,14 @@ module.exports = tonal;
         return null;
       }
     };
-    // @todo docs
+    /**
+     * Play a note or notes for a number of beats.
+     * @param {Object} data Object with data about what to play.
+     * @param {Number|Number[]} data.notes Midi note number[s] to play.
+     * @param {String} data.instrument Instrument name to play notes on.
+     * @param {Number} data.beats Number of beats to play the note for.
+     * @param {Number} [data.velocity=100] Velocity (volume) for the notes.
+     */
     // notes Array|Number
     playback.playNotes = function(data) {
       if(typeof data.notes == 'number') data.notes = [data.notes];
@@ -21028,8 +21062,7 @@ module.exports = tonal;
       } else {
         let index = player.styles.indexOf(newStyle);
         // @todo fail loudly if undefined?
-        // @todo hasownproperty or whatever?
-        currentStyle = stylesDB[index].style;
+        if(stylesDB.hasOwnProperty(index)) currentStyle = stylesDB[index].style;
       }
       currentStyle.load();
     };
@@ -21045,12 +21078,17 @@ module.exports = tonal;
       playback.song = song;
     };
     
+    // Count number of times player.play has failed (since last success). If
+    // it's more than like 10 then give up and complain.
+    var failCount = 0;
+    
     /**
      * Play the song from the beginning.
      * @public
      */
     player.play = function() {
       if(ready) {
+        failCount = 0;
         playback.tempo = player.tempo;
         playback.beatLength = (60 * 1000) / playback.tempo;
         player.stop();
@@ -21058,8 +21096,11 @@ module.exports = tonal;
         currentStyle.play();
       } else if(events) {
         events.on('Player.loadStyle', player.play, true);
+      } else if(failCount < 10) {
+        setTimeout(player.play, 200);
+        failCount++;
       } else {
-        //???? @todo
+        // @todo ok so how are we logging things? eslint says no console
       }
     };
     
@@ -21094,7 +21135,6 @@ module.exports = tonal;
     var style = {};
     
     // Initialize.
-    // @todo docs
     style.load = function() {
       playback.requireInstruments([
         'acoustic_grand_piano',
@@ -21133,7 +21173,7 @@ module.exports = tonal;
         playback.highlightBeatForBeats(beat, restsAfter);
       }
       
-      // Play woodblock regardless of whether there's a chord for this beat.
+      // Play metronome regardless of whether there's a chord for this beat.
       if(beat == 0) {
         let glocknote = playback.tonal.note.midi(
           playback.song.getTransposedKey() + 6
@@ -21346,7 +21386,11 @@ module.exports = tonal;
       }
     };
     
-    // @todo docs
+    /**
+     * Get the transposed key of the song.
+     * @returns {String} the transposed key.
+     * @public
+     */
     this.getTransposedKey = function() {
       return tonal.note.pc(
         tonal.note.fromMidi(tonal.note.midi(this.key + '4') + this.transpose)
