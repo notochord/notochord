@@ -100,6 +100,23 @@
         }
       });
     };
+    // @todo docs
+    playback.restsAfter = function(current) {
+      var measure = playback.song.measures[playback.measureNumber];
+      if(measure) {
+        let count = 1;
+        for(let i = current + 1; i < measure.length; i++) {
+          if(measure.getBeat(i)) {
+            return count;
+          } else {
+            count++;
+          }
+        }
+        return measure.length - current;
+      } else {
+        return 0;
+      }
+    };
     /**
      * Update playback object to next beat/measure.
      * @returns {?Measure} Next measure, or null if the song ends.

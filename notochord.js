@@ -20937,6 +20937,23 @@ module.exports = tonal;
         }
       });
     };
+    // @todo docs
+    playback.restsAfter = function(current) {
+      var measure = playback.song.measures[playback.measureNumber];
+      if(measure) {
+        let count = 1;
+        for(let i = current + 1; i < measure.length; i++) {
+          if(measure.getBeat(i)) {
+            return count;
+          } else {
+            count++;
+          }
+        }
+        return measure.length - current;
+      } else {
+        return 0;
+      }
+    };
     /**
      * Update playback object to next beat/measure.
      * @returns {?Measure} Next measure, or null if the song ends.
@@ -21094,23 +21111,26 @@ module.exports = tonal;
     var measure;
     var playNextBeat = function() {
       if(!playing) return;
+      // gets the number of rest beats following this beat.
+      var restsAfter = playback.restsAfter(beat);
+      
       var chord = measure.getBeat(beat);
       if(chord) {
         var notes = playback.chordToMIDINums(chord, 4);
         playback.playNotes({
           notes: notes,
           instrument: 'acoustic_grand_piano',
-          beats: 1
+          beats: restsAfter
         });
         
         var bassnote = playback.chordToMIDINums(chord, 2)[0];
         playback.playNotes({
           notes: bassnote,
           instrument: 'acoustic_bass',
-          beats: 1
+          beats: restsAfter
         });
         
-        playback.highlightBeatForBeats(beat, 1);
+        playback.highlightBeatForBeats(beat, restsAfter);
       }
       
       // Play woodblock regardless of whether there's a chord for this beat.
@@ -21121,14 +21141,14 @@ module.exports = tonal;
         playback.playNotes({
           notes: glocknote,
           instrument: 'glockenspiel',
-          beats: 1,
+          beats: restsAfter,
           velocity: 30
         });
       } else {
         playback.playNotes({
           notes: 65,
           instrument: 'woodblock',
-          beats: 1,
+          beats: restsAfter,
           velocity: 40
         });
       }
