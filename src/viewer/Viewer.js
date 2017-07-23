@@ -26,10 +26,13 @@
      * Configure the viewer
      * @param {Object} [options] Optional: options for the Viewer.
      * @param {Number} [options.width=1400] SVG width.
-     * @param {Number} [options.topMargin=60] Distance above first row of measures.
-     * @param {Number} [options.rowHeight=60] SVG height of each row of measures.
-     * @param {Number} [options.rowYMargin=10] Distance between each row of measures.
-     * @param {Number} [options.fontSize=50] Font size for big text (smaller text will be relatively scaled).
+     * @param {Number} [options.topMargin=60] Distance above first row of
+     * measures.
+     * @param {Number} [options.rowHeight=60] Height of each row of measures.
+     * @param {Number} [options.rowYMargin=10] Distance between each row of
+     * measures.
+     * @param {Number} [options.fontSize=50] Font size for big text (smaller
+     * text will be relatively scaled).
      */
     viewer.config = function(options) {
       viewer.width = (options && options['width']) || 1400;
@@ -76,10 +79,12 @@
      * I keep changing my mind about the prettiest font to use.
      * It's not easy to request fonts from Google as WOFF.
      */
+    /* eslint-disable max-len */
     const FONT_URLS = {
       openSans: 'https://fonts.gstatic.com/s/opensans/v14/cJZKeOuBrn4kERxqtaUH3T8E0i7KZn-EPnyo3HZu7kw.woff',
       slabo27px: 'https://fonts.gstatic.com/s/slabo27px/v3/PuwvqkdbcqU-fCZ9Ed-b7RsxEYwM7FgeyaSgU71cLG0.woff'
     };
+    /* eslint-enable max-len */
     
     require('opentype.js').load(FONT_URLS.slabo27px, function(err, font) {
       if (err) {
@@ -99,7 +104,8 @@
      */
     viewer.textToPath = function(text) {
       var path = document.createElementNS(viewer.SVG_NS, 'path');
-      var pathdata = viewer.font.getPath(text, 0, 0, viewer.fontSize).toPathData();
+      var fontPath = viewer.font.getPath(text, 0, 0, viewer.fontSize);
+      var pathdata = fontPath.toPathData();
       path.setAttributeNS(null, 'd',pathdata);
       return path;
     };
@@ -151,7 +157,11 @@
       var ttscale = 0.7;
       var ttx = (viewer.width - (titleBB.width * ttscale)) / 2;
       var tty = titleBB.height * ttscale;
-      titleText.setAttributeNS(null, 'transform',`translate(${ttx}, ${tty}) scale(${ttscale})`);
+      titleText.setAttributeNS(
+        null,
+        'transform',
+        `translate(${ttx}, ${tty}) scale(${ttscale})`
+      );
       
       var composerText = viewer.textToPath(song.composer);
       viewer._svgElem.appendChild(composerText);
@@ -159,7 +169,11 @@
       var ctscale = 0.5;
       var ctx = (viewer.width - (composerBB.width * ctscale)) / 2;
       var cty = tty + viewer.rowYMargin + (composerBB.height * ctscale);
-      composerText.setAttributeNS(null, 'transform',`translate(${ctx}, ${cty}) scale(${ctscale})`);
+      composerText.setAttributeNS(
+        null,
+        'transform',
+        `translate(${ctx}, ${cty}) scale(${ctscale})`
+      );
     };
     
     /**
@@ -186,7 +200,7 @@
     };
     
     /**
-     * Renders the current song to the SVG. Runs automatically when a song is loaded.
+     * Renders the song to the SVG. Runs automatically when a song loads.
      * @public
      */
     viewer.renderSong = function() {

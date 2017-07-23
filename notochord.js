@@ -20683,7 +20683,7 @@ module.exports = tonal;
     
     notochord.events = require('./events');
     
-    notochord.player = require('./player');
+    notochord.player = require('./player/player');
     notochord.player.attachEvents(notochord.events);
     
     notochord.viewer = require('./viewer/viewer');
@@ -20710,7 +20710,8 @@ module.exports = tonal;
     notochord.transpose = 0;
     /**
      * Change the transposition.
-     * @param {Number|String} transpose Key to transpose to, or integer of semitones to transpose by.
+     * @param {Number|String} transpose Key to transpose to, or integer of
+     * semitones to transpose by.
      * @public
      */
     notochord.setTranspose = function(transpose) {
@@ -20734,7 +20735,7 @@ module.exports = tonal;
   }
 })();
 
-},{"./events":45,"./player":46,"./song/song":48,"./viewer/viewer":53}],45:[function(require,module,exports){
+},{"./events":45,"./player/player":46,"./song/song":49,"./viewer/viewer":54}],45:[function(require,module,exports){
 (function() {
   'use strict';
   var Events = (function() {
@@ -20755,14 +20756,16 @@ module.exports = tonal;
     /**
      * Register an Notochord event, if it doesn't already exist.
      * @param {String} eventName Name of the event to register.
-     * @param {Boolean} oneTime If true, future functions added to the event run immediately.
+     * @param {Boolean} oneTime If true, future functions added to the event run
+     * immediately.
      * @returns {Object} Object that stores information about the event.
      * @public
      */
     events.create = function(eventName, oneTime) {
       if(!events._eventsDB[eventName]) {
         events._eventsDB[eventName] = {
-          funcs: [],
+          funcs: [], // array of Objects containing functions as well as config
+          //            info for each one.
           dispatchCount: 0,
           oneTime: oneTime,
           args: {}
@@ -20771,12 +20774,15 @@ module.exports = tonal;
       return events._eventsDB[eventName];
     };
     /**
-     * Add a function to run the next time the event is dispatched (or immediately)
+     * Add a function to run the next time the event is dispatched (or
+     * immediately if the event was oneTime)
      * @param {String} eventName Name of event to fire on.
      * @param {Function} func Function to run.
+     * @param {Boolean} [nextTimeOnly=false] If true, function only runs the
+     * next time the event is dispatched.
      * @public
      */
-    events.on = function(eventName, func) {
+    events.on = function(eventName, func, nextTimeOnly) {
       var event = events._eventsDB[eventName];
       if(!event) {
         event = events.create(eventName, false);
@@ -20785,7 +20791,11 @@ module.exports = tonal;
         // Pass it any arguments from the first run.
         func(event.args);
       } else {
-        event.funcs.push(func);
+        event.funcs.push({
+          func: func,
+          nextTimeOnly: nextTimeOnly || false,
+          runCount: 0
+        });
       }
     };
     /**
@@ -20799,8 +20809,16 @@ module.exports = tonal;
       var event = events._eventsDB[eventName];
       if(!event) return false;
       event.args = args;
-      for(let func of event.funcs) {
-        func(event.args);
+      for(let obj of event.funcs) {
+        if(obj.nextTimeOnly) {
+          if(obj.runCount === 0) {
+            obj.func(event.args);
+            obj.runCount++;
+          }
+        } else {
+          obj.func(event.args);
+          obj.runCount++;
+        }
       }
       return true;
     };
@@ -20815,19 +20833,7 @@ module.exports = tonal;
   var Player = (function() {
     // Attach everything public to this object, which is returned at the end.
     var player = {};
-    
-    var chordMagic = require('chord-magic');
-    var tonal = require('tonal');
-    var midi = require('midi.js');
-    
-    var ready = false;
-    midi.loadPlugin({
-      soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
-      onsuccess: function() {
-        ready = true;
-        events && events.dispatch('Player.ready', {});
-      }
-    });
+    player.tempo = 120;
     
     var events = null;
     /**
@@ -20836,95 +20842,149 @@ module.exports = tonal;
      */
     player.attachEvents = function(ev) {
       events = ev;
-      events.create('Player.ready', true);
+      events.create('Player.loadStyle', true);
       events.create('Player.playBeat', false);
       events.create('Player.stopBeat', false);
     };
     
     /**
+     * The current song to play.
+     */
+    var currentSong;
+    
+    // False before a style has finished loading.
+    var ready = false;
+    
+    // this is passed to each style so they don't have to duplicate code.
+    var styleTools = {};
+    
+    styleTools.midi = require('midi.js');
+    styleTools.chordMagic = require('chord-magic');
+    styleTools.tonal = require('tonal');
+    styleTools.measureNumber = 0;
+    styleTools.tempo = player.tempo;
+    styleTools.beatLength = player.beatLength;
+    // @todo docs
+    styleTools.inBeats = function(func, beats) {
+      setTimeout(() => {
+        func();
+      }, beats * styleTools.beatLength);
+    };
+    /**
      * Turns a ChordMagic chord object into an array of MIDI note numbers.
      * @param {Object} chord ChordMagic chord object to analyze.
+     * @param {Number} octave Octave to put the notes in.
      * @returns {Number[]} Array of MIDI note numbers.
      * @private
      */
-    var chordToArray = function(chord) {
-      var chordAsString = chordMagic.prettyPrint(chord);
-      var chordAsNoteNames = tonal.chord(chordAsString);
+    styleTools.chordToMIDINums = function(chord, octave) {
+      var chordAsString = styleTools.chordMagic.prettyPrint(chord);
+      var chordAsNoteNames = styleTools.tonal.chord(chordAsString);
       var chordAsMIDINums = chordAsNoteNames.map((note) => {
-        return tonal.note.midi(note + '4');
+        return styleTools.tonal.note.midi(note + octave);
       });
-      var bassNote = tonal.note.midi(chordAsNoteNames[0] + '3');
-      chordAsMIDINums.unshift(bassNote);
       return chordAsMIDINums;
     };
-    
-    /**
-     * Plays a ChordMagic cord.
-     * @param {Object} chord ChordMagic chord to play.
-     */
-    var playChord = function(chord) {
-      var chordAsArray = chordToArray(chord);
-      for(let note of chordAsArray) {
-        midi.noteOn(0, note, 100, 0);
-        midi.noteOff(0, note, 1);
-      }
-      // Shallow-copy playback so the correct data is dispatched with stopBeat event.
-      var args = {
-        measure: playback.measure,
-        beat: playback.beat
-      };
-      
-      // If attached to a Notochord.viewer, highlight corresponding notes.
+    // @todo docs
+    styleTools.highlightBeatForBeats = function(beatToHighlight, beats) {
       if(events) {
+        var args = {
+          measure: styleTools.measureNumber,
+          beat: beatToHighlight
+        };
         events.dispatch('Player.playBeat', args);
-        setTimeout(() => {
+        styleTools.inBeats(() => {
           events.dispatch('Player.stopBeat', args);
-        }, player.beatLength);
+        }, beats);
       }
     };
-    
-    /**
-     * Atore playback information for the player.
-     */
-    var playback = {
-      song: null,
-      measure: 0,
-      beat: 0,
-      timeout: null
+    // @todo docs
+    styleTools.requireInstruments = function(instruments) {
+      // @todo avoid loading the same plugin for each style
+      styleTools.midi.loadPlugin({
+        soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
+        instruments: instruments,
+        onsuccess: function() {
+          ready = true;
+          events && events.dispatch('Player.loadStyle', {});
+        }
+      });
     };
-    
     /**
      * Update playback object to next beat/measure.
+     * @returns {?Measure} Next measure, or null if the song ends.
      * @private
      */
-    var incrementPlayback = function() {
-      playback.beat++;
-      if(playback.beat >= playback.song.timeSignature[0]) {
-        playback.beat = 0;
-        playback.measure++;
+    styleTools.getNextMeasure = function() {
+      //playback.beat++;
+      //if(playback.beat >= currentSong.timeSignature[0]) {
+      styleTools.measureNumber++;
+      if(styleTools.measureNumber < currentSong.measures.length) {
+        var measure = currentSong.measures[styleTools.measureNumber];
+        if(measure) {
+          return measure;
+        } else {
+          return styleTools.getNextMeasure();
+        }
+      } else {
+        return null;
       }
-      if(playback.measure < playback.song.measures.length) {
-        playNextChord();
-      }
+    };
+    // @todo docs
+    // notes Array|Number
+    styleTools.playNotes = function(notes, instrument, beats) {
+      if(typeof notes == 'number') notes = [notes];
+      styleTools.midi.chordOn(instrument, notes, 100, 0);
+      styleTools.inBeats(() => {
+        // midi.js has the option to specify a delay, but docs don't have a unit
+        // so I'll do the delay manually.
+        styleTools.midi.chordOff(instrument, notes, 0);
+      }, beats);
     };
     
+    
+    
+    
+    
     /**
-     * Plays the next chord, then has incrementPlayback call this function in a beat's time.
+     * Internal representation of playback styles
      * @private
      */
-    var playNextChord = function() {
-      var measure = playback.song.measures[playback.measure];
-      if(measure) {
-        var chord = measure.getBeat(playback.beat);
-        if(chord) {
-          playChord(chord);
-        }
-        playback.timeout = setTimeout(incrementPlayback, player.beatLength);
-      } else {
-        // if there's no measure, it's a newline, so play next beat immediately.
-        incrementPlayback();
+    var stylesDB = [
+      {
+        'name': 'basic',
+        'style': require('./styles/basic')(styleTools)
       }
+    ];
+    /**
+     * Publicly available list of playback styles.
+     * @public
+     */
+    player.styles = stylesDB.map(s => s.name);
+    // Why is "plublically" wrong? Other words ending in -ic change to -ally???
+    
+    var currentStyle;
+    /**
+     * Set the player's style
+     * @param {Number|String} newStyle Either the name or index of a playback
+     * style.
+     */
+    player.setStyle = function(newStyle) {
+      ready = false;
+      if(Number.isInteger(newStyle)) {
+        // At one point this line read "style = styles[_style].style".
+        currentStyle = stylesDB[newStyle].style;
+        // @todo fail loudly if undefined?
+      } else {
+        let index = player.styles.indexOf(newStyle);
+        // @todo fail loudly if undefined?
+        // @todo hasownproperty or whatever?
+        currentStyle = stylesDB[index].style;
+      }
+      currentStyle.load();
     };
+    player.setStyle(0); // Default to basic until told otherwise.
+    
     
     /**
      * Load a song.
@@ -20932,7 +20992,7 @@ module.exports = tonal;
      * @public
      */
     player.loadSong = function(song) {
-      playback.song = song;
+      currentSong = song;
     };
     
     /**
@@ -20941,12 +21001,13 @@ module.exports = tonal;
      */
     player.play = function() {
       if(ready) {
+        styleTools.tempo = player.tempo;
+        styleTools.beatLength = (60 * 1000) / styleTools.tempo;
         player.stop();
-        playback.measure = 0;
-        playback.beat = 0;
-        playNextChord();
+        styleTools.measureNumber = -1;
+        currentStyle.play();
       } else if(events) {
-        events.on('Player.ready', player.play);
+        events.on('Player.loadStyle', player.play, true);
       } else {
         //???? @todo
       }
@@ -20957,7 +21018,7 @@ module.exports = tonal;
      * @public
      */
     player.stop = function() {
-      if(playback && playback.timeout) playback.timeout = clearTimeout(playback.timeout);
+      currentStyle.stop();
     };
     
     /**
@@ -20969,8 +21030,6 @@ module.exports = tonal;
     player.config = function(options) {
       player.stop();
       player.tempo = (options && options.tempo) || 120;
-      // Length of a beat, in milliseconds.
-      player.beatLength = (60 * 1000) / player.tempo;
     };
     player.config();
     
@@ -20979,14 +21038,70 @@ module.exports = tonal;
   module.exports = Player;
 })();
 
-},{"chord-magic":10,"midi.js":20,"tonal":43}],47:[function(require,module,exports){
+},{"./styles/basic":47,"chord-magic":10,"midi.js":20,"tonal":43}],47:[function(require,module,exports){
+(function() {
+  module.exports = function(styleTools) {
+    var style = {};
+    
+    // Initialize.
+    // @todo docs
+    style.load = function() {
+      styleTools.requireInstruments([
+        'acoustic_grand_piano',
+        'acoustic_bass',
+        'woodblock'
+      ]);
+    };
+    
+    // @todo explanation of what methods a style is expected to provide?
+    
+    var playing;
+    var beat = 0;
+    var measure;
+    var playNextBeat = function() {
+      if(!playing) return;
+      var chord = measure.getBeat(beat);
+      if(chord) {
+        var notes = styleTools.chordToMIDINums(chord, 4);
+        styleTools.playNotes(notes, 0, 1);
+        
+        var bassnote = styleTools.chordToMIDINums(chord, 3)[0];
+        styleTools.playNotes(bassnote, 0, 1);
+        
+        styleTools.highlightBeatForBeats(beat, 1);
+      }
+      beat++;
+      if(beat >= measure.length) {
+        measure = styleTools.getNextMeasure();
+        if(!measure) return;
+        beat = 0;
+      }
+      styleTools.inBeats(playNextBeat, 1);
+    };
+    
+    // @todo docs
+    style.play = function() {
+      playing = true;
+      beat = 0;
+      measure = styleTools.getNextMeasure();
+      playNextBeat();
+    };
+    style.stop = function() {
+      playing = false;
+    };
+    
+    return style;
+  };
+})();
+
+},{}],48:[function(require,module,exports){
 (function() {
   'use strict'; 
   /**
    * Represents a measure of music.
    * @class
    * @param {Song} song The song the Measure belongs to.
-   * @param {Object} chordMagic A library that helps with parsing chords and things.
+   * @param {Object} chordMagic A library that helps with parsing chords.
    * @param {?Number} index Optional: index at which to insert measure.
    * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
    */
@@ -21068,7 +21183,7 @@ module.exports = tonal;
   module.exports = Measure;
 })();
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 (function() {
   'use strict';
   /**
@@ -21076,9 +21191,11 @@ module.exports = tonal;
    * @param {Object} songData The song to load.
    * @param {String} [songData.title] Title of the song.
    * @param {String} [songData.composer] Composer of the song.
-   * @param {Number[]} [songData.timeSignature] Time Signature of the song, an Array of 2 integers.
+   * @param {Number[]} [songData.timeSignature] Time Signature of the song, an
+   * Array of 2 integers.
    * @param {String} [songData.key] Original key of the song.
-   * @param {Number|String} [songData.transpose] Key to transpose to, or integer of semitones to transpose by.
+   * @param {Number|String} [songData.transpose] Key to transpose to, or integer
+   * of semitones to transpose by.
    * @param {Array.<null, Array>} songData.chords The chords array to parse.
    * @class
    * @public
@@ -21120,7 +21237,8 @@ module.exports = tonal;
     
     /**
      * Change the transposition.
-     * @param {Number|String} transpose Key to transpose to, or integer of semitones to transpose by.
+     * @param {Number|String} transpose Key to transpose to, or integer of
+     * semitones to transpose by.
      * @public
      */
     this.setTranspose = function(transpose) {
@@ -21129,10 +21247,13 @@ module.exports = tonal;
       } else {
         let orig_chord = chordMagic.parse(this.key);
         let new_chord = chordMagic.parse(transpose);
-        this.transpose = tonal.semitones(orig_chord.root + '4', new_chord.root + '4');
+        this.transpose = tonal.semitones(
+          orig_chord.root + '4',
+          new_chord.root + '4'
+        );
         if(orig_chord.quality != new_chord.quality) {
           // for example, if the song is in CM and user transposes to Am
-          // assume it's major or minor, if you try to transpose to some other thing I'll cry.
+          // if you try to transpose to not Major/Minor I'll cry.
           if(new_chord.quality == 'Minor') {
             this.transpose = (this.transpose + 3) % 12;
           } else {
@@ -21143,7 +21264,7 @@ module.exports = tonal;
     };
     
     /**
-     * Parse a song from an Array containing nulls (newlines) or Arrays of beats.
+     * Parse a song from an Array containing nulls (newline) or Arrays of beats.
      * @param {Array.<null, Array>} array The array to parse into a song.
      * @public
      */
@@ -21182,7 +21303,7 @@ module.exports = tonal;
      * @type {Number}
      */
     this.transpose = 0;
-    // I suppose this evaluates to false if songData.transpose is 0. Whatever lol.
+    // I suppose this evaluates to false if songData.transpose is 0. Whatever.
     if(songData.transpose) this.setTranspose(songData.transpose);
     this.parseArray(songData.chords);
   }
@@ -21190,7 +21311,7 @@ module.exports = tonal;
   module.exports = Song;
 })();
 
-},{"./measure":47,"chord-magic":10,"tonal":43}],49:[function(require,module,exports){
+},{"./measure":48,"chord-magic":10,"tonal":43}],50:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -21212,7 +21333,11 @@ module.exports = tonal;
     const PADDING_RIGHT = 7;
     
     this._svgGroup = document.createElementNS(viewer.SVG_NS, 'g');
-    this._svgGroup.setAttributeNS(null, 'transform', `translate(${xoffset}, 0)`);
+    this._svgGroup.setAttributeNS(
+      null,
+      'transform',
+      `translate(${xoffset}, 0)`
+    );
     // Append right away so we can compute size.
     this.measureView._svgGroup.appendChild(this._svgGroup);
     
@@ -21292,7 +21417,11 @@ module.exports = tonal;
         y = (-1 * goal_height) - (0.6 * viewer.H_HEIGHT);
       }
       let scale = goal_height / orig_height;
-      path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+      path.setAttributeNS(
+        null,
+        'transform',
+        `translate(${x}, ${y}) scale(${scale})`
+      );
       this._svgGroup.appendChild(path);
     };
     
@@ -21318,13 +21447,20 @@ module.exports = tonal;
           let goal_height = (viewer.H_HEIGHT * 0.5);
           let y = -0.5 * viewer.H_HEIGHT;
           let scale = goal_height / orig_height;
-          path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+          path.setAttributeNS(
+            null,
+            'transform',
+            `translate(${x}, ${y}) scale(${scale})`
+          );
           bottomGroup.appendChild(path);
         } else {
           let text = viewer.textToPath(str);
           let y = 0;
           let scale = 0.5;
-          text.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+          text.setAttributeNS(null,
+            'transform',
+            `translate(${x}, ${y}) scale(${scale})`
+          );
           bottomGroup.appendChild(text);
         }
       }
@@ -21335,7 +21471,9 @@ module.exports = tonal;
      */
     this.renderChord = function(chord) {
       // delete whatever might be in this._svgGroup
-      while(this._svgGroup.firstChild) this._svgGroup.removeChild(this._svgGroup.firstChild);
+      while(this._svgGroup.firstChild) {
+        this._svgGroup.removeChild(this._svgGroup.firstChild);
+      }
       
       var root = viewer.textToPath(chord.rawRoot[0]);
       this._svgGroup.appendChild(root);
@@ -21380,7 +21518,7 @@ module.exports = tonal;
   module.exports = BeatView;
 })();
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -21478,7 +21616,7 @@ module.exports = tonal;
       
       {
         /**
-         * Left bar of the measure. Only happens if not the first meassure on the line.
+         * Left bar of the measure. Hidden for the first meassure on the line.
          * @type {SVGPathElement}
          * @private
          */
@@ -21487,8 +21625,16 @@ module.exports = tonal;
         let x = -0.25 * viewer.beatOffset;
         let y = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
         let scale = viewer.rowHeight / viewer.PATHS.bar_height;
-        this._leftBar.setAttributeNS(null, 'transform', `translate(${x}, ${y}) scale(${scale})`);
-        this._leftBar.setAttributeNS(null, 'style', 'stroke-width: 1px; stroke: black;');
+        this._leftBar.setAttributeNS(
+          null,
+          'transform',
+          `translate(${x}, ${y}) scale(${scale})`
+        );
+        this._leftBar.setAttributeNS(
+          null,
+          'style',
+          'stroke-width: 1px; stroke: black;'
+        );
         this._svgGroup.appendChild(this._leftBar);
       }
     };
@@ -21498,7 +21644,8 @@ module.exports = tonal;
   module.exports = MeasureView;
 })();
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
+/* eslint-disable max-len */
 module.exports = {
   // https://commons.wikimedia.org/wiki/File:B%C3%A9mol.svg
   'flat': 'm 1.380956,10.84306 -0.02557,1.68783 0,0.28131 c 0,0.56261 0.02557,1.12522 0.102293,1.68783 1.150797,-0.97178 2.378313,-2.04586 2.378313,-3.55468 0,-0.84392 -0.358026,-1.7134103 -1.09965,-1.7134103 -0.792771,0 -1.329809,0.7672 -1.355382,1.6111203 z M 0.306879,15.42067 0,0.20457992 C 0.204586,0.07671992 0.460319,-7.6580061e-8 0.690478,-7.6580061e-8 0.920637,-7.6580061e-8 1.17637,0.07669992 1.380956,0.20457992 L 1.201943,9.0273597 c 0.639331,-0.53704 1.483249,-0.8695 2.327166,-0.8695 1.329809,0 2.27602,1.22752 2.27602,2.6084803 0,2.04586 -2.1993,2.99207 -3.759269,4.32188 C 1.662261,15.42067 1.432102,16.06 0.895064,16.06 0.562612,16.06 0.306879,15.77869 0.306879,15.42067 Z',
@@ -21514,7 +21661,7 @@ module.exports = {
   'delta_height': 44.5
 };
 
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 module.exports = `/*<![CDATA[*/
   .NotochordPlayedBeat path,
   .NotochordPlayedBeat text {
@@ -21522,7 +21669,7 @@ module.exports = `/*<![CDATA[*/
   }
 /*]]>*/`;
 
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 /*
  * Code to generate a Viewer object. viewer will be extended to an editor in
  * a separate file so that that functionality is only loaded as needed.
@@ -21551,10 +21698,13 @@ module.exports = `/*<![CDATA[*/
      * Configure the viewer
      * @param {Object} [options] Optional: options for the Viewer.
      * @param {Number} [options.width=1400] SVG width.
-     * @param {Number} [options.topMargin=60] Distance above first row of measures.
-     * @param {Number} [options.rowHeight=60] SVG height of each row of measures.
-     * @param {Number} [options.rowYMargin=10] Distance between each row of measures.
-     * @param {Number} [options.fontSize=50] Font size for big text (smaller text will be relatively scaled).
+     * @param {Number} [options.topMargin=60] Distance above first row of
+     * measures.
+     * @param {Number} [options.rowHeight=60] Height of each row of measures.
+     * @param {Number} [options.rowYMargin=10] Distance between each row of
+     * measures.
+     * @param {Number} [options.fontSize=50] Font size for big text (smaller
+     * text will be relatively scaled).
      */
     viewer.config = function(options) {
       viewer.width = (options && options['width']) || 1400;
@@ -21601,10 +21751,12 @@ module.exports = `/*<![CDATA[*/
      * I keep changing my mind about the prettiest font to use.
      * It's not easy to request fonts from Google as WOFF.
      */
+    /* eslint-disable max-len */
     const FONT_URLS = {
       openSans: 'https://fonts.gstatic.com/s/opensans/v14/cJZKeOuBrn4kERxqtaUH3T8E0i7KZn-EPnyo3HZu7kw.woff',
       slabo27px: 'https://fonts.gstatic.com/s/slabo27px/v3/PuwvqkdbcqU-fCZ9Ed-b7RsxEYwM7FgeyaSgU71cLG0.woff'
     };
+    /* eslint-enable max-len */
     
     require('opentype.js').load(FONT_URLS.slabo27px, function(err, font) {
       if (err) {
@@ -21624,7 +21776,8 @@ module.exports = `/*<![CDATA[*/
      */
     viewer.textToPath = function(text) {
       var path = document.createElementNS(viewer.SVG_NS, 'path');
-      var pathdata = viewer.font.getPath(text, 0, 0, viewer.fontSize).toPathData();
+      var fontPath = viewer.font.getPath(text, 0, 0, viewer.fontSize);
+      var pathdata = fontPath.toPathData();
       path.setAttributeNS(null, 'd',pathdata);
       return path;
     };
@@ -21676,7 +21829,11 @@ module.exports = `/*<![CDATA[*/
       var ttscale = 0.7;
       var ttx = (viewer.width - (titleBB.width * ttscale)) / 2;
       var tty = titleBB.height * ttscale;
-      titleText.setAttributeNS(null, 'transform',`translate(${ttx}, ${tty}) scale(${ttscale})`);
+      titleText.setAttributeNS(
+        null,
+        'transform',
+        `translate(${ttx}, ${tty}) scale(${ttscale})`
+      );
       
       var composerText = viewer.textToPath(song.composer);
       viewer._svgElem.appendChild(composerText);
@@ -21684,7 +21841,11 @@ module.exports = `/*<![CDATA[*/
       var ctscale = 0.5;
       var ctx = (viewer.width - (composerBB.width * ctscale)) / 2;
       var cty = tty + viewer.rowYMargin + (composerBB.height * ctscale);
-      composerText.setAttributeNS(null, 'transform',`translate(${ctx}, ${cty}) scale(${ctscale})`);
+      composerText.setAttributeNS(
+        null,
+        'transform',
+        `translate(${ctx}, ${cty}) scale(${ctscale})`
+      );
     };
     
     /**
@@ -21711,7 +21872,7 @@ module.exports = `/*<![CDATA[*/
     };
     
     /**
-     * Renders the current song to the SVG. Runs automatically when a song is loaded.
+     * Renders the song to the SVG. Runs automatically when a song loads.
      * @public
      */
     viewer.renderSong = function() {
@@ -21729,4 +21890,4 @@ module.exports = `/*<![CDATA[*/
   module.exports = Viewer;
 })();
 
-},{"./beatView":49,"./measureView":50,"./svg_constants":51,"./viewer.css.js":52,"opentype.js":22}]},{},[44]);
+},{"./beatView":50,"./measureView":51,"./svg_constants":52,"./viewer.css.js":53,"opentype.js":22}]},{},[44]);

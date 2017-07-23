@@ -4,7 +4,7 @@
    * Represents a measure of music.
    * @class
    * @param {Song} song The song the Measure belongs to.
-   * @param {Object} chordMagic A library that helps with parsing chords and things.
+   * @param {Object} chordMagic A library that helps with parsing chords.
    * @param {?Number} index Optional: index at which to insert measure.
    * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
    */

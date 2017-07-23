@@ -18,14 +18,16 @@
     /**
      * Register an Notochord event, if it doesn't already exist.
      * @param {String} eventName Name of the event to register.
-     * @param {Boolean} oneTime If true, future functions added to the event run immediately.
+     * @param {Boolean} oneTime If true, future functions added to the event run
+     * immediately.
      * @returns {Object} Object that stores information about the event.
      * @public
      */
     events.create = function(eventName, oneTime) {
       if(!events._eventsDB[eventName]) {
         events._eventsDB[eventName] = {
-          funcs: [],
+          funcs: [], // array of Objects containing functions as well as config
+          //            info for each one.
           dispatchCount: 0,
           oneTime: oneTime,
           args: {}
@@ -34,12 +36,15 @@
       return events._eventsDB[eventName];
     };
     /**
-     * Add a function to run the next time the event is dispatched (or immediately)
+     * Add a function to run the next time the event is dispatched (or
+     * immediately if the event was oneTime)
      * @param {String} eventName Name of event to fire on.
      * @param {Function} func Function to run.
+     * @param {Boolean} [nextTimeOnly=false] If true, function only runs the
+     * next time the event is dispatched.
      * @public
      */
-    events.on = function(eventName, func) {
+    events.on = function(eventName, func, nextTimeOnly) {
       var event = events._eventsDB[eventName];
       if(!event) {
         event = events.create(eventName, false);
@@ -48,7 +53,11 @@
         // Pass it any arguments from the first run.
         func(event.args);
       } else {
-        event.funcs.push(func);
+        event.funcs.push({
+          func: func,
+          nextTimeOnly: nextTimeOnly || false,
+          runCount: 0
+        });
       }
     };
     /**
@@ -62,8 +71,16 @@
       var event = events._eventsDB[eventName];
       if(!event) return false;
       event.args = args;
-      for(let func of event.funcs) {
-        func(event.args);
+      for(let obj of event.funcs) {
+        if(obj.nextTimeOnly) {
+          if(obj.runCount === 0) {
+            obj.func(event.args);
+            obj.runCount++;
+          }
+        } else {
+          obj.func(event.args);
+          obj.runCount++;
+        }
       }
       return true;
     };

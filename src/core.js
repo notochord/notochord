@@ -9,7 +9,7 @@
     
     notochord.events = require('./events');
     
-    notochord.player = require('./player');
+    notochord.player = require('./player/player');
     notochord.player.attachEvents(notochord.events);
     
     notochord.viewer = require('./viewer/viewer');
@@ -36,7 +36,8 @@
     notochord.transpose = 0;
     /**
      * Change the transposition.
-     * @param {Number|String} transpose Key to transpose to, or integer of semitones to transpose by.
+     * @param {Number|String} transpose Key to transpose to, or integer of
+     * semitones to transpose by.
      * @public
      */
     notochord.setTranspose = function(transpose) {

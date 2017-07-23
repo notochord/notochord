@@ -19,7 +19,11 @@
     const PADDING_RIGHT = 7;
     
     this._svgGroup = document.createElementNS(viewer.SVG_NS, 'g');
-    this._svgGroup.setAttributeNS(null, 'transform', `translate(${xoffset}, 0)`);
+    this._svgGroup.setAttributeNS(
+      null,
+      'transform',
+      `translate(${xoffset}, 0)`
+    );
     // Append right away so we can compute size.
     this.measureView._svgGroup.appendChild(this._svgGroup);
     
@@ -99,7 +103,11 @@
         y = (-1 * goal_height) - (0.6 * viewer.H_HEIGHT);
       }
       let scale = goal_height / orig_height;
-      path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+      path.setAttributeNS(
+        null,
+        'transform',
+        `translate(${x}, ${y}) scale(${scale})`
+      );
       this._svgGroup.appendChild(path);
     };
     
@@ -125,13 +133,20 @@
           let goal_height = (viewer.H_HEIGHT * 0.5);
           let y = -0.5 * viewer.H_HEIGHT;
           let scale = goal_height / orig_height;
-          path.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+          path.setAttributeNS(
+            null,
+            'transform',
+            `translate(${x}, ${y}) scale(${scale})`
+          );
           bottomGroup.appendChild(path);
         } else {
           let text = viewer.textToPath(str);
           let y = 0;
           let scale = 0.5;
-          text.setAttributeNS(null, 'transform',`translate(${x}, ${y}) scale(${scale})`);
+          text.setAttributeNS(null,
+            'transform',
+            `translate(${x}, ${y}) scale(${scale})`
+          );
           bottomGroup.appendChild(text);
         }
       }
@@ -142,7 +157,9 @@
      */
     this.renderChord = function(chord) {
       // delete whatever might be in this._svgGroup
-      while(this._svgGroup.firstChild) this._svgGroup.removeChild(this._svgGroup.firstChild);
+      while(this._svgGroup.firstChild) {
+        this._svgGroup.removeChild(this._svgGroup.firstChild);
+      }
       
       var root = viewer.textToPath(chord.rawRoot[0]);
       this._svgGroup.appendChild(root);

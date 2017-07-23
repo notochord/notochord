@@ -5,9 +5,11 @@
    * @param {Object} songData The song to load.
    * @param {String} [songData.title] Title of the song.
    * @param {String} [songData.composer] Composer of the song.
-   * @param {Number[]} [songData.timeSignature] Time Signature of the song, an Array of 2 integers.
+   * @param {Number[]} [songData.timeSignature] Time Signature of the song, an
+   * Array of 2 integers.
    * @param {String} [songData.key] Original key of the song.
-   * @param {Number|String} [songData.transpose] Key to transpose to, or integer of semitones to transpose by.
+   * @param {Number|String} [songData.transpose] Key to transpose to, or integer
+   * of semitones to transpose by.
    * @param {Array.<null, Array>} songData.chords The chords array to parse.
    * @class
    * @public
@@ -49,7 +51,8 @@
     
     /**
      * Change the transposition.
-     * @param {Number|String} transpose Key to transpose to, or integer of semitones to transpose by.
+     * @param {Number|String} transpose Key to transpose to, or integer of
+     * semitones to transpose by.
      * @public
      */
     this.setTranspose = function(transpose) {
@@ -58,10 +61,13 @@
       } else {
         let orig_chord = chordMagic.parse(this.key);
         let new_chord = chordMagic.parse(transpose);
-        this.transpose = tonal.semitones(orig_chord.root + '4', new_chord.root + '4');
+        this.transpose = tonal.semitones(
+          orig_chord.root + '4',
+          new_chord.root + '4'
+        );
         if(orig_chord.quality != new_chord.quality) {
           // for example, if the song is in CM and user transposes to Am
-          // assume it's major or minor, if you try to transpose to some other thing I'll cry.
+          // if you try to transpose to not Major/Minor I'll cry.
           if(new_chord.quality == 'Minor') {
             this.transpose = (this.transpose + 3) % 12;
           } else {
@@ -72,7 +78,7 @@
     };
     
     /**
-     * Parse a song from an Array containing nulls (newlines) or Arrays of beats.
+     * Parse a song from an Array containing nulls (newline) or Arrays of beats.
      * @param {Array.<null, Array>} array The array to parse into a song.
      * @public
      */
@@ -111,7 +117,7 @@
      * @type {Number}
      */
     this.transpose = 0;
-    // I suppose this evaluates to false if songData.transpose is 0. Whatever lol.
+    // I suppose this evaluates to false if songData.transpose is 0. Whatever.
     if(songData.transpose) this.setTranspose(songData.transpose);
     this.parseArray(songData.chords);
   }

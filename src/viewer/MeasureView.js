@@ -95,7 +95,7 @@
       
       {
         /**
-         * Left bar of the measure. Only happens if not the first meassure on the line.
+         * Left bar of the measure. Hidden for the first meassure on the line.
          * @type {SVGPathElement}
          * @private
          */
@@ -104,8 +104,16 @@
         let x = -0.25 * viewer.beatOffset;
         let y = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
         let scale = viewer.rowHeight / viewer.PATHS.bar_height;
-        this._leftBar.setAttributeNS(null, 'transform', `translate(${x}, ${y}) scale(${scale})`);
-        this._leftBar.setAttributeNS(null, 'style', 'stroke-width: 1px; stroke: black;');
+        this._leftBar.setAttributeNS(
+          null,
+          'transform',
+          `translate(${x}, ${y}) scale(${scale})`
+        );
+        this._leftBar.setAttributeNS(
+          null,
+          'style',
+          'stroke-width: 1px; stroke: black;'
+        );
         this._svgGroup.appendChild(this._leftBar);
       }
     };

@@ -30,6 +30,9 @@
         "semi": [
             "error",
             "always"
+        ],
+        "max-len": [
+            "error"
         ]
     }
 }
