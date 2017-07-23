@@ -1,4 +1,4 @@
-// Notochord.viewer displays an Notochord as an SVG.
+// Notochord.viewer displays a Notochord as an SVG.
 // Add the SVG to the document.
 Notochord.viewer.appendTo(document.querySelector('#notochordContainer'));
 // Confogure the viewer.
