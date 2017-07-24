@@ -116,10 +116,6 @@
       playNextMeasure();
     };
     
-    style.stop = function() {
-      playback.playing = false;
-    };
-    
     return style;
   };
 })();

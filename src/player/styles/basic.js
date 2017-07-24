@@ -5,7 +5,7 @@
    * The playback object has all of the functionality a style needs to get chord
    * data from the current measure, and play notes.
    *
-   * A style should return 3 functions: load, play, and stop.
+   * A style should return 2 functions: load and play.
    */
   
   module.exports = function(playback) {
@@ -70,13 +70,6 @@
      */
     style.play = function() {
       playNextBeat();
-    };
-    
-    /*
-     * Stop should stop playback.
-     */
-    style.stop = function() {
-      playback.playing = false;
     };
     
     return style;

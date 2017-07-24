@@ -21,7 +21,7 @@
     playback.tempo = 120; // Player should set these 3 before playing.
     playback.song = null;
     playback.beatLength = 500;
-    // an array containing data about all scheduled things yet to come.
+    // an array containing data about all scheduled tasks yet to come.
     var scheduled = [];
     /**
      * Perform an action in a certain number of beats.
@@ -54,8 +54,22 @@
         }
       }
     };
-    // @todo docs?
-    playback.cancelScheduled = function() {
+    /**
+     * Resets all counters and things as if sarting from beginning of song.
+     */
+    playback.reset = function() {
+      playback.measureNumber = -1;
+      playback.beat = 0;
+      playback.nextMeasure();
+    }
+    /**
+     * Stops playback.
+     * @public
+     */
+    playback.stop = function() {
+      playback.ready = false;
+      
+      // Cancel (or in some cases immediately run) all scheduled tasks.
       while(scheduled.length) {
         let timeoutObj = scheduled.pop();
         clearTimeout(timeoutObj.timeout);

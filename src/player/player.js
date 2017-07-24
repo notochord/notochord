@@ -85,13 +85,11 @@
     player.play = function() {
       if(playback.ready) {
         failCount = 0;
+        playback.playing = true;
         playback.tempo = player.tempo;
         playback.beatLength = (60 * 1000) / playback.tempo;
-        player.stop();
-        playback.measureNumber = -1;
-        playback.playing = true;
-        playback.beat = 0;
-        playback.nextMeasure();
+        playback.stop();
+        playback.reset();
         currentStyle.play();
       } else if(events) {
         events.on('Player.loadStyle', player.play, true);
@@ -107,10 +105,7 @@
      * Stop playing the Notochord.
      * @public
      */
-    player.stop = function() {
-      currentStyle.stop();
-      playback.cancelScheduled();
-    };
+    player.stop = playback.stop;
     
     /**
      * Configure the player.
