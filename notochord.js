@@ -20883,6 +20883,8 @@ module.exports = {
     playback.tempo = 120; // Player should set these 3 before playing.
     playback.song = null;
     playback.beatLength = 500;
+    // an array containing data about all scheduled things yet to come.
+    var scheduled = [];
     /**
      * Perform an action in a certain number of beats.
      * @param {Function} func Function to run.
@@ -20894,14 +20896,32 @@ module.exports = {
     playback.schedule = function(func, durations, force) {
       if (typeof durations == 'number') durations = [durations];
       for(let dur of durations) {
-        if(dur === 0) {
+        if(dur === 0) { // if duration is 0, run immediately.
           if(playback.playing || force) func();
         } else {
-          setTimeout(() => {
+          let timeoutObj;
+          let timeout = setTimeout(() => {
             if(playback.playing || force) func();
+            
+            let index = scheduled.indexOf(timeoutObj);
+            if(index != -1) scheduled.splice(index, 1);
           }, dur * playback.beatLength);
+          timeoutObj = {
+            timeout: timeout,
+            func: func,
+            force: force
+          };
+          scheduled.push(timeoutObj);
           // @todo swing?
         }
+      }
+    };
+    // @todo docs?
+    playback.cancelScheduled = function() {
+      while(scheduled.length) {
+        let timeoutObj = scheduled.pop();
+        clearTimeout(timeoutObj.timeout);
+        if(timeoutObj.force) timeoutObj.func();
       }
     };
     /**
@@ -20950,30 +20970,38 @@ module.exports = {
         }
       }
       
-      // Load what's left.
-      playback.midi.loadPlugin({
-        soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
-        instruments: safeInstruments,
-        onsuccess: function() {
-          for(let instrument of safeInstruments) {
-            playback.instruments.set(
-              instrument,
-              playback.midi.GM.byName[instrument].number
-            );
-          }
-          // Map each instrument to a MIDI channel.
-          playback.instrumentChannels = [];
-          for(let i in newInstruments) {
-            let instrumentNumber = playback.instruments.get(
-              newInstruments[i]
-            );
-            playback.midi.programChange(i, instrumentNumber);
-            playback.instrumentChannels[instrumentNumber] = i;
-          }
-          playback.ready = true;
-          events && events.dispatch('Player.loadStyle', {});
+      var onSuccess = function() {
+        for(let instrument of safeInstruments) {
+          playback.instruments.set(
+            instrument,
+            playback.midi.GM.byName[instrument].number
+          );
         }
-      });
+        // Map each instrument to a MIDI channel.
+        playback.instrumentChannels = [];
+        for(let i in newInstruments) {
+          let instrumentNumber = playback.instruments.get(
+            newInstruments[i]
+          );
+          playback.midi.programChange(i, instrumentNumber);
+          playback.instrumentChannels[instrumentNumber] = i;
+        }
+        playback.ready = true;
+        events && events.dispatch('Player.loadStyle', {});
+      };
+      
+      if(safeInstruments.length) {
+        // Load what's left.
+        playback.midi.loadPlugin({
+          // eslint-disable-next-line max-len
+          soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
+          instruments: safeInstruments,
+          onsuccess: onSuccess
+        });
+      } else {
+        // If there are no instruments to load, run onSuccess immediately.
+        onSuccess();
+      }
     };
     /**
      * Get the number of beats of rest left in the measure after (and including)
@@ -21053,15 +21081,19 @@ module.exports = {
     };
     
     // Also supply some drums.
-    // [hatClosed, hatHalfOpen, snare1, kick, snare2, cymbal, tom, woodblock]
     playback.drums = {};
     {
       let drums = require('./drums');
       for(let drumName in drums) {
         let data = drums[drumName];
-        playback.drums[drumName] = () => {
+        /**
+         * Play a drum. Can be any of the following:
+         * hatClosed, hatHalfOpen, snare1, kick, snare2, cymbal, tom, woodblock
+         * @param {Number} [volume=0.5] Volume 0-1.
+         */
+        playback.drums[drumName] = function(volume = 0.5) {
           let audio = new Audio(data);
-          audio.volume = 0.5;
+          audio.volume = volume;
           audio.play();
         };
       }
@@ -21125,6 +21157,7 @@ module.exports = {
      */
     player.setStyle = function(newStyle) {
       playback.ready = false;
+      playback.cancelScheduled();
       if(Number.isInteger(newStyle)) {
         // At one point this line read "style = styles[_style].style".
         currentStyle = stylesDB[newStyle].style;
@@ -21136,8 +21169,7 @@ module.exports = {
       }
       currentStyle.load();
     };
-    player.setStyle(1); // Default to basic until told otherwise.
-    // @todo change this back when done testing.
+    player.setStyle(0); // Default to basic until told otherwise.
     
     
     /**
@@ -21184,6 +21216,7 @@ module.exports = {
      */
     player.stop = function() {
       currentStyle.stop();
+      playback.cancelScheduled();
     };
     
     /**
@@ -21305,7 +21338,7 @@ module.exports = {
       if(playback.evenMeasure) {
         playback.schedule(playback.drums.woodblock, [0,1,2.5,3.5]);
       } else {
-        playback.schedule(playback.drums.woodblock, [1.5,2.5,3.5]);
+        playback.schedule(playback.drums.woodblock, [0, 1.5,2.5,3.5]);
       }
       
       var chordChanges = false;

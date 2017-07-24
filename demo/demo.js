@@ -26,6 +26,13 @@ document.querySelector('#transpose').addEventListener('change', e => {
 document.querySelector('#tempo').addEventListener('change', e => {
   Notochord.setTempo(document.querySelector('#tempo').value);
 });
+// Add the styles list to the styles dropdown.
+document.querySelector('#style').innerHTML = Notochord.player.styles.map(s => {
+  return `<option>${s}</option>`;
+}).join('');
+document.querySelector('#style').addEventListener('change', e => {
+  Notochord.player.setStyle(document.querySelector('#style').value);
+});
 
 flyMeToTheMoon = new Notochord.Song({
   'title': 'Fly Me To The Moon',

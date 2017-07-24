@@ -50,6 +50,7 @@
      */
     player.setStyle = function(newStyle) {
       playback.ready = false;
+      playback.cancelScheduled();
       if(Number.isInteger(newStyle)) {
         // At one point this line read "style = styles[_style].style".
         currentStyle = stylesDB[newStyle].style;
@@ -61,8 +62,7 @@
       }
       currentStyle.load();
     };
-    player.setStyle(1); // Default to basic until told otherwise.
-    // @todo change this back when done testing.
+    player.setStyle(0); // Default to basic until told otherwise.
     
     
     /**
@@ -109,6 +109,7 @@
      */
     player.stop = function() {
       currentStyle.stop();
+      playback.cancelScheduled();
     };
     
     /**

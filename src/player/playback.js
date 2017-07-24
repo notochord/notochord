@@ -21,6 +21,8 @@
     playback.tempo = 120; // Player should set these 3 before playing.
     playback.song = null;
     playback.beatLength = 500;
+    // an array containing data about all scheduled things yet to come.
+    var scheduled = [];
     /**
      * Perform an action in a certain number of beats.
      * @param {Function} func Function to run.
@@ -32,14 +34,32 @@
     playback.schedule = function(func, durations, force) {
       if (typeof durations == 'number') durations = [durations];
       for(let dur of durations) {
-        if(dur === 0) {
+        if(dur === 0) { // if duration is 0, run immediately.
           if(playback.playing || force) func();
         } else {
-          setTimeout(() => {
+          let timeoutObj;
+          let timeout = setTimeout(() => {
             if(playback.playing || force) func();
+            
+            let index = scheduled.indexOf(timeoutObj);
+            if(index != -1) scheduled.splice(index, 1);
           }, dur * playback.beatLength);
+          timeoutObj = {
+            timeout: timeout,
+            func: func,
+            force: force
+          };
+          scheduled.push(timeoutObj);
           // @todo swing?
         }
+      }
+    };
+    // @todo docs?
+    playback.cancelScheduled = function() {
+      while(scheduled.length) {
+        let timeoutObj = scheduled.pop();
+        clearTimeout(timeoutObj.timeout);
+        if(timeoutObj.force) timeoutObj.func();
       }
     };
     /**
@@ -88,30 +108,38 @@
         }
       }
       
-      // Load what's left.
-      playback.midi.loadPlugin({
-        soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
-        instruments: safeInstruments,
-        onsuccess: function() {
-          for(let instrument of safeInstruments) {
-            playback.instruments.set(
-              instrument,
-              playback.midi.GM.byName[instrument].number
-            );
-          }
-          // Map each instrument to a MIDI channel.
-          playback.instrumentChannels = [];
-          for(let i in newInstruments) {
-            let instrumentNumber = playback.instruments.get(
-              newInstruments[i]
-            );
-            playback.midi.programChange(i, instrumentNumber);
-            playback.instrumentChannels[instrumentNumber] = i;
-          }
-          playback.ready = true;
-          events && events.dispatch('Player.loadStyle', {});
+      var onSuccess = function() {
+        for(let instrument of safeInstruments) {
+          playback.instruments.set(
+            instrument,
+            playback.midi.GM.byName[instrument].number
+          );
         }
-      });
+        // Map each instrument to a MIDI channel.
+        playback.instrumentChannels = [];
+        for(let i in newInstruments) {
+          let instrumentNumber = playback.instruments.get(
+            newInstruments[i]
+          );
+          playback.midi.programChange(i, instrumentNumber);
+          playback.instrumentChannels[instrumentNumber] = i;
+        }
+        playback.ready = true;
+        events && events.dispatch('Player.loadStyle', {});
+      };
+      
+      if(safeInstruments.length) {
+        // Load what's left.
+        playback.midi.loadPlugin({
+          // eslint-disable-next-line max-len
+          soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
+          instruments: safeInstruments,
+          onsuccess: onSuccess
+        });
+      } else {
+        // If there are no instruments to load, run onSuccess immediately.
+        onSuccess();
+      }
     };
     /**
      * Get the number of beats of rest left in the measure after (and including)

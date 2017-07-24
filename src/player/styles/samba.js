@@ -13,7 +13,7 @@
       if(playback.evenMeasure) {
         playback.schedule(playback.drums.woodblock, [0,1,2.5,3.5]);
       } else {
-        playback.schedule(playback.drums.woodblock, [1.5,2.5,3.5]);
+        playback.schedule(playback.drums.woodblock, [0,1.5,2.5,3.5]);
       }
       
       var chordChanges = false;
