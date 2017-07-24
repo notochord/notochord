@@ -20749,7 +20749,7 @@ module.exports = tonal;
   }
 })();
 
-},{"./events":45,"./player/player":47,"./song/song":50,"./viewer/viewer":55}],45:[function(require,module,exports){
+},{"./events":45,"./player/player":48,"./song/song":52,"./viewer/viewer":57}],45:[function(require,module,exports){
 (function() {
   'use strict';
   var Events = (function() {
@@ -20861,29 +20861,18 @@ module.exports = {
 
 },{}],47:[function(require,module,exports){
 (function() {
-  var Player = (function() {
-    // Attach everything public to this object, which is returned at the end.
-    var player = {};
-    player.tempo = 120;
+  var Playback = (function() {
     
     var events = null;
-    /**
-     * Attach events object so player module can communicate with the others.
-     * @param {Object} ev Notochord events system.
-     */
-    player.attachEvents = function(ev) {
-      events = ev;
-      events.create('Player.loadStyle', true);
-      events.create('Player.playBeat', false);
-      events.create('Player.stopBeat', false);
-    };
     
-    // False before a style has finished loading.
-    var ready = false;
-    
-    // this is passed to each style so they don't have to duplicate code.
     var playback = {};
     
+    // Boilerplate to connect this to a Notochord.
+    playback.attachEvents = function(ev) {
+      events = ev;
+    };
+    
+    playback.ready = false;
     playback.midi = require('midi.js');
     playback.chordMagic = require('chord-magic');
     playback.tonal = require('tonal');
@@ -20891,33 +20880,41 @@ module.exports = {
     playback.measure = null;
     playback.beat = 0;
     playback.playing = false;
-    playback.tempo = player.tempo;
+    playback.tempo = 120; // Player should set these 3 before playing.
     playback.song = null;
-    playback.beatLength = player.beatLength;
+    playback.beatLength = 500;
     /**
      * Perform an action in a certain number of beats.
      * @param {Function} func Function to run.
-     * @param {Number} beats Number of beats to wait to run func.
+     * @param {Number|Number[]} durations Array of numbers of beats to wait to
+     * run func.
+     * @param {Boolean} [force=false] By default, won't run if playback.playing
+     * is false at the specified time. Setting this to true ignres that.
      */
-    playback.inBeats = function(func, beats) {
-      setTimeout(() => {
-        func();
-      }, beats * playback.beatLength);
+    playback.schedule = function(func, durations, force) {
+      if (typeof durations == 'number') durations = [durations];
+      for(let dur of durations) {
+        if(dur === 0) {
+          if(playback.playing || force) func();
+        } else {
+          setTimeout(() => {
+            if(playback.playing || force) func();
+          }, dur * playback.beatLength);
+          // @todo swing?
+        }
+      }
     };
     /**
-     * Turns a ChordMagic chord object into an array of MIDI note numbers.
+     * Turns a ChordMagic chord object into an array of note names.
      * @param {Object} chord ChordMagic chord object to analyze.
      * @param {Number} octave Octave to put the notes in.
-     * @returns {Number[]} Array of MIDI note numbers.
+     * @returns {Number[]} Array of note names.
      * @private
      */
-    playback.chordToMIDINums = function(chord, octave) {
+    playback.chordToNotes = function(chord, octave) {
       var chordAsString = playback.chordMagic.prettyPrint(chord);
       var chordAsNoteNames = playback.tonal.chord(chordAsString);
-      var chordAsMIDINums = chordAsNoteNames.map((note) => {
-        return playback.tonal.note.midi(note + octave);
-      });
-      return chordAsMIDINums;
+      return chordAsNoteNames.map(note => note + octave);
     };
     /**
      * If theres a beat in the viewer, highlight it for the designated duration.
@@ -20932,9 +20929,9 @@ module.exports = {
           beat: beatToHighlight
         };
         events.dispatch('Player.playBeat', args);
-        playback.inBeats(() => {
+        playback.schedule(() => {
           events.dispatch('Player.stopBeat', args);
-        }, beats);
+        }, beats, true); // force unhighlight after playback stops
       }
     };
     playback.instruments = new Map();
@@ -20973,7 +20970,7 @@ module.exports = {
             playback.midi.programChange(i, instrumentNumber);
             playback.instrumentChannels[instrumentNumber] = i;
           }
-          ready = true;
+          playback.ready = true;
           events && events.dispatch('Player.loadStyle', {});
         }
       });
@@ -21033,43 +21030,70 @@ module.exports = {
     /**
      * Play a note or notes for a number of beats.
      * @param {Object} data Object with data about what to play.
-     * @param {Number|Number[]} data.notes Midi note number[s] to play.
+     * @param {String|String[]} data.notes Note name[s] to play.
      * @param {String} data.instrument Instrument name to play notes on.
      * @param {Number} data.beats Number of beats to play the note for.
      * @param {Number} [data.velocity=100] Velocity (volume) for the notes.
      */
     // notes Array|Number
     playback.playNotes = function(data) {
-      if(typeof data.notes == 'number') data.notes = [data.notes];
+      if(typeof data.notes == 'string') data.notes = [data.notes];
+      var notesAsNums = data.notes.map(playback.tonal.note.midi);
       
       if(!data.velocity) data.velocity = 100;
       
       var instrumentNumber = playback.instruments.get(data.instrument);
       var channel = playback.instrumentChannels[instrumentNumber];
       
-      playback.midi.chordOn(channel, data.notes, data.velocity, 0);
-      playback.inBeats(() => {
-        // midi.js has the option to specify a delay, but docs don't have a unit
-        // so I'll do the delay manually.
-        playback.midi.chordOff(channel, data.notes, 0);
-      }, data.beats);
+      playback.midi.chordOn(channel, notesAsNums, data.velocity, 0);
+      playback.schedule(() => {
+        // midi.js has the option to specify a delay, we're not using it.
+        playback.midi.chordOff(channel, notesAsNums, 0);
+      }, data.beats, true); // Force notes to end after playback stops.
     };
     
+    // Also supply some drums.
+    // [hatClosed, hatHalfOpen, snare1, kick, snare2, cymbal, tom, woodblock]
+    playback.drums = {};
     {
-      // Also supply some drums.
-      // [hatClosed, hatHalfOpen, snare1, kick, snare2, cymbal, tom, woodblock]
-      playback.drums = {};
       let drums = require('./drums');
       for(let drumName in drums) {
         let data = drums[drumName];
         playback.drums[drumName] = () => {
           let audio = new Audio(data);
+          audio.volume = 0.5;
           audio.play();
         };
       }
     }
     
+    return playback;
+  })();
+  module.exports = Playback;
+})();
+
+},{"./drums":46,"chord-magic":10,"midi.js":20,"tonal":43}],48:[function(require,module,exports){
+(function() {
+  var Player = (function() {
+    // Attach everything public to this object, which is returned at the end.
+    var player = {};
+    player.tempo = 120;
     
+    var events = null;
+    /**
+     * Attach events object so player module can communicate with the others.
+     * @param {Object} ev Notochord events system.
+     */
+    player.attachEvents = function(ev) {
+      events = ev;
+      events.create('Player.loadStyle', true);
+      events.create('Player.playBeat', false);
+      events.create('Player.stopBeat', false);
+      playback.attachEvents(ev);
+    };
+    
+    // this is passed to each style so they don't have to duplicate code.
+    var playback = require('./playback');
     
     /**
      * Internal representation of playback styles
@@ -21079,8 +21103,13 @@ module.exports = {
       {
         'name': 'basic',
         'style': require('./styles/basic')(playback)
+      },
+      {
+        'name': 'samba',
+        'style': require('./styles/samba')(playback)
       }
     ];
+    // @todo supply different styles based on time signature
     /**
      * Publicly available list of playback styles.
      * @public
@@ -21095,7 +21124,7 @@ module.exports = {
      * style.
      */
     player.setStyle = function(newStyle) {
-      ready = false;
+      playback.ready = false;
       if(Number.isInteger(newStyle)) {
         // At one point this line read "style = styles[_style].style".
         currentStyle = stylesDB[newStyle].style;
@@ -21107,7 +21136,8 @@ module.exports = {
       }
       currentStyle.load();
     };
-    player.setStyle(0); // Default to basic until told otherwise.
+    player.setStyle(1); // Default to basic until told otherwise.
+    // @todo change this back when done testing.
     
     
     /**
@@ -21128,7 +21158,7 @@ module.exports = {
      * @public
      */
     player.play = function() {
-      if(ready) {
+      if(playback.ready) {
         failCount = 0;
         playback.tempo = player.tempo;
         playback.beatLength = (60 * 1000) / playback.tempo;
@@ -21173,7 +21203,7 @@ module.exports = {
   module.exports = Player;
 })();
 
-},{"./drums":46,"./styles/basic":48,"chord-magic":10,"midi.js":20,"tonal":43}],48:[function(require,module,exports){
+},{"./playback":47,"./styles/basic":49,"./styles/samba":50}],49:[function(require,module,exports){
 (function() {
   
   /*
@@ -21199,7 +21229,6 @@ module.exports = {
     };
     
     var playNextBeat = function() {
-      if(!playback.playing) return;
       // Gets the number of rest beats following this beat.
       var restsAfter = playback.restsAfter(playback.beat);
       
@@ -21208,19 +21237,18 @@ module.exports = {
       if(chord) {
         // This turns a ChordMagic chord object into an array of MIDI note
         // numbers.
-        var notes = playback.chordToMIDINums(chord, 4);
+        var notes = playback.chordToNotes(chord, 4);
         playback.playNotes({
-          notes: notes, // Integer or array of integers represenging notes.
+          notes: notes, // Note name or array of note names.
           instrument: 'acoustic_grand_piano',
           beats: restsAfter // Number of beats to play the note.
-          // Optionally: 'velocity' which is a number 0-255 representing volume.
+          // Optionally: 'velocity' which is a number 0-127 representing volume.
           // Well, technically it represents how hard you play an instrument
           // but it corresponds to volume so.
         });
         
-        var bassnote = playback.chordToMIDINums(chord, 2)[0];
         playback.playNotes({
-          notes: bassnote,
+          notes: chord.root + 2,
           instrument: 'acoustic_bass',
           beats: restsAfter
         });
@@ -21233,13 +21261,14 @@ module.exports = {
       // Play metronome regardless of whether there's a chord for this beat.
       if(playback.beat === 0) {
         playback.drums.kick();
-      } else {
-        playback.drums.woodblock();
+        playback.schedule(playback.drums.woodblock, [1, 2, 3]);
       }
       
       playback.nextBeat();
       if(playback.beat === 0) playback.nextMeasure();
-      playback.inBeats(playNextBeat, 1);
+      
+      // This will automaticaly fail if playback.playing is false.
+      playback.schedule(playNextBeat, 1);
     };
     
     /*
@@ -21260,7 +21289,134 @@ module.exports = {
   };
 })();
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
+(function() {  
+  module.exports = function(playback) {
+    var style = {};
+    
+    style.load = function() {
+      playback.requireInstruments([
+        'acoustic_grand_piano',
+        'acoustic_bass'
+      ]);
+    };
+    
+    var playNextMeasure = function() {
+      if(playback.evenMeasure) {
+        playback.schedule(playback.drums.woodblock, [0,1,2.5,3.5]);
+      } else {
+        playback.schedule(playback.drums.woodblock, [1.5,2.5,3.5]);
+      }
+      
+      var chordChanges = false;
+      var firstBeat = playback.measure.getBeat(0);
+      var thirdBeat = playback.measure.getBeat(2);
+      if(thirdBeat) {
+        chordChanges = true;
+      }
+      playback.playNotes({
+        notes: firstBeat.root + 2,
+        instrument: 'acoustic_bass',
+        beats: 1,
+        velocity: 127
+      });
+      var nextNote, lastNote;
+      if(chordChanges) {
+        nextNote = thirdBeat.root + 2;
+        lastNote = thirdBeat.root + 2;
+        playback.highlightBeatForBeats(0, 2);
+        playback.schedule(() => {
+          playback.highlightBeatForBeats(2, 2);
+        }, 2);
+      } else {
+        nextNote = playback.tonal.transpose(firstBeat.root + 1, 'P5');
+        lastNote = firstBeat.root + 2;
+        playback.highlightBeatForBeats(0, 4);
+      }
+      playback.schedule(() => {
+        playback.playNotes({
+          notes: nextNote,
+          instrument: 'acoustic_bass',
+          beats: 0.5,
+          velocity: 127
+        });
+      }, [1.5, 2]);
+      playback.schedule(() => {
+        playback.playNotes({
+          notes: lastNote,
+          instrument: 'acoustic_bass',
+          beats: 1,
+          velocity: 127
+        });
+      }, 3.5);
+      
+      playback.playNotes({
+        notes: playback.chordToNotes(firstBeat, 4),
+        instrument: 'acoustic_grand_piano',
+        beats: 2
+      });
+      playback.schedule(() => {
+        let beat = thirdBeat || firstBeat;
+        playback.playNotes({
+          notes: playback.chordToNotes(beat, 4),
+          instrument: 'acoustic_grand_piano',
+          beats: 2
+        });
+      }, 2);
+      
+      playback.schedule(() => {
+        playback.nextMeasure();
+        playNextMeasure();
+      }, 4);
+    };
+    
+    var playNextBeat = function() {
+      if(!playback.playing) return;
+      var restsAfter = playback.restsAfter(playback.beat);
+      
+      var chord = playback.measure.getBeat(playback.beat);
+      if(chord) {
+        var notes = playback.chordToNotes(chord, 4);
+        playback.playNotes({
+          notes: notes,
+          instrument: 'acoustic_grand_piano',
+          beats: restsAfter
+        });
+        
+        var bassnote = playback.chordToNotes(chord, 2)[0];
+        playback.playNotes({
+          notes: bassnote,
+          instrument: 'acoustic_bass',
+          beats: restsAfter
+        });
+        
+        playback.highlightBeatForBeats(playback.beat, restsAfter);
+      }
+      
+      if(playback.beat === 0) {
+        playback.drums.kick();
+      } else {
+        playback.drums.woodblock();
+      }
+      
+      playback.nextBeat();
+      if(playback.beat === 0) playback.nextMeasure();
+      playback.schedule(playNextBeat, 1);
+    };
+    
+    style.play = function() {
+      playNextMeasure();
+    };
+    
+    style.stop = function() {
+      playback.playing = false;
+    };
+    
+    return style;
+  };
+})();
+
+},{}],51:[function(require,module,exports){
 (function() {
   'use strict'; 
   /**
@@ -21349,7 +21505,7 @@ module.exports = {
   module.exports = Measure;
 })();
 
-},{}],50:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 (function() {
   'use strict';
   /**
@@ -21488,7 +21644,7 @@ module.exports = {
   module.exports = Song;
 })();
 
-},{"./measure":49,"chord-magic":10,"tonal":43}],51:[function(require,module,exports){
+},{"./measure":51,"chord-magic":10,"tonal":43}],53:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -21695,7 +21851,7 @@ module.exports = {
   module.exports = BeatView;
 })();
 
-},{}],52:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -21821,7 +21977,7 @@ module.exports = {
   module.exports = MeasureView;
 })();
 
-},{}],53:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 /* eslint-disable max-len */
 module.exports = {
   // https://commons.wikimedia.org/wiki/File:B%C3%A9mol.svg
@@ -21838,7 +21994,7 @@ module.exports = {
   'delta_height': 44.5
 };
 
-},{}],54:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 module.exports = `/*<![CDATA[*/
   .NotochordPlayedBeat path,
   .NotochordPlayedBeat text {
@@ -21846,7 +22002,7 @@ module.exports = `/*<![CDATA[*/
   }
 /*]]>*/`;
 
-},{}],55:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 /*
  * Code to generate a Viewer object. viewer will be extended to an editor in
  * a separate file so that that functionality is only loaded as needed.
@@ -22067,4 +22223,4 @@ module.exports = `/*<![CDATA[*/
   module.exports = Viewer;
 })();
 
-},{"./beatView":51,"./measureView":52,"./svg_constants":53,"./viewer.css.js":54,"opentype.js":22}]},{},[44]);
+},{"./beatView":53,"./measureView":54,"./svg_constants":55,"./viewer.css.js":56,"opentype.js":22}]},{},[44]);

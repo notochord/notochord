@@ -14,200 +14,11 @@
       events.create('Player.loadStyle', true);
       events.create('Player.playBeat', false);
       events.create('Player.stopBeat', false);
+      playback.attachEvents(ev);
     };
-    
-    // False before a style has finished loading.
-    var ready = false;
     
     // this is passed to each style so they don't have to duplicate code.
-    var playback = {};
-    
-    playback.midi = require('midi.js');
-    playback.chordMagic = require('chord-magic');
-    playback.tonal = require('tonal');
-    playback.measureNumber = 0;
-    playback.measure = null;
-    playback.beat = 0;
-    playback.playing = false;
-    playback.tempo = player.tempo;
-    playback.song = null;
-    playback.beatLength = player.beatLength;
-    /**
-     * Perform an action in a certain number of beats.
-     * @param {Function} func Function to run.
-     * @param {Number} beats Number of beats to wait to run func.
-     */
-    playback.inBeats = function(func, beats) {
-      setTimeout(() => {
-        func();
-      }, beats * playback.beatLength);
-    };
-    /**
-     * Turns a ChordMagic chord object into an array of MIDI note numbers.
-     * @param {Object} chord ChordMagic chord object to analyze.
-     * @param {Number} octave Octave to put the notes in.
-     * @returns {Number[]} Array of MIDI note numbers.
-     * @private
-     */
-    playback.chordToMIDINums = function(chord, octave) {
-      var chordAsString = playback.chordMagic.prettyPrint(chord);
-      var chordAsNoteNames = playback.tonal.chord(chordAsString);
-      var chordAsMIDINums = chordAsNoteNames.map((note) => {
-        return playback.tonal.note.midi(note + octave);
-      });
-      return chordAsMIDINums;
-    };
-    /**
-     * If theres a beat in the viewer, highlight it for the designated duration.
-     * @param {Number} beatToHighlight Beat in the current measure to highlight.
-     * @param {Number} beats How long to highlight the beat for, in beats.
-     * @private
-     */
-    playback.highlightBeatForBeats = function(beatToHighlight, beats) {
-      if(events) {
-        var args = {
-          measure: playback.measureNumber,
-          beat: beatToHighlight
-        };
-        events.dispatch('Player.playBeat', args);
-        playback.inBeats(() => {
-          events.dispatch('Player.stopBeat', args);
-        }, beats);
-      }
-    };
-    playback.instruments = new Map();
-    playback.instrumentChannels = [];
-    /**
-     * Load the required instruments for a given style.
-     * @param {String[]} newInstruments An array of instrument names.
-     * @private
-     */
-    playback.requireInstruments = function(newInstruments) {
-      // Avoid loading the same plugin twice.
-      var safeInstruments = [];
-      for (let instrument of newInstruments) {
-        if(!playback.instruments.has(instrument)) {
-          safeInstruments.push(instrument);
-        }
-      }
-      
-      // Load what's left.
-      playback.midi.loadPlugin({
-        soundfontUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
-        instruments: safeInstruments,
-        onsuccess: function() {
-          for(let instrument of safeInstruments) {
-            playback.instruments.set(
-              instrument,
-              playback.midi.GM.byName[instrument].number
-            );
-          }
-          // Map each instrument to a MIDI channel.
-          playback.instrumentChannels = [];
-          for(let i in newInstruments) {
-            let instrumentNumber = playback.instruments.get(
-              newInstruments[i]
-            );
-            playback.midi.programChange(i, instrumentNumber);
-            playback.instrumentChannels[instrumentNumber] = i;
-          }
-          ready = true;
-          events && events.dispatch('Player.loadStyle', {});
-        }
-      });
-    };
-    /**
-     * Get the number of beats of rest left in the measure after (and including)
-     * a given beat.
-     * @param {Number} current Current beat.
-     * @returns {Number} Number of beats of rest left, plus one.
-     * @private
-     */
-    playback.restsAfter = function(current) {
-      var measure = playback.song.measures[playback.measureNumber];
-      if(measure) {
-        let count = 1;
-        for(let i = current + 1; i < measure.length; i++) {
-          if(measure.getBeat(i)) {
-            return count;
-          } else {
-            count++;
-          }
-        }
-        return measure.length - current;
-      } else {
-        return 0;
-      }
-    };
-    // Whether it's an even or odd measure.
-    playback.evenMeasure = false;
-    /**
-     * Update playback.measure object to next measure.
-     * @private
-     */
-    playback.nextMeasure = function() {
-      playback.measureNumber++;
-      if(playback.measureNumber < playback.song.measures.length) {
-        var measure = playback.song.measures[playback.measureNumber];
-        if(measure) {
-          playback.evenMeasure = !playback.evenMeasure;
-          playback.measure = measure;
-        } else {
-          playback.nextMeasure();
-        }
-      } else {
-        playback.playing = false;
-      }
-    };
-    /**
-     * 
-     */
-    playback.nextBeat = function() {
-      playback.beat++;
-      if(playback.beat >= playback.measure.length) {
-        playback.beat = 0;
-      }
-    };
-    /**
-     * Play a note or notes for a number of beats.
-     * @param {Object} data Object with data about what to play.
-     * @param {Number|Number[]} data.notes Midi note number[s] to play.
-     * @param {String} data.instrument Instrument name to play notes on.
-     * @param {Number} data.beats Number of beats to play the note for.
-     * @param {Number} [data.velocity=100] Velocity (volume) for the notes.
-     */
-    // notes Array|Number
-    playback.playNotes = function(data) {
-      if(typeof data.notes == 'number') data.notes = [data.notes];
-      
-      if(!data.velocity) data.velocity = 100;
-      
-      var instrumentNumber = playback.instruments.get(data.instrument);
-      var channel = playback.instrumentChannels[instrumentNumber];
-      
-      playback.midi.chordOn(channel, data.notes, data.velocity, 0);
-      playback.inBeats(() => {
-        // midi.js has the option to specify a delay, but docs don't have a unit
-        // so I'll do the delay manually.
-        playback.midi.chordOff(channel, data.notes, 0);
-      }, data.beats);
-    };
-    
-    {
-      // Also supply some drums.
-      // [hatClosed, hatHalfOpen, snare1, kick, snare2, cymbal, tom, woodblock]
-      playback.drums = {};
-      let drums = require('./drums');
-      for(let drumName in drums) {
-        let data = drums[drumName];
-        playback.drums[drumName] = () => {
-          let audio = new Audio(data);
-          audio.play();
-        };
-      }
-    }
-    
-    
+    var playback = require('./playback');
     
     /**
      * Internal representation of playback styles
@@ -217,8 +28,13 @@
       {
         'name': 'basic',
         'style': require('./styles/basic')(playback)
+      },
+      {
+        'name': 'samba',
+        'style': require('./styles/samba')(playback)
       }
     ];
+    // @todo supply different styles based on time signature
     /**
      * Publicly available list of playback styles.
      * @public
@@ -233,7 +49,7 @@
      * style.
      */
     player.setStyle = function(newStyle) {
-      ready = false;
+      playback.ready = false;
       if(Number.isInteger(newStyle)) {
         // At one point this line read "style = styles[_style].style".
         currentStyle = stylesDB[newStyle].style;
@@ -245,7 +61,8 @@
       }
       currentStyle.load();
     };
-    player.setStyle(0); // Default to basic until told otherwise.
+    player.setStyle(1); // Default to basic until told otherwise.
+    // @todo change this back when done testing.
     
     
     /**
@@ -266,7 +83,7 @@
      * @public
      */
     player.play = function() {
-      if(ready) {
+      if(playback.ready) {
         failCount = 0;
         playback.tempo = player.tempo;
         playback.beatLength = (60 * 1000) / playback.tempo;

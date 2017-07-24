@@ -23,7 +23,6 @@
     };
     
     var playNextBeat = function() {
-      if(!playback.playing) return;
       // Gets the number of rest beats following this beat.
       var restsAfter = playback.restsAfter(playback.beat);
       
@@ -32,9 +31,9 @@
       if(chord) {
         // This turns a ChordMagic chord object into an array of MIDI note
         // numbers.
-        var notes = playback.chordToMIDINums(chord, 4);
+        var notes = playback.chordToNotes(chord, 4);
         playback.playNotes({
-          notes: notes, // Integer or array of integers represenging notes.
+          notes: notes, // Note name or array of note names.
           instrument: 'acoustic_grand_piano',
           beats: restsAfter // Number of beats to play the note.
           // Optionally: 'velocity' which is a number 0-127 representing volume.
@@ -42,9 +41,8 @@
           // but it corresponds to volume so.
         });
         
-        var bassnote = playback.chordToMIDINums(chord, 2)[0];
         playback.playNotes({
-          notes: bassnote,
+          notes: chord.root + 2,
           instrument: 'acoustic_bass',
           beats: restsAfter
         });
@@ -57,13 +55,14 @@
       // Play metronome regardless of whether there's a chord for this beat.
       if(playback.beat === 0) {
         playback.drums.kick();
-      } else {
-        playback.drums.woodblock();
+        playback.schedule(playback.drums.woodblock, [1, 2, 3]);
       }
       
       playback.nextBeat();
       if(playback.beat === 0) playback.nextMeasure();
-      playback.inBeats(playNextBeat, 1);
+      
+      // This will automaticaly fail if playback.playing is false.
+      playback.schedule(playNextBeat, 1);
     };
     
     /*
