@@ -20749,7 +20749,7 @@ module.exports = tonal;
   }
 })();
 
-},{"./events":45,"./player/player":48,"./song/song":52,"./viewer/viewer":57}],45:[function(require,module,exports){
+},{"./events":45,"./player/player":48,"./song/song":52,"./viewer/viewer":58}],45:[function(require,module,exports){
 (function() {
   'use strict';
   var Events = (function() {
@@ -20883,7 +20883,7 @@ module.exports = {
     playback.tempo = 120; // Player should set these 3 before playing.
     playback.song = null;
     playback.beatLength = 500;
-    // an array containing data about all scheduled things yet to come.
+    // an array containing data about all scheduled tasks yet to come.
     var scheduled = [];
     /**
      * Perform an action in a certain number of beats.
@@ -20916,8 +20916,22 @@ module.exports = {
         }
       }
     };
-    // @todo docs?
-    playback.cancelScheduled = function() {
+    /**
+     * Resets all counters and things as if sarting from beginning of song.
+     */
+    playback.reset = function() {
+      playback.measureNumber = 0;
+      playback.beat = 0;
+      playback.measure = playback.song.measures[0];
+    };
+    /**
+     * Stops playback.
+     * @public
+     */
+    playback.stop = function() {
+      playback.playing = false;
+      
+      // Cancel (or in some cases immediately run) all scheduled tasks.
       while(scheduled.length) {
         let timeoutObj = scheduled.pop();
         clearTimeout(timeoutObj.timeout);
@@ -21033,15 +21047,10 @@ module.exports = {
      * @private
      */
     playback.nextMeasure = function() {
-      playback.measureNumber++;
-      if(playback.measureNumber < playback.song.measures.length) {
-        var measure = playback.song.measures[playback.measureNumber];
-        if(measure) {
-          playback.evenMeasure = !playback.evenMeasure;
-          playback.measure = measure;
-        } else {
-          playback.nextMeasure();
-        }
+      playback.evenMeasure = !playback.evenMeasure;
+      playback.measure = playback.measure.getNextMeasure();
+      if(playback.measure) {
+        playback.measureNumber = playback.measure.getIndex();
       } else {
         playback.playing = false;
       }
@@ -21120,7 +21129,9 @@ module.exports = {
       events = ev;
       events.create('Player.loadStyle', true);
       events.create('Player.playBeat', false);
+      events.create('Player.play', false);
       events.create('Player.stopBeat', false);
+      events.on('Editor.setSelectedBeat', playback.stop);
       playback.attachEvents(ev);
     };
     
@@ -21157,7 +21168,7 @@ module.exports = {
      */
     player.setStyle = function(newStyle) {
       playback.ready = false;
-      playback.cancelScheduled();
+      playback.stop();
       if(Number.isInteger(newStyle)) {
         // At one point this line read "style = styles[_style].style".
         currentStyle = stylesDB[newStyle].style;
@@ -21192,13 +21203,12 @@ module.exports = {
     player.play = function() {
       if(playback.ready) {
         failCount = 0;
+        playback.stop();
+        playback.playing = true;
         playback.tempo = player.tempo;
         playback.beatLength = (60 * 1000) / playback.tempo;
-        player.stop();
-        playback.measureNumber = -1;
-        playback.playing = true;
-        playback.beat = 0;
-        playback.nextMeasure();
+        playback.reset();
+        if(events) events.dispatch('Player.play', {});
         currentStyle.play();
       } else if(events) {
         events.on('Player.loadStyle', player.play, true);
@@ -21214,10 +21224,7 @@ module.exports = {
      * Stop playing the Notochord.
      * @public
      */
-    player.stop = function() {
-      currentStyle.stop();
-      playback.cancelScheduled();
-    };
+    player.stop = playback.stop;
     
     /**
      * Configure the player.
@@ -21244,7 +21251,7 @@ module.exports = {
    * The playback object has all of the functionality a style needs to get chord
    * data from the current measure, and play notes.
    *
-   * A style should return 3 functions: load, play, and stop.
+   * A style should return 2 functions: load and play.
    */
   
   module.exports = function(playback) {
@@ -21311,13 +21318,6 @@ module.exports = {
       playNextBeat();
     };
     
-    /*
-     * Stop should stop playback.
-     */
-    style.stop = function() {
-      playback.playing = false;
-    };
-    
     return style;
   };
 })();
@@ -21338,7 +21338,7 @@ module.exports = {
       if(playback.evenMeasure) {
         playback.schedule(playback.drums.woodblock, [0,1,2.5,3.5]);
       } else {
-        playback.schedule(playback.drums.woodblock, [0, 1.5,2.5,3.5]);
+        playback.schedule(playback.drums.woodblock, [0,1.5,2.5,3.5]);
       }
       
       var chordChanges = false;
@@ -21441,10 +21441,6 @@ module.exports = {
       playNextMeasure();
     };
     
-    style.stop = function() {
-      playback.playing = false;
-    };
-    
     return style;
   };
 })();
@@ -21531,6 +21527,24 @@ module.exports = {
      */
     this.getIndex = function() {
       return song.measures.indexOf(this);
+    };
+    
+    // @todo docs
+    this.getNextMeasure = function() {
+      var newIndex = this.getIndex();
+      while(true) {
+        newIndex++;
+        if(newIndex > song.measures.length) return null;
+        if(song.measures[newIndex]) return song.measures[newIndex];
+      }
+    };
+    this.getPreviousMeasure = function() {
+      var newIndex = this.getIndex();
+      while(true) {
+        newIndex--;
+        if(newIndex == -1) return null;
+        if(song.measures[newIndex]) return song.measures[newIndex];
+      }
     };
     
   };
@@ -21699,6 +21713,7 @@ module.exports = {
     const PADDING_RIGHT = 7;
     
     this._svgGroup = document.createElementNS(viewer.SVG_NS, 'g');
+    this._svgGroup.classList.add('NotochordBeatView');
     this._svgGroup.setAttributeNS(
       null,
       'transform',
@@ -21831,9 +21846,38 @@ module.exports = {
         }
       }
     };
+    
+    /**
+     * A rectangle behind the beat to make it look more interactive.
+     * @type {SVGRectElement}
+     * @private
+     */
+    var bgRect = document.createElementNS(viewer.SVG_NS, 'rect');
+    bgRect.classList.add('NotochordBeatViewBackground');
+    bgRect.setAttributeNS(null, 'x', '0');
+    bgRect.setAttributeNS(null, 'y', -1 * viewer.H_HEIGHT);
+    bgRect.setAttributeNS(null, 'width', viewer.beatOffset);
+    bgRect.setAttributeNS(null, 'height', viewer.H_HEIGHT);
+    
+    /**
+     * Set whether the beatView is being edited.
+     * @param {Boolean} editing Whether or not the beat is being edited.
+     */
+    this.setEditing = function(editing) {
+      if(editing) {
+        this._svgGroup.classList.add('NotochordBeatViewEditing');
+      } else {
+        this._svgGroup.classList.remove('NotochordBeatViewEditing');
+      }
+    };
+    
+    this._svgGroup.addEventListener('click', () => {
+      viewer.editor.setSelectedBeat(this);
+    });
+    
     /**
      * Render a chord.
-     * @param {Object} chord A ChordMagic chord object to render.
+     * @param {?Object} chord A ChordMagic chord object to render, or null.
      */
     this.renderChord = function(chord) {
       // delete whatever might be in this._svgGroup
@@ -21841,50 +21885,162 @@ module.exports = {
         this._svgGroup.removeChild(this._svgGroup.firstChild);
       }
       
-      var root = viewer.textToPath(chord.rawRoot[0]);
-      this._svgGroup.appendChild(root);
+      this._svgGroup.appendChild(bgRect);
       
-      var rootbb = root.getBBox();
-      
-      // ACCIDENTALS
-      if(chord.rawRoot[1]) {
-        this._renderAccidental(chord.rawRoot[1], rootbb);
-      }
-      // BOTTOM BITS
-      // If the chord is anything besides a major triad, it needs more bits
-      var bottomText = this._getBottomText(chord);
-      if(bottomText) {
-        this._renderBottomText(bottomText, rootbb);
-      }
-    
-      /*if(chord.overridingRoot) {
-        // @todo scale down this._svgGroup and return a bigger this._svgGroup
-      } else {
+      if(chord) {
+        var root = viewer.textToPath(chord.rawRoot[0]);
+        this._svgGroup.appendChild(root);
         
-      }*/
+        var rootbb = root.getBBox();
+        
+        // ACCIDENTALS
+        if(chord.rawRoot[1]) {
+          this._renderAccidental(chord.rawRoot[1], rootbb);
+        }
+        // BOTTOM BITS
+        // If the chord is anything besides a major triad, it needs more bits
+        var bottomText = this._getBottomText(chord);
+        if(bottomText) {
+          this._renderBottomText(bottomText, rootbb);
+        }
+      
+        /*if(chord.overridingRoot) {
+          // @todo scale down this._svgGroup and return a bigger this._svgGroup
+        } else {
+          
+        }*/
+      }
     };
     
     var self = this;
-    var measureIndex = this.measureView.measure.getIndex();
-    
-    // If connected to Notochord.player, highlight when my beat is played.
-    if(events) {
-      events.on('Player.playBeat', (args) => {
-        if(args.measure == measureIndex && args.beat == self.index) {
-          self._svgGroup.classList.add('NotochordPlayedBeat');
-        }
-      });
-      events.on('Player.stopBeat', (args) => {
-        if(args.measure == measureIndex && args.beat == self.index) {
-          self._svgGroup.classList.remove('NotochordPlayedBeat');
-        }
-      });
-    }
+    // @todo docs
+    this.setHighlight = function(add) {
+      if(add) {
+        self._svgGroup.classList.add('NotochordPlayedBeat');
+      } else {
+        self._svgGroup.classList.remove('NotochordPlayedBeat');
+      }
+    };
   };
   module.exports = BeatView;
 })();
 
 },{}],54:[function(require,module,exports){
+(function() {
+  'use strict';
+  var Editor = (function() {
+    var editor = {};
+    var editable = false;
+    
+    var events = null;
+    /**
+     * Attach events object so editor module can communicate with the others.
+     * @param {Object} ev Notochord events system.
+     */
+    editor.attachEvents = function(ev) {
+      events = ev;
+      events.create('Editor.setSelectedBeat');
+      events.on('Player.play', () => editor.setSelectedBeat(null));
+    };
+    
+    var viewer = null;
+    /**
+     * Attach viewer object so editor module can communicate with it.
+     * @param {Object} _viewer Viewer to attach.
+     */
+    editor.attachViewer = function(_viewer) {
+      viewer = _viewer;
+      
+      document.body.addEventListener('keydown', e => {
+        if(editable && editor.editedBeat) {
+          e.stopPropagation();
+          e.preventDefault();
+          editor.handleKeyboardInput(e.key);
+          return false;
+        } else {
+          return true;
+        }
+      });
+    };
+    
+    // @todoo docs
+    editor.setEditable = function(_editable) {
+      editable = _editable;
+      if(editable) {
+        viewer._svgElem.classList.add('NotochordEditable');
+      } else {
+        viewer._svgElem.classList.remove('NotochordEditable');
+      }
+    };
+    
+    editor.editedBeat = null;
+    /**
+     * Open the editor on a BeatView.
+     * @param {?BeatView} beatView BeatView to edit, or null to close editor.
+     * @public
+     */
+    editor.setSelectedBeat = function(beatView) {
+      if(!editable) return;
+      if(editor.editedBeat) editor.editedBeat.setEditing(false);
+      if(!beatView || editor.editedBeat == beatView) {
+        editor.editedBeat = null;
+        return;
+      }
+      editor.editedBeat = beatView;
+      editor.editedBeat.setEditing(true);
+      console.log(beatView);
+      if(events) events.dispatch('Editor.setSelectedBeat');
+    };
+    
+    // @todo docs
+    editor.handleKeyboardInput = function(key) {
+      /* eslint-disable indent */
+      switch(key) {
+        case 'Escape': {
+          editor.setSelectedBeat(null);
+          break;
+        }
+        case 'ArrowRight': {
+          let beat = editor.editedBeat;
+          if(beat.index == beat.measureView.measure.length - 1) {
+            let newMeasure = beat.measureView.measure.getNextMeasure();
+            if(!newMeasure) return;
+            let newMeasureView = newMeasure.measureView;
+            let newBeat = newMeasureView.beatViews[0];
+            editor.setSelectedBeat(newBeat);
+          } else {
+            let newBeat = beat.measureView.beatViews[beat.index + 1];
+            editor.setSelectedBeat(newBeat);
+          }
+          break;
+        }
+        case 'ArrowLeft': {
+          let beat = editor.editedBeat;
+          if(beat.index == 0) {
+            let newMeasure = beat.measureView.measure.getPreviousMeasure();
+            if(!newMeasure) return;
+            let newMeasureView = newMeasure.measureView;
+            let newBeat = newMeasureView.beatViews[newMeasure.length - 1];
+            editor.setSelectedBeat(newBeat);
+          } else {
+            let newBeat = beat.measureView.beatViews[beat.index - 1];
+            editor.setSelectedBeat(newBeat);
+          }
+          break;
+        }
+      }
+      /* eslint-enable indent */
+    };
+    
+    // @todo docs
+    //editor._elem = document.createElement('div');
+    
+    return editor;
+  })();
+  module.exports = Editor;
+})();
+
+},{}],55:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -21906,6 +22062,7 @@ module.exports = {
      * @private Maybe this will change depending how much measures move around?
      */
     this._svgGroup = document.createElementNS(viewer.SVG_NS, 'g');
+    this._svgGroup.classList.add('NotochordMeasureView');
     
     /**
      * Set a MeasureView's position.
@@ -21957,14 +22114,10 @@ module.exports = {
       if(!viewer.font) return null;
       for(let i = 0; i < measure.length; i++) {
         let chord = measure.getBeat(i);
-        if(chord) {
-          let offset = i * viewer.beatOffset;
-          let beat = new viewer.BeatView(events, viewer, this, i, offset);
-          beat.renderChord(chord);
-          this.beatViews.push(beat);
-        } else {
-          this.beatViews.push(null);
-        }
+        let offset = i * viewer.beatOffset;
+        let beat = new viewer.BeatView(events, viewer, this, i, offset);
+        beat.renderChord(chord);
+        this.beatViews.push(beat);
       }
       
       // When I receive a transpose event, re-render each beat.
@@ -21988,7 +22141,7 @@ module.exports = {
          */
         this._leftBar = document.createElementNS(viewer.SVG_NS, 'path');
         this._leftBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
-        let x = -0.25 * viewer.beatOffset;
+        let x = -0.5 * viewer.measureXMargin;
         let y = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
         let scale = viewer.rowHeight / viewer.PATHS.bar_height;
         this._leftBar.setAttributeNS(
@@ -22005,12 +22158,27 @@ module.exports = {
       }
     };
     this.render();
+    
+    var self = this;
+    // If connected to Notochord.player, highlight when my beat is played.
+    if(events) {
+      events.on('Player.playBeat', (args) => {
+        if(args.measure == self.measure.getIndex()) {
+          self.beatViews[args.beat].setHighlight(true);
+        }
+      });
+      events.on('Player.stopBeat', (args) => {
+        if(args.measure == self.measure.getIndex()) {
+          self.beatViews[args.beat].setHighlight(false);
+        }
+      });
+    }
   };
 
   module.exports = MeasureView;
 })();
 
-},{}],55:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 /* eslint-disable max-len */
 module.exports = {
   // https://commons.wikimedia.org/wiki/File:B%C3%A9mol.svg
@@ -22027,18 +22195,26 @@ module.exports = {
   'delta_height': 44.5
 };
 
-},{}],56:[function(require,module,exports){
-module.exports = `/*<![CDATA[*/
-  .NotochordPlayedBeat path,
-  .NotochordPlayedBeat text {
-    fill: lightblue;
-  }
-/*]]>*/`;
-
 },{}],57:[function(require,module,exports){
+/* eslint-disable max-len */
+module.exports = `/*<![CDATA[*/
+.NotochordPlayedBeat path, .NotochordPlayedBeat text {
+  fill: lightblue; }
+
+svg.NotochordEditable g.NotochordBeatView .NotochordBeatViewBackground {
+  fill: transparent; }
+
+svg.NotochordEditable g.NotochordBeatView:hover .NotochordBeatViewBackground {
+  fill: #eef4f6; }
+
+svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBeatViewBackground {
+  fill: #d8ecf3; }
+
+/*]]>*/`;
+},{}],58:[function(require,module,exports){
 /*
- * Code to generate a Viewer object. viewer will be extended to an editor in
- * a separate file so that that functionality is only loaded as needed.
+ * Code to generate a viewer object, which displays a song and optionally
+ * provides an interface for editing it.
  */
 (function() {
   'use strict';
@@ -22060,32 +22236,47 @@ module.exports = `/*<![CDATA[*/
      */
     viewer._svgElem = document.createElementNS(viewer.SVG_NS, 'svg');
     
+    viewer.editor = require('./editor');
+    viewer.editor.attachViewer(viewer);
+    
+    viewer.width = 1400;
+    viewer.editable = false;
+    viewer.fontSize = 50;
+    var topMargin, rowYMargin, colWidth;
+    
     /**
      * Configure the viewer
      * @param {Object} [options] Optional: options for the Viewer.
-     * @param {Number} [options.width=1400] SVG width.
-     * @param {Number} [options.topMargin=60] Distance above first row of
-     * measures.
-     * @param {Number} [options.rowHeight=60] Height of each row of measures.
-     * @param {Number} [options.rowYMargin=10] Distance between each row of
-     * measures.
-     * @param {Number} [options.fontSize=50] Font size for big text (smaller
+     * @param {Number} [options.width] SVG width.
+     * @param {Boolean} [options.editable] Whether the viewer is editable.
+     * @param {Number} [options.fontSize] Font size for big text (smaller
      * text will be relatively scaled).
      */
-    viewer.config = function(options) {
-      viewer.width = (options && options['width']) || 1400;
-      viewer.topMargin = (options && options['topMargin']) || 60;
-      viewer.rowHeight = (options && options['rowHeight']) || 60;
-      viewer.rowYMargin = (options && options['rowYMargin']) || 10;
-      viewer.fontSize = (options && options['fontSize']) || 50;
+    viewer.config = function(options) { // @todo do player.config like this too.
+      if(options) {
+        if(options['width']) viewer.width = options['width'];
+        if(options['editable']) viewer.editor.setEditable(options['editable']);
+        if(options['fontSize']) viewer.fontSize = options['fontSize'];
+      }
+      
+      // The space left at the top for the title and stuff
+      topMargin = 1.2 * viewer.fontSize;
+      // Vertical space between rows.
+      rowYMargin = 0.2 * viewer.fontSize;
+      
+      viewer.rowHeight = 1.2 * viewer.fontSize;
+      
       // SVG width for each measure.
       // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
-      viewer.colWidth = viewer.width / 4;
+      var _colWidth = viewer.width / 4;
       // SVG distance between beats in a measure.
-      viewer.beatOffset = viewer.colWidth / 4;
+      viewer.measureXMargin = _colWidth * .1;
+      colWidth = (viewer.width + viewer.measureXMargin) / 4;
+      var colInnerWidth = colWidth - viewer.measureXMargin;
+      viewer.beatOffset = colInnerWidth / 4;
       
       viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
-      viewer._svgElem.setAttributeNS(null, 'height', viewer.height || 0);
+      if(reflow) reflow();
     };
     viewer.config();
     
@@ -22097,9 +22288,11 @@ module.exports = `/*<![CDATA[*/
     viewer.attachEvents = function(ev) {
       events = ev;
       events.create('Viewer.ready', true);
+      events.create('Viewer.setBeatEditing');
       events.on('Notochord.load', () => {
         events.on('Viewer.ready', () => viewer.renderSong.call(viewer, song));
       });
+      viewer.editor.attachEvents(events);
     };
     
     var song = null;
@@ -22162,8 +22355,8 @@ module.exports = `/*<![CDATA[*/
     viewer._svgElem.appendChild(style);
     
     /**
-     * Append editor element to a parent element.
-     * @param {HTMLElement} parent The element to append the editor element.
+     * Append viewer's SVG element to a parent element.
+     * @param {HTMLElement} parent The element to append the SVG element.
      * @public
      */
     viewer.appendTo = function(parent) {
@@ -22206,7 +22399,7 @@ module.exports = `/*<![CDATA[*/
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;
       var ctx = (viewer.width - (composerBB.width * ctscale)) / 2;
-      var cty = tty + viewer.rowYMargin + (composerBB.height * ctscale);
+      var cty = tty + rowYMargin + (composerBB.height * ctscale);
       composerText.setAttributeNS(
         null,
         'transform',
@@ -22219,21 +22412,26 @@ module.exports = `/*<![CDATA[*/
      * @private
      */
     var reflow = function() {
+      if(!song) {
+        viewer._svgElem.setAttributeNS(null, 'height', 0);
+        return;
+      }
       var row = 1;
       var col = 0;
       var y;
       for(let measure of song.measures) {
-        let x = viewer.colWidth * col++;
-        if(x + viewer.colWidth > viewer.width || measure === null) {
+        let x = colWidth * col++;
+        if(x + colWidth > (viewer.width + viewer.beatOffset)
+          || measure === null) {
           x = 0;
           col = 0;
           row++;
           if(measure === null) continue;
         }
-        y = viewer.topMargin + ((viewer.rowHeight + viewer.rowYMargin) * row);
+        y = topMargin + ((viewer.rowHeight + rowYMargin) * row);
         measure.measureView.setPosition(x,y);
       }
-      viewer.height = y + viewer.rowYMargin;
+      viewer.height = y + rowYMargin;
       viewer._svgElem.setAttributeNS(null, 'height', viewer.height);
     };
     
@@ -22247,7 +22445,7 @@ module.exports = `/*<![CDATA[*/
         createMeasureView(measure);
       }
       setTitleAndComposer(song);
-      reflow(song);
+      reflow();
     };
     
     return viewer;
@@ -22256,4 +22454,4 @@ module.exports = `/*<![CDATA[*/
   module.exports = Viewer;
 })();
 
-},{"./beatView":53,"./measureView":54,"./svg_constants":55,"./viewer.css.js":56,"opentype.js":22}]},{},[44]);
+},{"./beatView":53,"./editor":54,"./measureView":55,"./svg_constants":56,"./viewer.css.js":57,"opentype.js":22}]},{},[44]);

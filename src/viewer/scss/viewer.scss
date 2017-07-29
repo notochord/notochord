@@ -1,0 +1,10 @@
+$hue: 195;
+$played-highlight: hsl($hue, 53%, 79%);
+
+.NotochordPlayedBeat {
+  path, text {
+    fill: $played-highlight;
+  }
+}
+
+@import 'editor';

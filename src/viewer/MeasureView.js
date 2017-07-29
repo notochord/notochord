@@ -19,6 +19,7 @@
      * @private Maybe this will change depending how much measures move around?
      */
     this._svgGroup = document.createElementNS(viewer.SVG_NS, 'g');
+    this._svgGroup.classList.add('NotochordMeasureView');
     
     /**
      * Set a MeasureView's position.
@@ -70,14 +71,10 @@
       if(!viewer.font) return null;
       for(let i = 0; i < measure.length; i++) {
         let chord = measure.getBeat(i);
-        if(chord) {
-          let offset = i * viewer.beatOffset;
-          let beat = new viewer.BeatView(events, viewer, this, i, offset);
-          beat.renderChord(chord);
-          this.beatViews.push(beat);
-        } else {
-          this.beatViews.push(null);
-        }
+        let offset = i * viewer.beatOffset;
+        let beat = new viewer.BeatView(events, viewer, this, i, offset);
+        beat.renderChord(chord);
+        this.beatViews.push(beat);
       }
       
       // When I receive a transpose event, re-render each beat.
@@ -101,7 +98,7 @@
          */
         this._leftBar = document.createElementNS(viewer.SVG_NS, 'path');
         this._leftBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
-        let x = -0.25 * viewer.beatOffset;
+        let x = -0.5 * viewer.measureXMargin;
         let y = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
         let scale = viewer.rowHeight / viewer.PATHS.bar_height;
         this._leftBar.setAttributeNS(
@@ -118,6 +115,21 @@
       }
     };
     this.render();
+    
+    var self = this;
+    // If connected to Notochord.player, highlight when my beat is played.
+    if(events) {
+      events.on('Player.playBeat', (args) => {
+        if(args.measure == self.measure.getIndex()) {
+          self.beatViews[args.beat].setHighlight(true);
+        }
+      });
+      events.on('Player.stopBeat', (args) => {
+        if(args.measure == self.measure.getIndex()) {
+          self.beatViews[args.beat].setHighlight(false);
+        }
+      });
+    }
   };
 
   module.exports = MeasureView;

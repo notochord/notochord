@@ -58,16 +58,16 @@
      * Resets all counters and things as if sarting from beginning of song.
      */
     playback.reset = function() {
-      playback.measureNumber = -1;
+      playback.measureNumber = 0;
       playback.beat = 0;
-      playback.nextMeasure();
-    }
+      playback.measure = playback.song.measures[0];
+    };
     /**
      * Stops playback.
      * @public
      */
     playback.stop = function() {
-      playback.ready = false;
+      playback.playing = false;
       
       // Cancel (or in some cases immediately run) all scheduled tasks.
       while(scheduled.length) {
@@ -185,15 +185,10 @@
      * @private
      */
     playback.nextMeasure = function() {
-      playback.measureNumber++;
-      if(playback.measureNumber < playback.song.measures.length) {
-        var measure = playback.song.measures[playback.measureNumber];
-        if(measure) {
-          playback.evenMeasure = !playback.evenMeasure;
-          playback.measure = measure;
-        } else {
-          playback.nextMeasure();
-        }
+      playback.evenMeasure = !playback.evenMeasure;
+      playback.measure = playback.measure.getNextMeasure();
+      if(playback.measure) {
+        playback.measureNumber = playback.measure.getIndex();
       } else {
         playback.playing = false;
       }

@@ -20,7 +20,8 @@
   "devDependencies": {
     "browserify": "^14.4.0",
     "eslint": "^4.2.0",
-    "jsdoc": "^3.5.3"
+    "jsdoc": "^3.5.3",
+    "node-sass": "^4.5.3"
   },
   "dependencies": {
     "chord-magic": "1.0.0",

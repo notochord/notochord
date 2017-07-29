@@ -1,6 +1,6 @@
 /*
- * Code to generate a Viewer object. viewer will be extended to an editor in
- * a separate file so that that functionality is only loaded as needed.
+ * Code to generate a viewer object, which displays a song and optionally
+ * provides an interface for editing it.
  */
 (function() {
   'use strict';
@@ -22,32 +22,47 @@
      */
     viewer._svgElem = document.createElementNS(viewer.SVG_NS, 'svg');
     
+    viewer.editor = require('./editor');
+    viewer.editor.attachViewer(viewer);
+    
+    viewer.width = 1400;
+    viewer.editable = false;
+    viewer.fontSize = 50;
+    var topMargin, rowYMargin, colWidth;
+    
     /**
      * Configure the viewer
      * @param {Object} [options] Optional: options for the Viewer.
-     * @param {Number} [options.width=1400] SVG width.
-     * @param {Number} [options.topMargin=60] Distance above first row of
-     * measures.
-     * @param {Number} [options.rowHeight=60] Height of each row of measures.
-     * @param {Number} [options.rowYMargin=10] Distance between each row of
-     * measures.
-     * @param {Number} [options.fontSize=50] Font size for big text (smaller
+     * @param {Number} [options.width] SVG width.
+     * @param {Boolean} [options.editable] Whether the viewer is editable.
+     * @param {Number} [options.fontSize] Font size for big text (smaller
      * text will be relatively scaled).
      */
-    viewer.config = function(options) {
-      viewer.width = (options && options['width']) || 1400;
-      viewer.topMargin = (options && options['topMargin']) || 60;
-      viewer.rowHeight = (options && options['rowHeight']) || 60;
-      viewer.rowYMargin = (options && options['rowYMargin']) || 10;
-      viewer.fontSize = (options && options['fontSize']) || 50;
+    viewer.config = function(options) { // @todo do player.config like this too.
+      if(options) {
+        if(options['width']) viewer.width = options['width'];
+        if(options['editable']) viewer.editor.setEditable(options['editable']);
+        if(options['fontSize']) viewer.fontSize = options['fontSize'];
+      }
+      
+      // The space left at the top for the title and stuff
+      topMargin = 1.2 * viewer.fontSize;
+      // Vertical space between rows.
+      rowYMargin = 0.2 * viewer.fontSize;
+      
+      viewer.rowHeight = 1.2 * viewer.fontSize;
+      
       // SVG width for each measure.
       // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
-      viewer.colWidth = viewer.width / 4;
+      var _colWidth = viewer.width / 4;
       // SVG distance between beats in a measure.
-      viewer.beatOffset = viewer.colWidth / 4;
+      viewer.measureXMargin = _colWidth * .1;
+      colWidth = (viewer.width + viewer.measureXMargin) / 4;
+      var colInnerWidth = colWidth - viewer.measureXMargin;
+      viewer.beatOffset = colInnerWidth / 4;
       
       viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
-      viewer._svgElem.setAttributeNS(null, 'height', viewer.height || 0);
+      if(reflow) reflow();
     };
     viewer.config();
     
@@ -59,9 +74,11 @@
     viewer.attachEvents = function(ev) {
       events = ev;
       events.create('Viewer.ready', true);
+      events.create('Viewer.setBeatEditing');
       events.on('Notochord.load', () => {
         events.on('Viewer.ready', () => viewer.renderSong.call(viewer, song));
       });
+      viewer.editor.attachEvents(events);
     };
     
     var song = null;
@@ -124,8 +141,8 @@
     viewer._svgElem.appendChild(style);
     
     /**
-     * Append editor element to a parent element.
-     * @param {HTMLElement} parent The element to append the editor element.
+     * Append viewer's SVG element to a parent element.
+     * @param {HTMLElement} parent The element to append the SVG element.
      * @public
      */
     viewer.appendTo = function(parent) {
@@ -168,7 +185,7 @@
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;
       var ctx = (viewer.width - (composerBB.width * ctscale)) / 2;
-      var cty = tty + viewer.rowYMargin + (composerBB.height * ctscale);
+      var cty = tty + rowYMargin + (composerBB.height * ctscale);
       composerText.setAttributeNS(
         null,
         'transform',
@@ -181,21 +198,26 @@
      * @private
      */
     var reflow = function() {
+      if(!song) {
+        viewer._svgElem.setAttributeNS(null, 'height', 0);
+        return;
+      }
       var row = 1;
       var col = 0;
       var y;
       for(let measure of song.measures) {
-        let x = viewer.colWidth * col++;
-        if(x + viewer.colWidth > viewer.width || measure === null) {
+        let x = colWidth * col++;
+        if(x + colWidth > (viewer.width + viewer.beatOffset)
+          || measure === null) {
           x = 0;
           col = 0;
           row++;
           if(measure === null) continue;
         }
-        y = viewer.topMargin + ((viewer.rowHeight + viewer.rowYMargin) * row);
+        y = topMargin + ((viewer.rowHeight + rowYMargin) * row);
         measure.measureView.setPosition(x,y);
       }
-      viewer.height = y + viewer.rowYMargin;
+      viewer.height = y + rowYMargin;
       viewer._svgElem.setAttributeNS(null, 'height', viewer.height);
     };
     
@@ -209,7 +231,7 @@
         createMeasureView(measure);
       }
       setTitleAndComposer(song);
-      reflow(song);
+      reflow();
     };
     
     return viewer;

@@ -4,17 +4,14 @@ Notochord.viewer.appendTo(document.querySelector('#notochordContainer'));
 // Confogure the viewer.
 Notochord.viewer.config({
     'width': 950,
-    'topMargin': 60,
-    'rowHeight': 60,
-    'rowYMargin': 10,
-    'fontSize': 50
+    'editable': true,
+    'fontSize': 50,
   });
 
 // Notochord.player plays a song as audio.
 // Configure the player as well.
 Notochord.player.config({
     'tempo': 120
-    // Styles coming soon??
   });
 
 // Setup plaback controls.

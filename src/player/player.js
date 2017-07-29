@@ -13,7 +13,9 @@
       events = ev;
       events.create('Player.loadStyle', true);
       events.create('Player.playBeat', false);
+      events.create('Player.play', false);
       events.create('Player.stopBeat', false);
+      events.on('Editor.setSelectedBeat', playback.stop);
       playback.attachEvents(ev);
     };
     
@@ -50,7 +52,7 @@
      */
     player.setStyle = function(newStyle) {
       playback.ready = false;
-      playback.cancelScheduled();
+      playback.stop();
       if(Number.isInteger(newStyle)) {
         // At one point this line read "style = styles[_style].style".
         currentStyle = stylesDB[newStyle].style;
@@ -85,11 +87,12 @@
     player.play = function() {
       if(playback.ready) {
         failCount = 0;
+        playback.stop();
         playback.playing = true;
         playback.tempo = player.tempo;
         playback.beatLength = (60 * 1000) / playback.tempo;
-        playback.stop();
         playback.reset();
+        if(events) events.dispatch('Player.play', {});
         currentStyle.play();
       } else if(events) {
         events.on('Player.loadStyle', player.play, true);

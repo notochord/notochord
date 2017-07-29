@@ -19,6 +19,7 @@
     const PADDING_RIGHT = 7;
     
     this._svgGroup = document.createElementNS(viewer.SVG_NS, 'g');
+    this._svgGroup.classList.add('NotochordBeatView');
     this._svgGroup.setAttributeNS(
       null,
       'transform',
@@ -151,9 +152,38 @@
         }
       }
     };
+    
+    /**
+     * A rectangle behind the beat to make it look more interactive.
+     * @type {SVGRectElement}
+     * @private
+     */
+    var bgRect = document.createElementNS(viewer.SVG_NS, 'rect');
+    bgRect.classList.add('NotochordBeatViewBackground');
+    bgRect.setAttributeNS(null, 'x', '0');
+    bgRect.setAttributeNS(null, 'y', -1 * viewer.H_HEIGHT);
+    bgRect.setAttributeNS(null, 'width', viewer.beatOffset);
+    bgRect.setAttributeNS(null, 'height', viewer.H_HEIGHT);
+    
+    /**
+     * Set whether the beatView is being edited.
+     * @param {Boolean} editing Whether or not the beat is being edited.
+     */
+    this.setEditing = function(editing) {
+      if(editing) {
+        this._svgGroup.classList.add('NotochordBeatViewEditing');
+      } else {
+        this._svgGroup.classList.remove('NotochordBeatViewEditing');
+      }
+    };
+    
+    this._svgGroup.addEventListener('click', () => {
+      viewer.editor.setSelectedBeat(this);
+    });
+    
     /**
      * Render a chord.
-     * @param {Object} chord A ChordMagic chord object to render.
+     * @param {?Object} chord A ChordMagic chord object to render, or null.
      */
     this.renderChord = function(chord) {
       // delete whatever might be in this._svgGroup
@@ -161,45 +191,42 @@
         this._svgGroup.removeChild(this._svgGroup.firstChild);
       }
       
-      var root = viewer.textToPath(chord.rawRoot[0]);
-      this._svgGroup.appendChild(root);
+      this._svgGroup.appendChild(bgRect);
       
-      var rootbb = root.getBBox();
-      
-      // ACCIDENTALS
-      if(chord.rawRoot[1]) {
-        this._renderAccidental(chord.rawRoot[1], rootbb);
-      }
-      // BOTTOM BITS
-      // If the chord is anything besides a major triad, it needs more bits
-      var bottomText = this._getBottomText(chord);
-      if(bottomText) {
-        this._renderBottomText(bottomText, rootbb);
-      }
-    
-      /*if(chord.overridingRoot) {
-        // @todo scale down this._svgGroup and return a bigger this._svgGroup
-      } else {
+      if(chord) {
+        var root = viewer.textToPath(chord.rawRoot[0]);
+        this._svgGroup.appendChild(root);
         
-      }*/
+        var rootbb = root.getBBox();
+        
+        // ACCIDENTALS
+        if(chord.rawRoot[1]) {
+          this._renderAccidental(chord.rawRoot[1], rootbb);
+        }
+        // BOTTOM BITS
+        // If the chord is anything besides a major triad, it needs more bits
+        var bottomText = this._getBottomText(chord);
+        if(bottomText) {
+          this._renderBottomText(bottomText, rootbb);
+        }
+      
+        /*if(chord.overridingRoot) {
+          // @todo scale down this._svgGroup and return a bigger this._svgGroup
+        } else {
+          
+        }*/
+      }
     };
     
     var self = this;
-    var measureIndex = this.measureView.measure.getIndex();
-    
-    // If connected to Notochord.player, highlight when my beat is played.
-    if(events) {
-      events.on('Player.playBeat', (args) => {
-        if(args.measure == measureIndex && args.beat == self.index) {
-          self._svgGroup.classList.add('NotochordPlayedBeat');
-        }
-      });
-      events.on('Player.stopBeat', (args) => {
-        if(args.measure == measureIndex && args.beat == self.index) {
-          self._svgGroup.classList.remove('NotochordPlayedBeat');
-        }
-      });
-    }
+    // @todo docs
+    this.setHighlight = function(add) {
+      if(add) {
+        self._svgGroup.classList.add('NotochordPlayedBeat');
+      } else {
+        self._svgGroup.classList.remove('NotochordPlayedBeat');
+      }
+    };
   };
   module.exports = BeatView;
 })();

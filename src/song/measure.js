@@ -81,6 +81,24 @@
       return song.measures.indexOf(this);
     };
     
+    // @todo docs
+    this.getNextMeasure = function() {
+      var newIndex = this.getIndex();
+      while(true) {
+        newIndex++;
+        if(newIndex > song.measures.length) return null;
+        if(song.measures[newIndex]) return song.measures[newIndex];
+      }
+    };
+    this.getPreviousMeasure = function() {
+      var newIndex = this.getIndex();
+      while(true) {
+        newIndex--;
+        if(newIndex == -1) return null;
+        if(song.measures[newIndex]) return song.measures[newIndex];
+      }
+    };
+    
   };
   
   module.exports = Measure;

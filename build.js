@@ -1,6 +1,17 @@
-const fs         = require("fs"),
-      CLIEngine  = require("eslint").CLIEngine,
+const fs         = require('fs'),
+      CLIEngine  = require('eslint').CLIEngine,
+      sass       = require('node-sass'),
       browserify = require('browserify');
+
+// render SASS
+console.log('===== RENDERING SCSS =====');
+var stylesheet = sass.renderSync({
+  file: 'src/viewer/scss/viewer.scss'
+});
+fs.writeFile('src/viewer/viewer.css.js', `/* eslint-disable max-len */
+module.exports = \`/*<![CDATA[*/
+${stylesheet.css.toString('utf8')}
+/*]]>*/\`;`, err => {if(err) console.log(err);});
 
 // lint all files in src/
 console.log('===== LINTING =====');
