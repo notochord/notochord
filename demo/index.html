@@ -120,11 +120,11 @@
         Drum sounds are also from FluidR3_GM.sf2.
       </li>
     </ul>
-    <script src="notochord.js"></script>
-    <script src="demo/demo.js"></script>
+    <script src="../notochord.js"></script>
+    <script src="demo.js"></script>
     <script>
     if(location.protocol.indexOf('file') == -1) {
-      fetch('./demo/demo.js').then(r => {
+      fetch('./demo.js').then(r => {
         if(!r.ok) throw r;
         return r.text()
       }).then(r => {
