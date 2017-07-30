@@ -10,24 +10,35 @@
    */
   var Measure = function(song, chordMagic, index, chords) {
     
+    this.length = song.timeSignature[0];
+    
+    /**
+     * Parse a string into a chord and save it to the specified beat index.
+     * @param {String} chord The chord to parse.
+     * @param {Number} index The beat in the measure to replace.
+     */
+    this.parseChordToBeat = function(chord, index) {
+      var parsed;
+      if(chord) {
+        // correct for a bug in chordMagic.
+        let corrected = chord.replace('-', 'm');
+        parsed = chordMagic.parse(corrected);
+        parsed.raw = chord;
+      } else {
+        parsed = null;
+      }
+      this._beats[index] = parsed;
+    };
+    
     /**
      * Array containing timeSignature[0] ChordMagic chords or nulls.
      * @type {?Object[]}
      * @private
      */
-    this._beats = [];
-    this.length = song.timeSignature[0];
+    this._beats = new Array(this.length).fill(null);
     if(!chords) chords = []; // If none given, pass undefined.
-    for(let i = 0; i < song.timeSignature[0]; i++) {
-      if(chords[i]) {
-        // correct for a bug in chordMagic.
-        let corrected = chords[i].replace('-7', 'm7');
-        let parsed = chordMagic.parse(corrected);
-        parsed.raw = chords[i];
-        this._beats.push(parsed);
-      } else {
-        this._beats.push(null);
-      }
+    for(let i = 0; i < this.length; i++) {
+      this.parseChordToBeat(chords[i], i);
     }
     
     this.getBeat = function(beat) {

@@ -21468,24 +21468,35 @@ module.exports = {
    */
   var Measure = function(song, chordMagic, index, chords) {
     
+    this.length = song.timeSignature[0];
+    
+    /**
+     * Parse a string into a chord and save it to the specified beat index.
+     * @param {String} chord The chord to parse.
+     * @param {Number} index The beat in the measure to replace.
+     */
+    this.parseChordToBeat = function(chord, index) {
+      var parsed;
+      if(chord) {
+        // correct for a bug in chordMagic.
+        let corrected = chord.replace('-', 'm');
+        parsed = chordMagic.parse(corrected);
+        parsed.raw = chord;
+      } else {
+        parsed = null;
+      }
+      this._beats[index] = parsed;
+    };
+    
     /**
      * Array containing timeSignature[0] ChordMagic chords or nulls.
      * @type {?Object[]}
      * @private
      */
-    this._beats = [];
-    this.length = song.timeSignature[0];
+    this._beats = new Array(this.length).fill(null);
     if(!chords) chords = []; // If none given, pass undefined.
-    for(let i = 0; i < song.timeSignature[0]; i++) {
-      if(chords[i]) {
-        // correct for a bug in chordMagic.
-        let corrected = chords[i].replace('-7', 'm7');
-        let parsed = chordMagic.parse(corrected);
-        parsed.raw = chords[i];
-        this._beats.push(parsed);
-      } else {
-        this._beats.push(null);
-      }
+    for(let i = 0; i < this.length; i++) {
+      this.parseChordToBeat(chords[i], i);
     }
     
     this.getBeat = function(beat) {
@@ -21941,6 +21952,7 @@ module.exports = {
   var Editor = (function() {
     var editor = {};
     var editable = false;
+    var chordMagic = require('chord-magic');
     
     var events = null;
     /**
@@ -21960,17 +21972,6 @@ module.exports = {
      */
     editor.attachViewer = function(_viewer) {
       viewer = _viewer;
-      
-      document.body.addEventListener('keydown', e => {
-        if(editable && editor.editedBeat) {
-          e.stopPropagation();
-          e.preventDefault();
-          editor.handleKeyboardInput(e.key);
-          return false;
-        } else {
-          return true;
-        }
-      });
     };
     
     // @todoo docs
@@ -21994,17 +21995,39 @@ module.exports = {
       if(editor.editedBeat) editor.editedBeat.setEditing(false);
       if(!beatView || editor.editedBeat == beatView) {
         editor.editedBeat = null;
+        editor._elem.classList.remove('show');
+        editor._elem.style.top = 0;
+        editor._elem.style.left = 0;
         return;
       }
       editor.editedBeat = beatView;
-      editor.editedBeat.setEditing(true);
+      beatView.setEditing(true);
+      document.body.appendChild(editor._elem);
+      var bvRect = beatView._svgGroup.getBoundingClientRect();
+      var elemRect = editor._elem.getBoundingClientRect();
+      var top = document.body.scrollTop + bvRect.top;
+      top -= elemRect.height + 10;
+      var left = document.body.scrollLeft + bvRect.left;
+      left += (bvRect.width * 0.5) - (elemRect.width * 0.5);
+      editor._elem.classList.add('show');
+      editor._elem.style.top = `${top}px`;
+      editor._elem.style.left = `${left}px`;
+      
+      var chord = beatView.measureView.measure.getBeat(beatView.index);
+      if(chord) {
+        editor._input.value = chordMagic.prettyPrint(chord);
+      } else {
+        editor._input.value = '';
+      }
+      editor._input.focus();
       if(events) events.dispatch('Editor.setSelectedBeat');
     };
     
     // @todo docs
-    editor.handleKeyboardInput = function(key) {
+    var handleNonTextualKeyboardInput = function(e) {
       /* eslint-disable indent */ // Switch statements are dumb.
-      switch(key) {
+      switch(e.key) {
+        case 'Enter':
         case 'Escape': {
           editor.setSelectedBeat(null);
           break;
@@ -22041,15 +22064,28 @@ module.exports = {
       /* eslint-enable indent */
     };
     
-    // @todo docs
+    var handleTextualKeyboardInput = function() {
+      var chord = editor._input.value;
+      var beat = editor.editedBeat;
+      var measure = beat.measureView.measure;
+      measure.parseChordToBeat(chord, beat.index);
+      editor.editedBeat.renderChord(measure.getBeat(beat.index));
+    };
+    
     editor._elem = document.createElement('div');
+    editor._elem.classList.add('NotochordChordEditor');
+    editor._input = document.createElement('input');
+    editor._input.setAttribute('type', 'text');
+    editor._input.addEventListener('keydown', handleNonTextualKeyboardInput);
+    editor._input.addEventListener('input', handleTextualKeyboardInput);
+    editor._elem.appendChild(editor._input);
     
     return editor;
   })();
   module.exports = Editor;
 })();
 
-},{}],55:[function(require,module,exports){
+},{"chord-magic":10}],55:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -22218,6 +22254,12 @@ svg.NotochordEditable g.NotochordBeatView:hover .NotochordBeatViewBackground {
 
 svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBeatViewBackground {
   fill: #d8ecf3; }
+
+.NotochordChordEditor {
+  position: absolute;
+  visibility: hidden; }
+  .NotochordChordEditor.show {
+    visibility: visible; }
 
 /*]]>*/`;
 },{}],58:[function(require,module,exports){

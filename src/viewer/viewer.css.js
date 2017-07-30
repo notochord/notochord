@@ -12,4 +12,10 @@ svg.NotochordEditable g.NotochordBeatView:hover .NotochordBeatViewBackground {
 svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBeatViewBackground {
   fill: #d8ecf3; }
 
+.NotochordChordEditor {
+  position: absolute;
+  visibility: hidden; }
+  .NotochordChordEditor.show {
+    visibility: visible; }
+
 /*]]>*/`;
