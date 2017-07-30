@@ -112,8 +112,14 @@
           }
           break;
         }
+        default: {
+          return true;
+        }
       }
       /* eslint-enable indent */
+      e.stopPropagation();
+      e.preventDefault();
+      return false;
     };
     
     var handleTextualKeyboardInput = function() {
