@@ -99,7 +99,7 @@
         this._leftBar = document.createElementNS(viewer.SVG_NS, 'path');
         this._leftBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
         let x = -0.5 * viewer.measureXMargin;
-        let y = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
+        let y = viewer.topPadding;
         let scale = viewer.rowHeight / viewer.PATHS.bar_height;
         this._leftBar.setAttributeNS(
           null,

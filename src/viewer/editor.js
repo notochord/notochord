@@ -60,13 +60,12 @@
       }
       editor.editedBeat = beatView;
       editor.editedBeat.setEditing(true);
-      console.log(beatView);
       if(events) events.dispatch('Editor.setSelectedBeat');
     };
     
     // @todo docs
     editor.handleKeyboardInput = function(key) {
-      /* eslint-disable indent */
+      /* eslint-disable indent */ // Switch statements are dumb.
       switch(key) {
         case 'Escape': {
           editor.setSelectedBeat(null);
@@ -105,7 +104,7 @@
     };
     
     // @todo docs
-    //editor._elem = document.createElement('div');
+    editor._elem = document.createElement('div');
     
     return editor;
   })();

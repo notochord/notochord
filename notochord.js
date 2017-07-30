@@ -21855,9 +21855,9 @@ module.exports = {
     var bgRect = document.createElementNS(viewer.SVG_NS, 'rect');
     bgRect.classList.add('NotochordBeatViewBackground');
     bgRect.setAttributeNS(null, 'x', '0');
-    bgRect.setAttributeNS(null, 'y', -1 * viewer.H_HEIGHT);
+    bgRect.setAttributeNS(null, 'y', -1*(viewer.rowHeight - viewer.topPadding));
     bgRect.setAttributeNS(null, 'width', viewer.beatOffset);
-    bgRect.setAttributeNS(null, 'height', viewer.H_HEIGHT);
+    bgRect.setAttributeNS(null, 'height', viewer.rowHeight);
     
     /**
      * Set whether the beatView is being edited.
@@ -22142,7 +22142,7 @@ module.exports = {
         this._leftBar = document.createElementNS(viewer.SVG_NS, 'path');
         this._leftBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
         let x = -0.5 * viewer.measureXMargin;
-        let y = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
+        let y = viewer.topPadding;
         let scale = viewer.rowHeight / viewer.PATHS.bar_height;
         this._leftBar.setAttributeNS(
           null,
@@ -22253,6 +22253,10 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
      * text will be relatively scaled).
      */
     viewer.config = function(options) { // @todo do player.config like this too.
+      if(!viewer.font && events) {
+        events.on('Viewer.ready', () => viewer.config(options), true);
+        return;
+      }
       if(options) {
         if(options['width']) viewer.width = options['width'];
         if(options['editable']) viewer.editor.setEditable(options['editable']);
@@ -22274,11 +22278,12 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
       colWidth = (viewer.width + viewer.measureXMargin) / 4;
       var colInnerWidth = colWidth - viewer.measureXMargin;
       viewer.beatOffset = colInnerWidth / 4;
+      viewer.H_HEIGHT = viewer.textToPath('H').getBBox().height;
+      viewer.topPadding = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
       
       viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
       if(reflow) reflow();
     };
-    viewer.config();
     
     var events = null;
     /**
@@ -22290,7 +22295,7 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
       events.create('Viewer.ready', true);
       events.create('Viewer.setBeatEditing');
       events.on('Notochord.load', () => {
-        events.on('Viewer.ready', () => viewer.renderSong.call(viewer, song));
+        events.on('Viewer.ready', viewer.renderSong);
       });
       viewer.editor.attachEvents(events);
     };
@@ -22323,8 +22328,8 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
       } else {
         // opentype.js Font object for whatever our chosen font is.
         viewer.font = font;
-        viewer.H_HEIGHT = viewer.textToPath('H').getBBox().height;
         events && events.dispatch('Viewer.ready', {});
+        viewer.config();
       }
     });
     
@@ -22429,6 +22434,7 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
           if(measure === null) continue;
         }
         y = topMargin + ((viewer.rowHeight + rowYMargin) * row);
+        if(!measure.measureView) return;
         measure.measureView.setPosition(x,y);
       }
       viewer.height = y + rowYMargin;

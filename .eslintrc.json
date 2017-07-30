@@ -9,6 +9,7 @@
         "sourceType": "module"
     },
     "rules": {
+        "no-constant-condition": "off",
         "valid-jsdoc": [
             "error",
             {

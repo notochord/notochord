@@ -161,9 +161,9 @@
     var bgRect = document.createElementNS(viewer.SVG_NS, 'rect');
     bgRect.classList.add('NotochordBeatViewBackground');
     bgRect.setAttributeNS(null, 'x', '0');
-    bgRect.setAttributeNS(null, 'y', -1 * viewer.H_HEIGHT);
+    bgRect.setAttributeNS(null, 'y', -1*(viewer.rowHeight - viewer.topPadding));
     bgRect.setAttributeNS(null, 'width', viewer.beatOffset);
-    bgRect.setAttributeNS(null, 'height', viewer.H_HEIGHT);
+    bgRect.setAttributeNS(null, 'height', viewer.rowHeight);
     
     /**
      * Set whether the beatView is being edited.

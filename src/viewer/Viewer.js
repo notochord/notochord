@@ -39,6 +39,10 @@
      * text will be relatively scaled).
      */
     viewer.config = function(options) { // @todo do player.config like this too.
+      if(!viewer.font && events) {
+        events.on('Viewer.ready', () => viewer.config(options), true);
+        return;
+      }
       if(options) {
         if(options['width']) viewer.width = options['width'];
         if(options['editable']) viewer.editor.setEditable(options['editable']);
@@ -60,11 +64,12 @@
       colWidth = (viewer.width + viewer.measureXMargin) / 4;
       var colInnerWidth = colWidth - viewer.measureXMargin;
       viewer.beatOffset = colInnerWidth / 4;
+      viewer.H_HEIGHT = viewer.textToPath('H').getBBox().height;
+      viewer.topPadding = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
       
       viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
       if(reflow) reflow();
     };
-    viewer.config();
     
     var events = null;
     /**
@@ -76,7 +81,7 @@
       events.create('Viewer.ready', true);
       events.create('Viewer.setBeatEditing');
       events.on('Notochord.load', () => {
-        events.on('Viewer.ready', () => viewer.renderSong.call(viewer, song));
+        events.on('Viewer.ready', viewer.renderSong);
       });
       viewer.editor.attachEvents(events);
     };
@@ -109,8 +114,8 @@
       } else {
         // opentype.js Font object for whatever our chosen font is.
         viewer.font = font;
-        viewer.H_HEIGHT = viewer.textToPath('H').getBBox().height;
         events && events.dispatch('Viewer.ready', {});
+        viewer.config();
       }
     });
     
@@ -215,6 +220,7 @@
           if(measure === null) continue;
         }
         y = topMargin + ((viewer.rowHeight + rowYMargin) * row);
+        if(!measure.measureView) return;
         measure.measureView.setPosition(x,y);
       }
       viewer.height = y + rowYMargin;
