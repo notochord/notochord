@@ -21095,13 +21095,19 @@ module.exports = {
       let drums = require('./drums');
       for(let drumName in drums) {
         let data = drums[drumName];
+        let count = 0;
+        let audios = [
+          new Audio(data),
+          new Audio(data)
+        ];
         /**
          * Play a drum. Can be any of the following:
          * hatClosed, hatHalfOpen, snare1, kick, snare2, cymbal, tom, woodblock
          * @param {Number} [volume=0.5] Volume 0-1.
          */
         playback.drums[drumName] = function(volume = 0.5) {
-          let audio = new Audio(data);
+          let audio = audios[count++ % 2];
+          audio.currentTime = 0;
           audio.volume = volume;
           audio.play();
         };
