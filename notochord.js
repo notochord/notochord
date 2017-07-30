@@ -21335,6 +21335,7 @@ module.exports = {
     };
     
     var playNextMeasure = function() {
+      if(!playback.measure) return;
       if(playback.evenMeasure) {
         playback.schedule(playback.drums.woodblock, [0,1,2.5,3.5]);
       } else {
@@ -21353,6 +21354,7 @@ module.exports = {
         beats: 1,
         velocity: 127
       });
+      playback.drums.kick(0.1);
       var nextNote, lastNote;
       if(chordChanges) {
         nextNote = thirdBeat.root + 2;
@@ -21373,6 +21375,7 @@ module.exports = {
           beats: 0.5,
           velocity: 127
         });
+        playback.drums.kick(0.1);
       }, [1.5, 2]);
       playback.schedule(() => {
         playback.playNotes({
@@ -21381,6 +21384,7 @@ module.exports = {
           beats: 1,
           velocity: 127
         });
+        playback.drums.kick(0.1);
       }, 3.5);
       
       playback.playNotes({
@@ -21988,13 +21992,12 @@ module.exports = {
       }
       editor.editedBeat = beatView;
       editor.editedBeat.setEditing(true);
-      console.log(beatView);
       if(events) events.dispatch('Editor.setSelectedBeat');
     };
     
     // @todo docs
     editor.handleKeyboardInput = function(key) {
-      /* eslint-disable indent */
+      /* eslint-disable indent */ // Switch statements are dumb.
       switch(key) {
         case 'Escape': {
           editor.setSelectedBeat(null);
@@ -22033,7 +22036,7 @@ module.exports = {
     };
     
     // @todo docs
-    //editor._elem = document.createElement('div');
+    editor._elem = document.createElement('div');
     
     return editor;
   })();

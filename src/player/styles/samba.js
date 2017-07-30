@@ -10,6 +10,7 @@
     };
     
     var playNextMeasure = function() {
+      if(!playback.measure) return;
       if(playback.evenMeasure) {
         playback.schedule(playback.drums.woodblock, [0,1,2.5,3.5]);
       } else {
@@ -28,6 +29,7 @@
         beats: 1,
         velocity: 127
       });
+      playback.drums.kick(0.1);
       var nextNote, lastNote;
       if(chordChanges) {
         nextNote = thirdBeat.root + 2;
@@ -48,6 +50,7 @@
           beats: 0.5,
           velocity: 127
         });
+        playback.drums.kick(0.1);
       }, [1.5, 2]);
       playback.schedule(() => {
         playback.playNotes({
@@ -56,6 +59,7 @@
           beats: 1,
           velocity: 127
         });
+        playback.drums.kick(0.1);
       }, 3.5);
       
       playback.playNotes({
