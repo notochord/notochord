@@ -21481,7 +21481,11 @@ module.exports = {
         // correct for a bug in chordMagic.
         let corrected = chord.replace('-', 'm');
         parsed = chordMagic.parse(corrected);
-        parsed.raw = chord;
+        if(parsed) {
+          parsed.raw = chord;
+        } else {
+          parsed = null;
+        }
       } else {
         parsed = null;
       }
@@ -21498,6 +21502,20 @@ module.exports = {
     for(let i = 0; i < this.length; i++) {
       this.parseChordToBeat(chords[i], i);
     }
+    
+    this.getNonTransposedBeat = function(beat) {
+      var chord = this._beats[beat];
+      var out = null;
+      if(chord) {
+        out =  Object.assign({}, chord);
+        if(chord.raw[1] == '#') {
+          out.rawRoot = chord.raw[0].toUpperCase() + '#';
+        } else {
+          out.rawRoot = chord.root;
+        }
+      }
+      return out;
+    };
     
     this.getBeat = function(beat) {
       var transpose = song.transpose;
@@ -22013,7 +22031,8 @@ module.exports = {
       editor._elem.style.top = `${top}px`;
       editor._elem.style.left = `${left}px`;
       
-      var chord = beatView.measureView.measure.getBeat(beatView.index);
+      var measure = beatView.measureView.measure;
+      var chord = measure.getNonTransposedBeat(beatView.index);
       if(chord) {
         editor._input.value = chordMagic.prettyPrint(chord);
       } else {

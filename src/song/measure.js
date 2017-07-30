@@ -23,7 +23,11 @@
         // correct for a bug in chordMagic.
         let corrected = chord.replace('-', 'm');
         parsed = chordMagic.parse(corrected);
-        parsed.raw = chord;
+        if(parsed) {
+          parsed.raw = chord;
+        } else {
+          parsed = null;
+        }
       } else {
         parsed = null;
       }
@@ -40,6 +44,20 @@
     for(let i = 0; i < this.length; i++) {
       this.parseChordToBeat(chords[i], i);
     }
+    
+    this.getNonTransposedBeat = function(beat) {
+      var chord = this._beats[beat];
+      var out = null;
+      if(chord) {
+        out =  Object.assign({}, chord);
+        if(chord.raw[1] == '#') {
+          out.rawRoot = chord.raw[0].toUpperCase() + '#';
+        } else {
+          out.rawRoot = chord.root;
+        }
+      }
+      return out;
+    };
     
     this.getBeat = function(beat) {
       var transpose = song.transpose;

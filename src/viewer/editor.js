@@ -64,7 +64,8 @@
       editor._elem.style.top = `${top}px`;
       editor._elem.style.left = `${left}px`;
       
-      var chord = beatView.measureView.measure.getBeat(beatView.index);
+      var measure = beatView.measureView.measure;
+      var chord = measure.getNonTransposedBeat(beatView.index);
       if(chord) {
         editor._input.value = chordMagic.prettyPrint(chord);
       } else {
