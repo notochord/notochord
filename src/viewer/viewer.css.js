@@ -1,5 +1,9 @@
 /* eslint-disable max-len */
 module.exports = `/*<![CDATA[*/
+@import url("https://fonts.googleapis.com/css?family=Slabo+27px");
+.NotochordSVGElement {
+  font-family: 'Slabo 27px', serif; }
+
 .NotochordPlayedBeat path, .NotochordPlayedBeat text {
   fill: lightblue; }
 

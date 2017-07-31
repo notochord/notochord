@@ -65,10 +65,8 @@
     /**
      * Render the measure
      * @public
-     * @return {null|undefined} Null if no font has been loaded yet.
      */
     this.render = function() {
-      if(!viewer.font) return null;
       for(let i = 0; i < measure.length; i++) {
         let chord = measure.getBeat(i);
         let offset = i * viewer.beatOffset;

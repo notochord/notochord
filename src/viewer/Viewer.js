@@ -16,11 +16,19 @@
     viewer.SVG_NS = 'http://www.w3.org/2000/svg';
     
     /**
+     * Path data for various shapes.
+     * @type {String[]}
+     * @const
+     */
+    viewer.PATHS = require('./resources/svg_constants');
+    
+    /**
      * The SVG element with which the user will interact.
      * @type {SVGDocument}
      * @private
      */
     viewer._svgElem = document.createElementNS(viewer.SVG_NS, 'svg');
+    viewer._svgElem.classList.add('NotochordSVGElement');
     
     viewer.editor = require('./editor');
     viewer.editor.attachViewer(viewer);
@@ -39,10 +47,6 @@
      * text will be relatively scaled).
      */
     viewer.config = function(options) { // @todo do player.config like this too.
-      if(!viewer.font && events) {
-        events.on('Viewer.ready', () => viewer.config(options), true);
-        return;
-      }
       if(options) {
         if(options['width']) viewer.width = options['width'];
         if(options['editable']) viewer.editor.setEditable(options['editable']);
@@ -65,14 +69,12 @@
       var colInnerWidth = colWidth - viewer.measureXMargin;
       viewer.beatOffset = colInnerWidth / 4;
       
-      var H = viewer.textToPath('H');
-      viewer._svgElem.appendChild(H);
-      viewer.H_HEIGHT = H.getBBox().height;
-      viewer._svgElem.removeChild(H);
+      viewer.H_HEIGHT = viewer.fontSize * viewer.PATHS.slabo27px_H_height_ratio;
       
       viewer.topPadding = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
       
       viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
+      viewer._svgElem.style.fontSize = viewer.fontSize;
       if(reflow) reflow();
     };
     
@@ -83,11 +85,8 @@
      */
     viewer.attachEvents = function(ev) {
       events = ev;
-      events.create('Viewer.ready', true);
       events.create('Viewer.setBeatEditing');
-      events.on('Notochord.load', () => {
-        events.on('Viewer.ready', viewer.renderSong);
-      });
+      events.on('Notochord.load', viewer.renderSong);
       viewer.editor.attachEvents(events);
     };
     
@@ -100,49 +99,6 @@
     viewer.loadSong = function(_song) {
       song = _song;
     };
-    
-    
-    /*
-     * I keep changing my mind about the prettiest font to use.
-     * It's not easy to request fonts from Google as WOFF.
-     */
-    /* eslint-disable max-len */
-    const FONT_URLS = {
-      openSans: 'https://fonts.gstatic.com/s/opensans/v14/cJZKeOuBrn4kERxqtaUH3T8E0i7KZn-EPnyo3HZu7kw.woff',
-      slabo27px: 'https://fonts.gstatic.com/s/slabo27px/v3/PuwvqkdbcqU-fCZ9Ed-b7RsxEYwM7FgeyaSgU71cLG0.woff'
-    };
-    /* eslint-enable max-len */
-    
-    require('opentype.js').load(FONT_URLS.slabo27px, function(err, font) {
-      if (err) {
-        alert('Could not load font: ' + err);
-      } else {
-        // opentype.js Font object for whatever our chosen font is.
-        viewer.font = font;
-        events && events.dispatch('Viewer.ready', {});
-        viewer.config();
-      }
-    });
-    
-    /**
-     * Take a string and turn it into an SVGPathElement.
-     * @param {String} text The string to path-ify.
-     * @returns {SVGPathElement} The string as a path.
-     */
-    viewer.textToPath = function(text) {
-      var path = document.createElementNS(viewer.SVG_NS, 'path');
-      var fontPath = viewer.font.getPath(text, 0, 0, viewer.fontSize);
-      var pathdata = fontPath.toPathData();
-      path.setAttributeNS(null, 'd',pathdata);
-      return path;
-    };
-    
-    /**
-     * Path data for various shapes.
-     * @type {String[]}
-     * @const
-     */
-    viewer.PATHS = require('./svg_constants');
     
     var styledata = require('./viewer.css.js');
     var style = document.createElementNS(viewer.SVG_NS, 'style');
@@ -178,7 +134,8 @@
      * @private
      */
     var setTitleAndComposer = function() {
-      var titleText = viewer.textToPath(song.title);
+      var titleText = document.createElementNS(viewer.SVG_NS, 'text');
+      titleText.appendChild(document.createTextNode(song.title));
       viewer._svgElem.appendChild(titleText);
       var titleBB = titleText.getBBox();
       var ttscale = 0.7;
@@ -190,7 +147,8 @@
         `translate(${ttx}, ${tty}) scale(${ttscale})`
       );
       
-      var composerText = viewer.textToPath(song.composer);
+      var composerText = document.createElementNS(viewer.SVG_NS, 'text');
+      composerText.appendChild(document.createTextNode(song.composer));
       viewer._svgElem.appendChild(composerText);
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;

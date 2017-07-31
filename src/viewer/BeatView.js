@@ -13,7 +13,6 @@
   var BeatView = function(events, viewer, measureView, index, xoffset) {
     this.measureView = measureView;
     this.index = index;
-    if(!viewer.font) return null;
     
     // Padding between the root of the chord and the accidental/other bits.
     const PADDING_RIGHT = 7;
@@ -141,7 +140,8 @@
           );
           bottomGroup.appendChild(path);
         } else {
-          let text = viewer.textToPath(str);
+          let text = document.createElementNS(viewer.SVG_NS, 'text');
+          text.appendChild(document.createTextNode(str));
           let y = 0;
           let scale = 0.5;
           text.setAttributeNS(null,
@@ -194,7 +194,8 @@
       this._svgGroup.appendChild(bgRect);
       
       if(chord) {
-        var root = viewer.textToPath(chord.rawRoot[0]);
+        var root = document.createElementNS(viewer.SVG_NS, 'text');
+        root.appendChild(document.createTextNode(chord.rawRoot[0]));
         this._svgGroup.appendChild(root);
         
         var rootbb = root.getBBox();
