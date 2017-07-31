@@ -49,7 +49,7 @@
             'Major7': viewer.PATHS.delta_char,
             'Minor7': '-7',
             'Dominant7': '7',
-            'Diminished7': 'O7',
+            'Diminished7': 'o7',
             'Major9': viewer.PATHS.delta_char + '9',
             'Major11': viewer.PATHS.delta_char + '11',
             'Major13': viewer.PATHS.delta_char + '13',
@@ -57,7 +57,12 @@
             'AugmentedMajor7': '+' + viewer.PATHS.delta_char + '7',
             'Minor9': '-9'
           };
-          bottomText += EXTENDED_MAP[chord.extended];
+          if(chord.extended == 'Dominant7' && chord.quality == 'Diminished') {
+            // @todo chord-magic can't detect this???
+            bottomText += viewer.PATHS.oslash_char + '7';
+          } else {
+            bottomText += EXTENDED_MAP[chord.extended];
+          }
           if(chord.added) {
             bottomText += ADDED_MAP[chord.added];
           }
@@ -65,7 +70,7 @@
           if(chord.quality == 'Minor') {
             bottomText += '-';
           } else if(chord.quality == 'Diminished') {
-            bottomText += 'O';
+            bottomText += 'o';
           } else if(chord.quality == 'Augmented') {
             bottomText += '+';
           }
@@ -119,38 +124,14 @@
      * @private
      */
     this._renderBottomText = function(bottomText, rootbb) {
-      var regex = new RegExp(`(${viewer.PATHS.delta_char})`, 'g');
-      var split = bottomText.split(regex);
-      var bottomGroup = document.createElementNS(viewer.SVG_NS, 'g');
-      this._svgGroup.appendChild(bottomGroup);
-      for(let str of split) {
-        if(!str) continue;
-        let x = rootbb.width + PADDING_RIGHT + bottomGroup.getBBox().width;
-        if(str == viewer.PATHS.delta_char) {
-          let path = document.createElementNS(viewer.SVG_NS, 'path');
-          path.setAttributeNS(null, 'd',viewer.PATHS.delta_path);
-          let orig_height = viewer.PATHS.delta_height;
-          let goal_height = (viewer.H_HEIGHT * 0.5);
-          let y = -0.5 * viewer.H_HEIGHT;
-          let scale = goal_height / orig_height;
-          path.setAttributeNS(
-            null,
-            'transform',
-            `translate(${x}, ${y}) scale(${scale})`
-          );
-          bottomGroup.appendChild(path);
-        } else {
-          let text = document.createElementNS(viewer.SVG_NS, 'text');
-          text.appendChild(document.createTextNode(str));
-          let y = 0;
-          let scale = 0.5;
-          text.setAttributeNS(null,
-            'transform',
-            `translate(${x}, ${y}) scale(${scale})`
-          );
-          bottomGroup.appendChild(text);
-        }
-      }
+      let text = document.createElementNS(viewer.SVG_NS, 'text');
+      text.appendChild(document.createTextNode(bottomText));
+      this._svgGroup.appendChild(text);
+      let scale = 0.5;
+      text.setAttributeNS(null,
+        'transform',
+        `translate(${rootbb.width}, 0) scale(${scale})`
+      );
     };
     
     /**

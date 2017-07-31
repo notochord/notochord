@@ -7696,7 +7696,7 @@ module.exports = {
             'Major7': viewer.PATHS.delta_char,
             'Minor7': '-7',
             'Dominant7': '7',
-            'Diminished7': 'O7',
+            'Diminished7': 'o7',
             'Major9': viewer.PATHS.delta_char + '9',
             'Major11': viewer.PATHS.delta_char + '11',
             'Major13': viewer.PATHS.delta_char + '13',
@@ -7704,7 +7704,11 @@ module.exports = {
             'AugmentedMajor7': '+' + viewer.PATHS.delta_char + '7',
             'Minor9': '-9'
           };
-          bottomText += EXTENDED_MAP[chord.extended];
+          if(chord.extended == 'Dominant7' && chord.quality == 'Diminished') {
+            bottomText += viewer.PATHS.oslash_char + '7';
+          } else {
+            bottomText += EXTENDED_MAP[chord.extended];
+          }
           if(chord.added) {
             bottomText += ADDED_MAP[chord.added];
           }
@@ -7712,7 +7716,7 @@ module.exports = {
           if(chord.quality == 'Minor') {
             bottomText += '-';
           } else if(chord.quality == 'Diminished') {
-            bottomText += 'O';
+            bottomText += 'o';
           } else if(chord.quality == 'Augmented') {
             bottomText += '+';
           }
@@ -7766,38 +7770,14 @@ module.exports = {
      * @private
      */
     this._renderBottomText = function(bottomText, rootbb) {
-      var regex = new RegExp(`(${viewer.PATHS.delta_char})`, 'g');
-      var split = bottomText.split(regex);
-      var bottomGroup = document.createElementNS(viewer.SVG_NS, 'g');
-      this._svgGroup.appendChild(bottomGroup);
-      for(let str of split) {
-        if(!str) continue;
-        let x = rootbb.width + PADDING_RIGHT + bottomGroup.getBBox().width;
-        if(str == viewer.PATHS.delta_char) {
-          let path = document.createElementNS(viewer.SVG_NS, 'path');
-          path.setAttributeNS(null, 'd',viewer.PATHS.delta_path);
-          let orig_height = viewer.PATHS.delta_height;
-          let goal_height = (viewer.H_HEIGHT * 0.5);
-          let y = -0.5 * viewer.H_HEIGHT;
-          let scale = goal_height / orig_height;
-          path.setAttributeNS(
-            null,
-            'transform',
-            `translate(${x}, ${y}) scale(${scale})`
-          );
-          bottomGroup.appendChild(path);
-        } else {
-          let text = document.createElementNS(viewer.SVG_NS, 'text');
-          text.appendChild(document.createTextNode(str));
-          let y = 0;
-          let scale = 0.5;
-          text.setAttributeNS(null,
-            'transform',
-            `translate(${x}, ${y}) scale(${scale})`
-          );
-          bottomGroup.appendChild(text);
-        }
-      }
+      let text = document.createElementNS(viewer.SVG_NS, 'text');
+      text.appendChild(document.createTextNode(bottomText));
+      this._svgGroup.appendChild(text);
+      let scale = 0.5;
+      text.setAttributeNS(null,
+        'transform',
+        `translate(${rootbb.width}, 0) scale(${scale})`
+      );
     };
     
     /**
@@ -8172,16 +8152,14 @@ module.exports = {
   'bar': 'M 0,0 0,-100',
   'bar_height': 100,
   'delta_char': '\u0394',
-  // https://commons.wikimedia.org/wiki/File:Greek_uc_delta.svg
-  'delta_path': 'M 19.424709,0 9.7665062,21.9805 c -5.31,12.09 -9.70171875,22.1 -9.76171875,22.25 -0.09,0.25 0.90023458,0.2695 19.49023455,0.2695 10.77,0 19.549765,-0.059 19.509765,-0.1191 -0.03,-0.06 -4.209297,-10.07 -9.279297,-22.25 L 20.516506,0 19.965725,0 19.424709,0 Z m -1.308594,10.0117 c 0.06,0 12.718594,30.5984 13.058594,31.5684 0.03,0.09 -5.09,0.1504 -13.5,0.1504 l -13.5585934,0 0.4199218,-0.9688 c 2.2600001,-5.28 13.5200776,-30.75 13.5800776,-30.75 z',
-  'delta_height': 44.5,
+  'oslash_char': '\u00F8',
   'slabo27px_H_height_ratio': 33.33 / 50
 };
 
 },{}],52:[function(require,module,exports){
 /* eslint-disable max-len */
 module.exports = `/*<![CDATA[*/
-@import url("https://fonts.googleapis.com/css?family=Slabo+27px");
+@import url("https://fonts.googleapis.com/css?family=Slabo+27px&subset=latin-ext");
 .NotochordSVGElement {
   font-family: 'Slabo 27px', serif; }
 
