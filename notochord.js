@@ -22354,7 +22354,12 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
       colWidth = (viewer.width + viewer.measureXMargin) / 4;
       var colInnerWidth = colWidth - viewer.measureXMargin;
       viewer.beatOffset = colInnerWidth / 4;
-      viewer.H_HEIGHT = viewer.textToPath('H').getBBox().height;
+      
+      var H = viewer.textToPath('H');
+      viewer._svgElem.appendChild(H);
+      viewer.H_HEIGHT = H.getBBox().height;
+      viewer._svgElem.removeChild(H);
+      
       viewer.topPadding = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
       
       viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
