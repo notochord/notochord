@@ -46,23 +46,23 @@
       if(editor.editedBeat) editor.editedBeat.setEditing(false);
       if(!beatView || editor.editedBeat == beatView) {
         editor.editedBeat = null;
-        editor._elem.classList.remove('show');
-        editor._elem.style.top = 0;
-        editor._elem.style.left = 0;
+        editor._input.classList.remove('show');
+        editor._input.style.top = 0;
+        editor._input.style.left = 0;
         return;
       }
       editor.editedBeat = beatView;
       beatView.setEditing(true);
-      document.body.appendChild(editor._elem);
+      document.body.appendChild(editor._input);
       var bvRect = beatView._svgGroup.getBoundingClientRect();
-      var elemRect = editor._elem.getBoundingClientRect();
+      var elemRect = editor._input.getBoundingClientRect();
       var top = document.body.scrollTop + bvRect.top;
       top -= elemRect.height + 10;
       var left = document.body.scrollLeft + bvRect.left;
       left += (bvRect.width * 0.5) - (elemRect.width * 0.5);
-      editor._elem.classList.add('show');
-      editor._elem.style.top = `${top}px`;
-      editor._elem.style.left = `${left}px`;
+      editor._input.classList.add('show');
+      editor._input.style.top = `${top}px`;
+      editor._input.style.left = `${left}px`;
       
       var measure = beatView.measureView.measure;
       var chord = measure.getNonTransposedBeat(beatView.index);
@@ -136,13 +136,11 @@
       editor.editedBeat.renderChord(measure.getBeat(beat.index));
     };
     
-    editor._elem = document.createElement('div');
-    editor._elem.classList.add('NotochordChordEditor');
     editor._input = document.createElement('input');
+    editor._input.classList.add('NotochordChordEditor');
     editor._input.setAttribute('type', 'text');
     editor._input.addEventListener('keydown', handleNonTextualKeyboardInput);
     editor._input.addEventListener('input', handleTextualKeyboardInput);
-    editor._elem.appendChild(editor._input);
     
     return editor;
   })();
