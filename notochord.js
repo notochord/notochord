@@ -7938,6 +7938,34 @@ module.exports = {
       if(events) events.dispatch('Editor.setSelectedBeat');
     };
     
+    var toNextBeat = function() {
+      let beat = editor.editedBeat;
+      if(beat.index == beat.measureView.measure.length - 1) {
+        let newMeasure = beat.measureView.measure.getNextMeasure();
+        if(!newMeasure) return;
+        let newMeasureView = newMeasure.measureView;
+        let newBeat = newMeasureView.beatViews[0];
+        editor.setSelectedBeat(newBeat);
+      } else {
+        let newBeat = beat.measureView.beatViews[beat.index + 1];
+        editor.setSelectedBeat(newBeat);
+      }
+    };
+    
+    var toPrevBeat = function() {
+      let beat = editor.editedBeat;
+      if(beat.index == 0) {
+        let newMeasure = beat.measureView.measure.getPreviousMeasure();
+        if(!newMeasure) return;
+        let newMeasureView = newMeasure.measureView;
+        let newBeat = newMeasureView.beatViews[newMeasure.length - 1];
+        editor.setSelectedBeat(newBeat);
+      } else {
+        let newBeat = beat.measureView.beatViews[beat.index - 1];
+        editor.setSelectedBeat(newBeat);
+      }
+    };
+    
     // @todo docs
     var handleNonTextualKeyboardInput = function(e) {
       /* eslint-disable indent */ // Switch statements are dumb.
@@ -7951,16 +7979,14 @@ module.exports = {
           if(editor._input.selectionStart !== editor._input.value.length) {
             return true;
           }
-          let beat = editor.editedBeat;
-          if(beat.index == beat.measureView.measure.length - 1) {
-            let newMeasure = beat.measureView.measure.getNextMeasure();
-            if(!newMeasure) return;
-            let newMeasureView = newMeasure.measureView;
-            let newBeat = newMeasureView.beatViews[0];
-            editor.setSelectedBeat(newBeat);
+          toNextBeat();
+          break;
+        }
+        case 'Tab': {
+          if(e.shiftKey) {
+            toPrevBeat();
           } else {
-            let newBeat = beat.measureView.beatViews[beat.index + 1];
-            editor.setSelectedBeat(newBeat);
+            toNextBeat();
           }
           break;
         }
@@ -7968,17 +7994,7 @@ module.exports = {
           if(editor._input.selectionStart !== 0) {
             return true;
           }
-          let beat = editor.editedBeat;
-          if(beat.index == 0) {
-            let newMeasure = beat.measureView.measure.getPreviousMeasure();
-            if(!newMeasure) return;
-            let newMeasureView = newMeasure.measureView;
-            let newBeat = newMeasureView.beatViews[newMeasure.length - 1];
-            editor.setSelectedBeat(newBeat);
-          } else {
-            let newBeat = beat.measureView.beatViews[beat.index - 1];
-            editor.setSelectedBeat(newBeat);
-          }
+          toPrevBeat();
           break;
         }
         case 'ArrowUp': {
