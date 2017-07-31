@@ -7705,6 +7705,7 @@ module.exports = {
             'Minor9': '-9'
           };
           if(chord.extended == 'Dominant7' && chord.quality == 'Diminished') {
+            // @todo chord-magic can't detect this???
             bottomText += viewer.PATHS.oslash_char + '7';
           } else {
             bottomText += EXTENDED_MAP[chord.extended];
@@ -7947,6 +7948,9 @@ module.exports = {
           break;
         }
         case 'ArrowRight': {
+          if(editor._input.selectionStart !== editor._input.value.length) {
+            return true;
+          }
           let beat = editor.editedBeat;
           if(beat.index == beat.measureView.measure.length - 1) {
             let newMeasure = beat.measureView.measure.getNextMeasure();
@@ -7961,6 +7965,9 @@ module.exports = {
           break;
         }
         case 'ArrowLeft': {
+          if(editor._input.selectionStart !== 0) {
+            return true;
+          }
           let beat = editor.editedBeat;
           if(beat.index == 0) {
             let newMeasure = beat.measureView.measure.getPreviousMeasure();
