@@ -7981,6 +7981,24 @@ module.exports = {
           }
           break;
         }
+        case 'ArrowUp': {
+          let rawChord = editor._input.value;
+          let chord = chordMagic.parse(rawChord);
+          let transposed = chordMagic.transpose(chord, 1);
+          let transpString = chordMagic.prettyPrint(transposed);
+          editor._input.value = transpString;
+          handleTextualKeyboardInput();
+          break;
+        }
+        case 'ArrowDown': {
+          let rawChord = editor._input.value;
+          let chord = chordMagic.parse(rawChord);
+          let transposed = chordMagic.transpose(chord, -1);
+          let transpString = chordMagic.prettyPrint(transposed);
+          editor._input.value = transpString;
+          handleTextualKeyboardInput();
+          break;
+        }
         default: {
           return true;
         }
