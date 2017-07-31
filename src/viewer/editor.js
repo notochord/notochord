@@ -170,11 +170,19 @@
       editor.editedBeat.renderChord(measure.getBeat(beat.index));
     };
     
+    var handleBlur = function(e) {
+      if(e.relatedTarget
+      && !viewer._svgElem.contains(e.relatedTarget)) {
+        editor.setSelectedBeat(null);
+      }
+    };
+    
     editor._input = document.createElement('input');
     editor._input.classList.add('NotochordChordEditor');
     editor._input.setAttribute('type', 'text');
     editor._input.addEventListener('keydown', handleNonTextualKeyboardInput);
     editor._input.addEventListener('input', handleTextualKeyboardInput);
+    editor._input.addEventListener('blur', handleBlur);
     
     return editor;
   })();

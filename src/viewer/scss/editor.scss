@@ -3,9 +3,15 @@ $editing-highlight: hsl($hue, 53%, 90%);
 
 svg.NotochordEditable {
   g.NotochordBeatView {
-    .NotochordBeatViewBackground { fill: transparent;}
-    &:hover .NotochordBeatViewBackground { fill: $hover-highlight; }
-    &.NotochordBeatViewEditing .NotochordBeatViewBackground { fill: $editing-highlight; }
+    .NotochordBeatViewBackground {
+      fill: transparent;
+    }
+    &:hover .NotochordBeatViewBackground {
+      fill: $hover-highlight;
+    }
+    &.NotochordBeatViewEditing .NotochordBeatViewBackground {
+      fill: $editing-highlight;
+    }
   }
 }
 .NotochordChordEditor {
