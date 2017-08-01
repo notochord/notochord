@@ -140,7 +140,7 @@
       var titleBB = titleText.getBBox();
       var ttscale = 0.7;
       var ttx = (viewer.width - (titleBB.width * ttscale)) / 2;
-      var tty = titleBB.height * ttscale;
+      var tty = viewer.H_HEIGHT * ttscale;
       titleText.setAttributeNS(
         null,
         'transform',
@@ -153,7 +153,7 @@
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;
       var ctx = (viewer.width - (composerBB.width * ctscale)) / 2;
-      var cty = tty + rowYMargin + (composerBB.height * ctscale);
+      var cty = tty + rowYMargin + (viewer.H_HEIGHT * ctscale);
       composerText.setAttributeNS(
         null,
         'transform',
