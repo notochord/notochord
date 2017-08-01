@@ -82,10 +82,10 @@
         if(!newMeasure) return;
         let newMeasureView = newMeasure.measureView;
         let newBeat = newMeasureView.beatViews[0];
-        editor.setSelectedBeat(newBeat);
+        newBeat._svgGroup.focus();
       } else {
         let newBeat = beat.measureView.beatViews[beat.index + 1];
-        editor.setSelectedBeat(newBeat);
+        newBeat._svgGroup.focus();
       }
     };
     
@@ -96,10 +96,10 @@
         if(!newMeasure) return;
         let newMeasureView = newMeasure.measureView;
         let newBeat = newMeasureView.beatViews[newMeasure.length - 1];
-        editor.setSelectedBeat(newBeat);
+        newBeat._svgGroup.focus();
       } else {
         let newBeat = beat.measureView.beatViews[beat.index - 1];
-        editor.setSelectedBeat(newBeat);
+        newBeat._svgGroup.focus();
       }
     };
     

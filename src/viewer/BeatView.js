@@ -24,17 +24,7 @@
       'transform',
       `translate(${xoffset}, 0)`
     );
-    {
-      let tabindex;
-      let measure = this.measureView.measure;
-      tabindex = measure.getIndex() * measure.length;
-      tabindex += this.index;
-      this._svgGroup.setAttributeNS(
-        null,
-        'tabindex',
-        tabindex
-      );
-    }
+    this._svgGroup.setAttributeNS(null, 'tabindex', 0);
     // Append right away so we can compute size.
     this.measureView._svgGroup.appendChild(this._svgGroup);
     
@@ -169,7 +159,7 @@
       }
     };
     
-    this._svgGroup.addEventListener('click', () => {
+    this._svgGroup.addEventListener('focus', () => {
       viewer.editor.setSelectedBeat(this);
     });
     

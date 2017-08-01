@@ -7671,17 +7671,7 @@ module.exports = {
       'transform',
       `translate(${xoffset}, 0)`
     );
-    {
-      let tabindex;
-      let measure = this.measureView.measure;
-      tabindex = measure.getIndex() * measure.length;
-      tabindex += this.index;
-      this._svgGroup.setAttributeNS(
-        null,
-        'tabindex',
-        tabindex
-      );
-    }
+    this._svgGroup.setAttributeNS(null, 'tabindex', 0);
     // Append right away so we can compute size.
     this.measureView._svgGroup.appendChild(this._svgGroup);
     
@@ -7816,7 +7806,7 @@ module.exports = {
       }
     };
     
-    this._svgGroup.addEventListener('click', () => {
+    this._svgGroup.addEventListener('focus', () => {
       viewer.editor.setSelectedBeat(this);
     });
     
@@ -7956,10 +7946,10 @@ module.exports = {
         if(!newMeasure) return;
         let newMeasureView = newMeasure.measureView;
         let newBeat = newMeasureView.beatViews[0];
-        editor.setSelectedBeat(newBeat);
+        newBeat._svgGroup.focus();
       } else {
         let newBeat = beat.measureView.beatViews[beat.index + 1];
-        editor.setSelectedBeat(newBeat);
+        newBeat._svgGroup.focus();
       }
     };
     
@@ -7970,10 +7960,10 @@ module.exports = {
         if(!newMeasure) return;
         let newMeasureView = newMeasure.measureView;
         let newBeat = newMeasureView.beatViews[newMeasure.length - 1];
-        editor.setSelectedBeat(newBeat);
+        newBeat._svgGroup.focus();
       } else {
         let newBeat = beat.measureView.beatViews[beat.index - 1];
-        editor.setSelectedBeat(newBeat);
+        newBeat._svgGroup.focus();
       }
     };
     

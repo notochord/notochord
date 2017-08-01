@@ -1,0 +1,47 @@
+body {
+  font-family: sans-serif;
+  background: #ddd;
+  text-align: center;
+}
+.container {
+  width: 1000px;
+  margin: 0 auto;
+}
+.centeredBlock {
+  width: 100%;
+  padding: 10px 25px;
+  box-shadow: 5px 5px 3px #ccc;
+  box-sizing: border-box;
+}
+pre {
+  text-align: left;
+  background: #bbb;
+  max-height: 300px;
+  overflow-y: scroll;
+}
+#notochordContainer {
+  background: white;
+  display: inline-block;
+  padding: 10px 25px;
+}
+#controls {
+  display: inline-block;
+  padding: 20px;
+  background: white;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 5px 5px 3px #ccc;
+}
+#controls > * {
+  vertical-align: top;
+}
+#controls > button {
+  padding: 15px;
+}
+.controlGroup {
+  display: inline-block;
+}
+.leftul {
+  display: inline-block;
+  text-align: left;
+  margin-top: 0;
+}
