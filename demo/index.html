@@ -86,7 +86,7 @@ you can view the code <a href="./demo/demo.js">here</a>.</pre>
         if(!r.ok) throw r;
         return r.text()
       }).then(r => {
-        document.querySelector('#code').innerHTML = r;
+        document.querySelector('#code').textContent = r;
       }).catch(e => e);
     }
     </script>
