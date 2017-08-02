@@ -305,7 +305,7 @@
       playback.scheduleRelative(() => {
         // midi.js has the option to specify a delay, we're not using it.
         playback.midi.chordOff(channel, notesAsNums, 0);
-      }, data.beats, true); // Force notes to end after playback stops.
+      }, data.beats - 0.05, true); // Force notes to end after playback stops.
     };
     // @todo docs
     playback.randomFrom = function(arr) {

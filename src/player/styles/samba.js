@@ -101,26 +101,62 @@
       }
     };
     
+    var piano = function() {
+      if(playback.beats[2] || playback.beats[4]) {
+        for(let i = 1; i < playback.beats.length; i++) {
+          let beat = playback.beats[i];
+          if(beat) {
+            playback.schedule(() => {
+              playback.playNotes({
+                notes: playback.chordToNotes(beat,
+                  playback.pianistOctave(beat, 4)),
+                instrument: 'acoustic_grand_piano',
+                beats: 2,
+                roll: true
+              });
+            }, i);
+          }
+        }
+      } else {
+        var pianoPattern = playback.randomFrom([
+          {
+            t: [1,2.5],
+            l: [1.5,1.5]
+          },
+          {
+            t: [1.5,2,3.5],
+            l: [0.5,1.5,1]
+          },
+          {
+            t: [1,2.5,3.5],
+            l: [1.5, 0.5, 1]
+          },
+          {
+            t: [1,2.5,4,4.5],
+            l: [1.5,1.5,0.5,0.5]
+          }
+        ]);
+        var item = 0;
+        playback.schedule(() => {
+          var beat = playback.beats[1];
+          if(playback.beat >= 3) {
+            if(playback.beats[3]) beat = playback.beats[3];
+          }
+          
+          playback.playNotes({
+            notes: playback.chordToNotes(beat, playback.pianistOctave(beat, 4)),
+            instrument: 'acoustic_grand_piano',
+            beats: pianoPattern.l[item++],
+            roll: (Math.random() < 0.5)
+          });
+        }, pianoPattern.t);
+      }
+    };
+    
     style.onMeasure = function() {
       drums();
       bass();
-      
-      var beat1 = playback.beats[1];
-      playback.playNotes({
-        notes: playback.chordToNotes(beat1, playback.pianistOctave(beat1, 4)),
-        instrument: 'acoustic_grand_piano',
-        beats: 2,
-        roll: true
-      });
-      playback.schedule(() => {
-        let beat = playback.beats[3] || playback.beats[1];
-        playback.playNotes({
-          notes: playback.chordToNotes(beat, playback.pianistOctave(beat, 4)),
-          instrument: 'acoustic_grand_piano',
-          beats: 2,
-          roll: true
-        });
-      }, 3);
+      piano();
     };
     
     return style;
