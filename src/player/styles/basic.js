@@ -5,7 +5,7 @@
    * The playback object has all of the functionality a style needs to get chord
    * data from the current measure, and play notes.
    *
-   * A style should return 2 functions: load and play.
+   * A style should return 2-3 functions: loa and onBeat or onMeasure.
    */
   
   module.exports = function(playback) {
@@ -22,10 +22,19 @@
       ]);
     };
     
-    var playNextBeat = function() {
-      // Gets the number of rest beats following this beat.
-      var restsAfter = playback.restsAfter(playback.beat);
+    /*
+     * Style should have either an onBeat function or an onMeasure function.
+     * Here we have both.
+     */
+    style.onMeasure = function() {
+      // Play metronome.
+      playback.drums.kick();
       
+      // This isn't the best way to do this, but for the sake of example,
+      // here's how the scheduler works:
+      playback.schedule(playback.drums.woodblock, [1, 2, 3]);
+    };
+    style.onBeat = function() {
       var chord = playback.measure.getBeat(playback.beat);
       // If there's no chord returned by getBeat, there's no chord on this beat.
       if(chord) {
@@ -35,7 +44,7 @@
         playback.playNotes({
           notes: notes, // Note name or array of note names.
           instrument: 'acoustic_grand_piano',
-          beats: restsAfter // Number of beats to play the note.
+          beats: playback.restsAfter // Number of beats to play the note.
           // Optionally: 'velocity' which is a number 0-127 representing volume.
           // Well, technically it represents how hard you play an instrument
           // but it corresponds to volume so.
@@ -44,32 +53,9 @@
         playback.playNotes({
           notes: chord.root + 2,
           instrument: 'acoustic_bass',
-          beats: restsAfter
+          beats: playback.restsAfter
         });
-        
-        // Highlight the nth chord of the current measure in notchord.viewer for
-        // a duration of "restsAfter" beats.
-        playback.highlightBeatForBeats(playback.beat, restsAfter);
       }
-      
-      // Play metronome regardless of whether there's a chord for this beat.
-      if(playback.beat === 0) {
-        playback.drums.kick();
-        playback.schedule(playback.drums.woodblock, [1, 2, 3]);
-      }
-      
-      playback.nextBeat();
-      if(playback.beat === 0) playback.nextMeasure();
-      
-      // This will automaticaly fail if playback.playing is false.
-      playback.schedule(playNextBeat, 1);
-    };
-    
-    /*
-     * Play function should begin playback of the song in the style.
-     */
-    style.play = function() {
-      playNextBeat();
     };
     
     return style;

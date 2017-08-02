@@ -9,8 +9,7 @@
       ]);
     };
     
-    var playNextMeasure = function() {
-      if(!playback.measure) return;
+    style.onMeasure = function() {
       if(playback.evenMeasure) {
         playback.schedule(playback.drums.woodblock, [0,1,2.5,3.5]);
       } else {
@@ -34,14 +33,9 @@
       if(chordChanges) {
         nextNote = thirdBeat.root + 2;
         lastNote = thirdBeat.root + 2;
-        playback.highlightBeatForBeats(0, 2);
-        playback.schedule(() => {
-          playback.highlightBeatForBeats(2, 2);
-        }, 2);
       } else {
         nextNote = playback.tonal.transpose(firstBeat.root + 1, 'P5');
         lastNote = firstBeat.root + 2;
-        playback.highlightBeatForBeats(0, 4);
       }
       playback.schedule(() => {
         playback.playNotes({
@@ -75,49 +69,6 @@
           beats: 2
         });
       }, 2);
-      
-      playback.schedule(() => {
-        playback.nextMeasure();
-        playNextMeasure();
-      }, 4);
-    };
-    
-    var playNextBeat = function() {
-      if(!playback.playing) return;
-      var restsAfter = playback.restsAfter(playback.beat);
-      
-      var chord = playback.measure.getBeat(playback.beat);
-      if(chord) {
-        var notes = playback.chordToNotes(chord, 4);
-        playback.playNotes({
-          notes: notes,
-          instrument: 'acoustic_grand_piano',
-          beats: restsAfter
-        });
-        
-        var bassnote = playback.chordToNotes(chord, 2)[0];
-        playback.playNotes({
-          notes: bassnote,
-          instrument: 'acoustic_bass',
-          beats: restsAfter
-        });
-        
-        playback.highlightBeatForBeats(playback.beat, restsAfter);
-      }
-      
-      if(playback.beat === 0) {
-        playback.drums.kick();
-      } else {
-        playback.drums.woodblock();
-      }
-      
-      playback.nextBeat();
-      if(playback.beat === 0) playback.nextMeasure();
-      playback.schedule(playNextBeat, 1);
-    };
-    
-    style.play = function() {
-      playNextMeasure();
     };
     
     return style;

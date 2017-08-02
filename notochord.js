@@ -6852,6 +6852,30 @@ module.exports = {
         if(timeoutObj.force) timeoutObj.func();
       }
     };
+    playback.play = function() {
+      playback.playing = true;
+      playback.beatLength = (60 * 1000) / playback.tempo;
+      var signature = playback.song.timeSignature[0];
+      var sigArray = Array(signature).fill().map((x,i)=>i);
+      var onMeasure = function() {
+        playback.beat = -1;
+        if(!playback.measure) playback.playing = false;
+        if(!playback.playing) return;
+        if(playback.style.onMeasure) playback.style.onMeasure();
+        playback.schedule(() => {
+          if(!playback.playing) return;
+          playback.nextBeat();
+          playback.restsAfter = playback.getRestsAfter(playback.beat);
+          playback.highlightCurrentBeat();
+          if(playback.style.onBeat) playback.style.onBeat();
+        }, sigArray);
+        playback.schedule(() => {
+          playback.nextMeasure();
+          onMeasure();
+        }, signature);
+      };
+      onMeasure();
+    };
     /**
      * Turns a ChordMagic chord object into an array of note names.
      * @param {Object} chord ChordMagic chord object to analyze.
@@ -6865,21 +6889,19 @@ module.exports = {
       return chordAsNoteNames.map(note => note + octave);
     };
     /**
-     * If theres a beat in the viewer, highlight it for the designated duration.
-     * @param {Number} beatToHighlight Beat in the current measure to highlight.
-     * @param {Number} beats How long to highlight the beat for, in beats.
+     * If there's a beat in the viewer, highlight it for its duration.
      * @private
      */
-    playback.highlightBeatForBeats = function(beatToHighlight, beats) {
+    playback.highlightCurrentBeat = function() {
       if(events) {
         var args = {
           measure: playback.measureNumber,
-          beat: beatToHighlight
+          beat: playback.beat
         };
         events.dispatch('Player.playBeat', args);
         playback.schedule(() => {
           events.dispatch('Player.stopBeat', args);
-        }, beats, true); // force unhighlight after playback stops
+        }, playback.restsAfter, true); // force unhighlight after playback stops
       }
     };
     playback.instruments = new Map();
@@ -6938,7 +6960,7 @@ module.exports = {
      * @returns {Number} Number of beats of rest left, plus one.
      * @private
      */
-    playback.restsAfter = function(current) {
+    playback.getRestsAfter = function(current) {
       var measure = playback.song.measures[playback.measureNumber];
       if(measure) {
         let count = 1;
@@ -7038,7 +7060,6 @@ module.exports = {
   var Player = (function() {
     // Attach everything public to this object, which is returned at the end.
     var player = {};
-    player.tempo = 120;
     
     var events = null;
     /**
@@ -7080,7 +7101,6 @@ module.exports = {
     player.styles = stylesDB.map(s => s.name);
     // Why is "plublically" wrong? Other words ending in -ic change to -ally???
     
-    var currentStyle;
     /**
      * Set the player's style
      * @param {Number|String} newStyle Either the name or index of a playback
@@ -7091,14 +7111,16 @@ module.exports = {
       playback.stop();
       if(Number.isInteger(newStyle)) {
         // At one point this line read "style = styles[_style].style".
-        currentStyle = stylesDB[newStyle].style;
+        playback.style = stylesDB[newStyle].style;
         // @todo fail loudly if undefined?
       } else {
         let index = player.styles.indexOf(newStyle);
         // @todo fail loudly if undefined?
-        if(stylesDB.hasOwnProperty(index)) currentStyle = stylesDB[index].style;
+        if(stylesDB.hasOwnProperty(index)) {
+          playback.style = stylesDB[index].style;
+        }
       }
-      currentStyle.load();
+      playback.style.load();
     };
     player.setStyle(0); // Default to basic until told otherwise.
     
@@ -7124,12 +7146,9 @@ module.exports = {
       if(playback.ready) {
         failCount = 0;
         playback.stop();
-        playback.playing = true;
-        playback.tempo = player.tempo;
-        playback.beatLength = (60 * 1000) / playback.tempo;
         playback.reset();
         if(events) events.dispatch('Player.play', {});
-        currentStyle.play();
+        playback.play();
       } else if(events) {
         events.on('Player.loadStyle', player.play, true);
       } else if(failCount < 10) {
@@ -7154,7 +7173,7 @@ module.exports = {
      */
     player.config = function(options) {
       player.stop();
-      player.tempo = (options && options.tempo) || 120;
+      playback.tempo = (options && options.tempo) || 120;
     };
     player.config();
     
@@ -7171,7 +7190,7 @@ module.exports = {
    * The playback object has all of the functionality a style needs to get chord
    * data from the current measure, and play notes.
    *
-   * A style should return 2 functions: load and play.
+   * A style should return 2-3 functions: loa and onBeat or onMeasure.
    */
   
   module.exports = function(playback) {
@@ -7188,10 +7207,19 @@ module.exports = {
       ]);
     };
     
-    var playNextBeat = function() {
-      // Gets the number of rest beats following this beat.
-      var restsAfter = playback.restsAfter(playback.beat);
+    /*
+     * Style should have either an onBeat function or an onMeasure function.
+     * Here we have both.
+     */
+    style.onMeasure = function() {
+      // Play metronome.
+      playback.drums.kick();
       
+      // This isn't the best way to do this, but for the sake of example,
+      // here's how the scheduler works:
+      playback.schedule(playback.drums.woodblock, [1, 2, 3]);
+    };
+    style.onBeat = function() {
       var chord = playback.measure.getBeat(playback.beat);
       // If there's no chord returned by getBeat, there's no chord on this beat.
       if(chord) {
@@ -7201,7 +7229,7 @@ module.exports = {
         playback.playNotes({
           notes: notes, // Note name or array of note names.
           instrument: 'acoustic_grand_piano',
-          beats: restsAfter // Number of beats to play the note.
+          beats: playback.restsAfter // Number of beats to play the note.
           // Optionally: 'velocity' which is a number 0-127 representing volume.
           // Well, technically it represents how hard you play an instrument
           // but it corresponds to volume so.
@@ -7210,32 +7238,9 @@ module.exports = {
         playback.playNotes({
           notes: chord.root + 2,
           instrument: 'acoustic_bass',
-          beats: restsAfter
+          beats: playback.restsAfter
         });
-        
-        // Highlight the nth chord of the current measure in notchord.viewer for
-        // a duration of "restsAfter" beats.
-        playback.highlightBeatForBeats(playback.beat, restsAfter);
       }
-      
-      // Play metronome regardless of whether there's a chord for this beat.
-      if(playback.beat === 0) {
-        playback.drums.kick();
-        playback.schedule(playback.drums.woodblock, [1, 2, 3]);
-      }
-      
-      playback.nextBeat();
-      if(playback.beat === 0) playback.nextMeasure();
-      
-      // This will automaticaly fail if playback.playing is false.
-      playback.schedule(playNextBeat, 1);
-    };
-    
-    /*
-     * Play function should begin playback of the song in the style.
-     */
-    style.play = function() {
-      playNextBeat();
     };
     
     return style;
@@ -7254,8 +7259,7 @@ module.exports = {
       ]);
     };
     
-    var playNextMeasure = function() {
-      if(!playback.measure) return;
+    style.onMeasure = function() {
       if(playback.evenMeasure) {
         playback.schedule(playback.drums.woodblock, [0,1,2.5,3.5]);
       } else {
@@ -7279,14 +7283,9 @@ module.exports = {
       if(chordChanges) {
         nextNote = thirdBeat.root + 2;
         lastNote = thirdBeat.root + 2;
-        playback.highlightBeatForBeats(0, 2);
-        playback.schedule(() => {
-          playback.highlightBeatForBeats(2, 2);
-        }, 2);
       } else {
         nextNote = playback.tonal.transpose(firstBeat.root + 1, 'P5');
         lastNote = firstBeat.root + 2;
-        playback.highlightBeatForBeats(0, 4);
       }
       playback.schedule(() => {
         playback.playNotes({
@@ -7320,49 +7319,6 @@ module.exports = {
           beats: 2
         });
       }, 2);
-      
-      playback.schedule(() => {
-        playback.nextMeasure();
-        playNextMeasure();
-      }, 4);
-    };
-    
-    var playNextBeat = function() {
-      if(!playback.playing) return;
-      var restsAfter = playback.restsAfter(playback.beat);
-      
-      var chord = playback.measure.getBeat(playback.beat);
-      if(chord) {
-        var notes = playback.chordToNotes(chord, 4);
-        playback.playNotes({
-          notes: notes,
-          instrument: 'acoustic_grand_piano',
-          beats: restsAfter
-        });
-        
-        var bassnote = playback.chordToNotes(chord, 2)[0];
-        playback.playNotes({
-          notes: bassnote,
-          instrument: 'acoustic_bass',
-          beats: restsAfter
-        });
-        
-        playback.highlightBeatForBeats(playback.beat, restsAfter);
-      }
-      
-      if(playback.beat === 0) {
-        playback.drums.kick();
-      } else {
-        playback.drums.woodblock();
-      }
-      
-      playback.nextBeat();
-      if(playback.beat === 0) playback.nextMeasure();
-      playback.schedule(playNextBeat, 1);
-    };
-    
-    style.play = function() {
-      playNextMeasure();
     };
     
     return style;

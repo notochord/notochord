@@ -76,6 +76,30 @@
         if(timeoutObj.force) timeoutObj.func();
       }
     };
+    playback.play = function() {
+      playback.playing = true;
+      playback.beatLength = (60 * 1000) / playback.tempo;
+      var signature = playback.song.timeSignature[0];
+      var sigArray = Array(signature).fill().map((x,i)=>i);
+      var onMeasure = function() {
+        playback.beat = -1;
+        if(!playback.measure) playback.playing = false;
+        if(!playback.playing) return;
+        if(playback.style.onMeasure) playback.style.onMeasure();
+        playback.schedule(() => {
+          if(!playback.playing) return;
+          playback.nextBeat();
+          playback.restsAfter = playback.getRestsAfter(playback.beat);
+          playback.highlightCurrentBeat();
+          if(playback.style.onBeat) playback.style.onBeat();
+        }, sigArray);
+        playback.schedule(() => {
+          playback.nextMeasure();
+          onMeasure();
+        }, signature);
+      };
+      onMeasure();
+    };
     /**
      * Turns a ChordMagic chord object into an array of note names.
      * @param {Object} chord ChordMagic chord object to analyze.
@@ -89,21 +113,19 @@
       return chordAsNoteNames.map(note => note + octave);
     };
     /**
-     * If theres a beat in the viewer, highlight it for the designated duration.
-     * @param {Number} beatToHighlight Beat in the current measure to highlight.
-     * @param {Number} beats How long to highlight the beat for, in beats.
+     * If there's a beat in the viewer, highlight it for its duration.
      * @private
      */
-    playback.highlightBeatForBeats = function(beatToHighlight, beats) {
+    playback.highlightCurrentBeat = function() {
       if(events) {
         var args = {
           measure: playback.measureNumber,
-          beat: beatToHighlight
+          beat: playback.beat
         };
         events.dispatch('Player.playBeat', args);
         playback.schedule(() => {
           events.dispatch('Player.stopBeat', args);
-        }, beats, true); // force unhighlight after playback stops
+        }, playback.restsAfter, true); // force unhighlight after playback stops
       }
     };
     playback.instruments = new Map();
@@ -162,7 +184,7 @@
      * @returns {Number} Number of beats of rest left, plus one.
      * @private
      */
-    playback.restsAfter = function(current) {
+    playback.getRestsAfter = function(current) {
       var measure = playback.song.measures[playback.measureNumber];
       if(measure) {
         let count = 1;

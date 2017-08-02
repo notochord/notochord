@@ -2,7 +2,6 @@
   var Player = (function() {
     // Attach everything public to this object, which is returned at the end.
     var player = {};
-    player.tempo = 120;
     
     var events = null;
     /**
@@ -44,7 +43,6 @@
     player.styles = stylesDB.map(s => s.name);
     // Why is "plublically" wrong? Other words ending in -ic change to -ally???
     
-    var currentStyle;
     /**
      * Set the player's style
      * @param {Number|String} newStyle Either the name or index of a playback
@@ -55,14 +53,16 @@
       playback.stop();
       if(Number.isInteger(newStyle)) {
         // At one point this line read "style = styles[_style].style".
-        currentStyle = stylesDB[newStyle].style;
+        playback.style = stylesDB[newStyle].style;
         // @todo fail loudly if undefined?
       } else {
         let index = player.styles.indexOf(newStyle);
         // @todo fail loudly if undefined?
-        if(stylesDB.hasOwnProperty(index)) currentStyle = stylesDB[index].style;
+        if(stylesDB.hasOwnProperty(index)) {
+          playback.style = stylesDB[index].style;
+        }
       }
-      currentStyle.load();
+      playback.style.load();
     };
     player.setStyle(0); // Default to basic until told otherwise.
     
@@ -88,12 +88,9 @@
       if(playback.ready) {
         failCount = 0;
         playback.stop();
-        playback.playing = true;
-        playback.tempo = player.tempo;
-        playback.beatLength = (60 * 1000) / playback.tempo;
         playback.reset();
         if(events) events.dispatch('Player.play', {});
-        currentStyle.play();
+        playback.play();
       } else if(events) {
         events.on('Player.loadStyle', player.play, true);
       } else if(failCount < 10) {
@@ -118,7 +115,7 @@
      */
     player.config = function(options) {
       player.stop();
-      player.tempo = (options && options.tempo) || 120;
+      playback.tempo = (options && options.tempo) || 120;
     };
     player.config();
     
