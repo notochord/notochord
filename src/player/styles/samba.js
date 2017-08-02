@@ -118,11 +118,7 @@
           }
         }
       } else {
-        var pianoPattern = playback.randomFrom([
-          {
-            t: [1,2.5],
-            l: [1.5,1.5]
-          },
+        var patterns = [
           {
             t: [1.5,2,3.5],
             l: [0.5,1.5,1]
@@ -135,7 +131,12 @@
             t: [1,2.5,4,4.5],
             l: [1.5,1.5,0.5,0.5]
           }
-        ]);
+        ];
+        if(!playback.beats[3]) patterns.push({
+          t: [1,2.5],
+          l: [1.5,1.5]
+        });
+        var pianoPattern = playback.randomFrom(patterns);
         var item = 0;
         playback.schedule(() => {
           var beat = playback.beats[1];
