@@ -105,8 +105,9 @@
       drums();
       bass();
       
+      var beat1 = playback.beats[1];
       playback.playNotes({
-        notes: playback.chordToNotes(playback.beats[1], 4),
+        notes: playback.chordToNotes(beat1, playback.pianistOctave(beat1, 4)),
         instrument: 'acoustic_grand_piano',
         beats: 2,
         roll: true
@@ -114,7 +115,7 @@
       playback.schedule(() => {
         let beat = playback.beats[3] || playback.beats[1];
         playback.playNotes({
-          notes: playback.chordToNotes(beat, 4),
+          notes: playback.chordToNotes(beat, playback.pianistOctave(beat, 4)),
           instrument: 'acoustic_grand_piano',
           beats: 2,
           roll: true

@@ -6987,6 +6987,18 @@ module.exports = {
         onSuccess();
       }
     };
+    // @todo docs
+    // whether a pianist would move down the octave if playing this chord
+    playback.pianistOctave = function(chord, octave) {
+      var root = chord.root;
+      var key = playback.song.getTransposedKey();
+      var semitones = playback.tonal.semitones(key, root);
+      if(semitones < 6) {
+        return octave;
+      } else {
+        return octave - 1;
+      }
+    };
     /**
      * Get the number of beats of rest left in the measure after (and including)
      * a given beat.
@@ -7275,9 +7287,11 @@ module.exports = {
       var chord = playback.beats[playback.beat];
       // If there's no chord returned by getBeat, there's no chord on this beat.
       if(chord) {
-        // This turns a ChordMagic chord object into an array of MIDI note
-        // numbers.
-        var notes = playback.chordToNotes(chord, 4);
+        // This decides if it'd sound better to go up or down the octave.
+        var octave = playback.pianistOctave(chord, 4);
+        
+        // This turns a ChordMagic chord object into an array of note names.
+        var notes = playback.chordToNotes(chord, octave);
         playback.playNotes({
           notes: notes, // Note name or array of note names.
           instrument: 'acoustic_grand_piano',
@@ -7407,8 +7421,9 @@ module.exports = {
       drums();
       bass();
       
+      var beat1 = playback.beats[1];
       playback.playNotes({
-        notes: playback.chordToNotes(playback.beats[1], 4),
+        notes: playback.chordToNotes(beat1, playback.pianistOctave(beat1, 4)),
         instrument: 'acoustic_grand_piano',
         beats: 2,
         roll: true
@@ -7416,7 +7431,7 @@ module.exports = {
       playback.schedule(() => {
         let beat = playback.beats[3] || playback.beats[1];
         playback.playNotes({
-          notes: playback.chordToNotes(beat, 4),
+          notes: playback.chordToNotes(beat, playback.pianistOctave(beat, 4)),
           instrument: 'acoustic_grand_piano',
           beats: 2,
           roll: true

@@ -38,9 +38,11 @@
       var chord = playback.beats[playback.beat];
       // If there's no chord returned by getBeat, there's no chord on this beat.
       if(chord) {
-        // This turns a ChordMagic chord object into an array of MIDI note
-        // numbers.
-        var notes = playback.chordToNotes(chord, 4);
+        // This decides if it'd sound better to go up or down the octave.
+        var octave = playback.pianistOctave(chord, 4);
+        
+        // This turns a ChordMagic chord object into an array of note names.
+        var notes = playback.chordToNotes(chord, octave);
         playback.playNotes({
           notes: notes, // Note name or array of note names.
           instrument: 'acoustic_grand_piano',

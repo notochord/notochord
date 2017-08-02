@@ -211,6 +211,18 @@
         onSuccess();
       }
     };
+    // @todo docs
+    // whether a pianist would move down the octave if playing this chord
+    playback.pianistOctave = function(chord, octave) {
+      var root = chord.root;
+      var key = playback.song.getTransposedKey();
+      var semitones = playback.tonal.semitones(key, root);
+      if(semitones < 6) {
+        return octave;
+      } else {
+        return octave - 1;
+      }
+    };
     /**
      * Get the number of beats of rest left in the measure after (and including)
      * a given beat.
