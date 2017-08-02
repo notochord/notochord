@@ -6886,7 +6886,19 @@ module.exports = {
     playback.chordToNotes = function(chord, octave) {
       var chordAsString = playback.chordMagic.prettyPrint(chord);
       var chordAsNoteNames = playback.tonal.chord(chordAsString);
-      return chordAsNoteNames.map(note => note + octave);
+      
+      var currentOctave = octave;
+      var prevSemitones = Infinity;
+      var notesInOctaves = chordAsNoteNames.map(note => {
+        let semitones = playback.tonal.semitones(note, 'C');
+        if(semitones == 0) semitones = 12;
+        if(semitones > prevSemitones) {
+          currentOctave++;
+        }
+        prevSemitones = semitones;
+        return note + currentOctave;
+      });
+      return notesInOctaves;
     };
     /**
      * If there's a beat in the viewer, highlight it for its duration.
