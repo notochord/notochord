@@ -6861,7 +6861,7 @@ module.exports = {
       }
     };
     
-    var getBeats = function() {
+    var getBeats = function() { // @todo docs
       playback.beats = [null];
       for(let i = 0; i < playback.measure.length; i++) {
         playback.beats.push(playback.measure.getBeat(i));
