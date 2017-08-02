@@ -31,7 +31,7 @@ document.querySelector('#style').addEventListener('change', e => {
   Notochord.player.setStyle(document.querySelector('#style').value);
 });
 
-flyMeToTheMoon = new Notochord.Song({
+blueSkies = new Notochord.Song({
   'title': 'Blue Skies',
   'composer': 'Irving Berlin',
   'timeSignature': [4,4],
@@ -48,5 +48,5 @@ flyMeToTheMoon = new Notochord.Song({
     ['CM7', null, 'A7', null], ['D-7', null, 'G7', null], ['C6', null, null, null], ['C6', null, null, null], 
   ]
 });
-Notochord.loadSong(flyMeToTheMoon);
+Notochord.loadSong(blueSkies);
 Notochord.player.play();
