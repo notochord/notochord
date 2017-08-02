@@ -6792,13 +6792,20 @@ module.exports = {
     playback.tonal = require('tonal');
     playback.measureNumber = 0;
     playback.measure = null;
-    playback.beat = 0;
+    playback.beat = 1;
     playback.playing = false;
     playback.tempo = 120; // Player should set these 3 before playing.
     playback.song = null;
     playback.beatLength = 500;
     // an array containing data about all scheduled tasks yet to come.
     var scheduled = [];
+    // @todo docs
+    // this one is absolute timing in the measure
+    playback.schedule = function(func, durations, force) {
+      if (typeof durations == 'number') durations = [durations];
+      var relativeDurations = durations.map(d => d - playback.beat);
+      playback.scheduleRelative(func, relativeDurations, force);
+    };
     /**
      * Perform an action in a certain number of beats.
      * @param {Function} func Function to run.
@@ -6807,7 +6814,7 @@ module.exports = {
      * @param {Boolean} [force=false] By default, won't run if playback.playing
      * is false at the specified time. Setting this to true ignres that.
      */
-    playback.schedule = function(func, durations, force) {
+    playback.scheduleRelative = function(func, durations, force) {
       if (typeof durations == 'number') durations = [durations];
       for(let dur of durations) {
         if(dur === 0) { // if duration is 0, run immediately.
@@ -6835,7 +6842,8 @@ module.exports = {
      */
     playback.reset = function() {
       playback.measureNumber = 0;
-      playback.beat = 0;
+      playback.measureInPhrase = 0;
+      playback.beat = 1;
       playback.measure = playback.song.measures[0];
     };
     /**
@@ -6852,24 +6860,38 @@ module.exports = {
         if(timeoutObj.force) timeoutObj.func();
       }
     };
+    
+    var getBeats = function() {
+      playback.beats = [null];
+      for(let i = 0; i < playback.measure.length; i++) {
+        playback.beats.push(playback.measure.getBeat(i));
+      }
+    };
     playback.play = function() {
       playback.playing = true;
       playback.beatLength = (60 * 1000) / playback.tempo;
       var signature = playback.song.timeSignature[0];
-      var sigArray = Array(signature).fill().map((x,i)=>i);
+      var sigArray = Array(signature - 1).fill().map((x,i)=>i + 1);
       var onMeasure = function() {
-        playback.beat = -1;
         if(!playback.measure) playback.playing = false;
         if(!playback.playing) return;
+        
+        playback.beat = 1;
+        getBeats();
         if(playback.style.onMeasure) playback.style.onMeasure();
-        playback.schedule(() => {
+        
+        var onBeat = function() {
           if(!playback.playing) return;
-          playback.nextBeat();
           playback.restsAfter = playback.getRestsAfter(playback.beat);
           playback.highlightCurrentBeat();
           if(playback.style.onBeat) playback.style.onBeat();
+        };
+        onBeat();
+        playback.scheduleRelative(() => {
+          playback.nextBeat();
+          onBeat();
         }, sigArray);
-        playback.schedule(() => {
+        playback.scheduleRelative(() => {
           playback.nextMeasure();
           onMeasure();
         }, signature);
@@ -6908,10 +6930,10 @@ module.exports = {
       if(events) {
         var args = {
           measure: playback.measureNumber,
-          beat: playback.beat
+          beat: playback.beat - 1
         };
         events.dispatch('Player.playBeat', args);
-        playback.schedule(() => {
+        playback.scheduleRelative(() => {
           events.dispatch('Player.stopBeat', args);
         }, playback.restsAfter, true); // force unhighlight after playback stops
       }
@@ -6977,30 +6999,33 @@ module.exports = {
       if(measure) {
         let count = 1;
         for(let i = current + 1; i < measure.length; i++) {
-          if(measure.getBeat(i)) {
+          if(measure.getBeat(i - 1)) {
             return count;
           } else {
             count++;
           }
         }
-        return measure.length - current;
+        return measure.length - current + 1;
       } else {
         return 0;
       }
     };
-    // Whether it's an even or odd measure.
-    playback.evenMeasure = false;
+    // Which measure it is in a phrase of four measures.
+    playback.measureInPhrase = 0;
     /**
      * Update playback.measure object to next measure.
      * @private
      */
     playback.nextMeasure = function() {
-      playback.evenMeasure = !playback.evenMeasure;
       playback.measure = playback.measure.getNextMeasure();
       if(playback.measure) {
         playback.measureNumber = playback.measure.getIndex();
+        
+        playback.measureInPhrase++;
+        if(playback.measureInPhrase == 4) playback.measureInPhrase = 0;
       } else {
         playback.playing = false;
+        playback.measureInPhrase = 0;
       }
     };
     /**
@@ -7008,8 +7033,8 @@ module.exports = {
      */
     playback.nextBeat = function() {
       playback.beat++;
-      if(playback.beat >= playback.measure.length) {
-        playback.beat = 0;
+      if(playback.beat > playback.measure.length) {
+        playback.beat = 1;
       }
     };
     /**
@@ -7033,7 +7058,7 @@ module.exports = {
       if(data.roll) {
         let total = 0;
         for(let note of notesAsNums) {
-          playback.schedule(() => {
+          playback.scheduleRelative(() => {
             playback.midi.noteOn(channel, note, data.velocity, 0);
           }, total);
           total += 0.05;
@@ -7041,10 +7066,15 @@ module.exports = {
       } else {
         playback.midi.chordOn(channel, notesAsNums, data.velocity, 0);
       }
-      playback.schedule(() => {
+      playback.scheduleRelative(() => {
         // midi.js has the option to specify a delay, we're not using it.
         playback.midi.chordOff(channel, notesAsNums, 0);
       }, data.beats, true); // Force notes to end after playback stops.
+    };
+    // @todo docs
+    playback.randomFrom = function(arr) {
+      var idx = Math.floor(Math.random() * arr.length);
+      return arr[idx];
     };
     
     // Also supply some drums.
@@ -7239,10 +7269,10 @@ module.exports = {
       
       // This isn't the best way to do this, but for the sake of example,
       // here's how the scheduler works:
-      playback.schedule(playback.drums.woodblock, [1, 2, 3]);
+      playback.schedule(playback.drums.woodblock, [2, 3, 4]);
     };
     style.onBeat = function() {
-      var chord = playback.measure.getBeat(playback.beat);
+      var chord = playback.beats[playback.beat];
       // If there's no chord returned by getBeat, there's no chord on this beat.
       if(chord) {
         // This turns a ChordMagic chord object into an array of MIDI note
@@ -7281,68 +7311,117 @@ module.exports = {
       ]);
     };
     
+    var drums = function() {
+      var hatPattern;
+      if(playback.measureInPhrase % 2 === 0) {
+        hatPattern = playback.randomFrom([
+          [2,3,3.5,4.5],
+          [1,2,3,3.5,4,4.5]
+        ]);
+      } else {
+        hatPattern = playback.randomFrom([
+          [1.5,2,3,4,4.5],
+          [1.5,2,3,3.5,4.5]
+        ]);
+      }
+      playback.schedule(() => playback.drums.hatHalfOpen(0.1), hatPattern);
+      
+      playback.schedule(() => playback.drums.kick(0.2), [1,2.5]);
+      playback.schedule(() => playback.drums.hatClosed(0.1), [2,4]);
+    };
+    
+    var bass = function() {
+      if(playback.beats[2] || playback.beats[4]) {
+        for(let i = 1; i < playback.beats.length; i++) {
+          let beat = playback.beats[i];
+          if(beat) {
+            playback.schedule(() => {
+              playback.playNotes({
+                notes: beat.root + 2,
+                instrument: 'acoustic_bass',
+                beats: 1,
+                velocity: 127
+              });
+            }, i);
+          }
+        }
+      } else {
+        if(playback.beats[3]
+          && playback.beats[3].root != playback.beats[1].root) {
+          playback.playNotes({
+            notes: playback.beats[1].root + 2,
+            instrument: 'acoustic_bass',
+            beats: 2,
+            velocity: 127
+          });
+          playback.schedule(() => {
+            playback.playNotes({
+              notes: playback.beats[3].root + 2,
+              instrument: 'acoustic_bass',
+              beats: 2,
+              velocity: 127
+            });
+          }, 3);
+        } else {
+          playback.playNotes({
+            notes: playback.beats[1].root + 2,
+            instrument: 'acoustic_bass',
+            beats: 1.5,
+            velocity: 127
+          });
+          // @todo dim?
+          let low5 = playback.tonal.transpose(playback.beats[1].root + 1, 'P5');
+          let coinFlip = Math.random() < 0.5;
+          if(coinFlip) {
+            playback.schedule(() => {
+              playback.playNotes({
+                notes: low5,
+                instrument: 'acoustic_bass',
+                beats: 2.5,
+                velocity: 127
+              });
+            }, 2.5);
+          } else {
+            playback.schedule(() => {
+              playback.playNotes({
+                notes: low5,
+                instrument: 'acoustic_bass',
+                beats: 1.5,
+                velocity: 127
+              });
+            }, 2.5);
+            playback.schedule(() => {
+              playback.playNotes({
+                notes: playback.beats[1].root + 2,
+                instrument: 'acoustic_bass',
+                beats: 1,
+                velocity: 127
+              });
+            }, 4);
+          }
+        }
+      }
+    };
+    
     style.onMeasure = function() {
-      if(playback.evenMeasure) {
-        playback.schedule(playback.drums.woodblock, [0,1,2.5,3.5]);
-      } else {
-        playback.schedule(playback.drums.woodblock, [0,1.5,2.5,3.5]);
-      }
-      
-      var chordChanges = false;
-      var firstBeat = playback.measure.getBeat(0);
-      var thirdBeat = playback.measure.getBeat(2);
-      if(thirdBeat) {
-        chordChanges = true;
-      }
-      playback.playNotes({
-        notes: firstBeat.root + 2,
-        instrument: 'acoustic_bass',
-        beats: 1,
-        velocity: 127
-      });
-      playback.drums.kick(0.1);
-      var nextNote, lastNote;
-      if(chordChanges) {
-        nextNote = thirdBeat.root + 2;
-        lastNote = thirdBeat.root + 2;
-      } else {
-        nextNote = playback.tonal.transpose(firstBeat.root + 1, 'P5');
-        lastNote = firstBeat.root + 2;
-      }
-      playback.schedule(() => {
-        playback.playNotes({
-          notes: nextNote,
-          instrument: 'acoustic_bass',
-          beats: 0.5,
-          velocity: 127
-        });
-        playback.drums.kick(0.1);
-      }, [1.5, 2]);
-      playback.schedule(() => {
-        playback.playNotes({
-          notes: lastNote,
-          instrument: 'acoustic_bass',
-          beats: 1,
-          velocity: 127
-        });
-        playback.drums.kick(0.1);
-      }, 3.5);
+      drums();
+      bass();
       
       playback.playNotes({
-        notes: playback.chordToNotes(firstBeat, 4),
+        notes: playback.chordToNotes(playback.beats[1], 4),
         instrument: 'acoustic_grand_piano',
         beats: 2,
         roll: true
       });
       playback.schedule(() => {
-        let beat = thirdBeat || firstBeat;
+        let beat = playback.beats[3] || playback.beats[1];
         playback.playNotes({
           notes: playback.chordToNotes(beat, 4),
           instrument: 'acoustic_grand_piano',
           beats: 2,
           roll: true
         });
-      }, 2);
+      }, 3);
     };
     
     return style;
@@ -7949,7 +8028,6 @@ module.exports = {
     
     // @todo docs
     var handleNonTextualKeyboardInput = function(e) {
-      /* eslint-disable indent */ // Switch statements are dumb.
       switch(e.key) {
         case 'Enter':
         case 'Escape': {
@@ -8000,7 +8078,6 @@ module.exports = {
           return true;
         }
       }
-      /* eslint-enable indent */
       e.stopPropagation();
       e.preventDefault();
       return false;

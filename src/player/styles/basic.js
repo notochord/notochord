@@ -32,10 +32,10 @@
       
       // This isn't the best way to do this, but for the sake of example,
       // here's how the scheduler works:
-      playback.schedule(playback.drums.woodblock, [1, 2, 3]);
+      playback.schedule(playback.drums.woodblock, [2, 3, 4]);
     };
     style.onBeat = function() {
-      var chord = playback.measure.getBeat(playback.beat);
+      var chord = playback.beats[playback.beat];
       // If there's no chord returned by getBeat, there's no chord on this beat.
       if(chord) {
         // This turns a ChordMagic chord object into an array of MIDI note

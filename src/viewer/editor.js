@@ -105,7 +105,6 @@
     
     // @todo docs
     var handleNonTextualKeyboardInput = function(e) {
-      /* eslint-disable indent */ // Switch statements are dumb.
       switch(e.key) {
         case 'Enter':
         case 'Escape': {
@@ -156,7 +155,6 @@
           return true;
         }
       }
-      /* eslint-enable indent */
       e.stopPropagation();
       e.preventDefault();
       return false;

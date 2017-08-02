@@ -16,13 +16,20 @@
     playback.tonal = require('tonal');
     playback.measureNumber = 0;
     playback.measure = null;
-    playback.beat = 0;
+    playback.beat = 1;
     playback.playing = false;
     playback.tempo = 120; // Player should set these 3 before playing.
     playback.song = null;
     playback.beatLength = 500;
     // an array containing data about all scheduled tasks yet to come.
     var scheduled = [];
+    // @todo docs
+    // this one is absolute timing in the measure
+    playback.schedule = function(func, durations, force) {
+      if (typeof durations == 'number') durations = [durations];
+      var relativeDurations = durations.map(d => d - playback.beat);
+      playback.scheduleRelative(func, relativeDurations, force);
+    };
     /**
      * Perform an action in a certain number of beats.
      * @param {Function} func Function to run.
@@ -31,7 +38,7 @@
      * @param {Boolean} [force=false] By default, won't run if playback.playing
      * is false at the specified time. Setting this to true ignres that.
      */
-    playback.schedule = function(func, durations, force) {
+    playback.scheduleRelative = function(func, durations, force) {
       if (typeof durations == 'number') durations = [durations];
       for(let dur of durations) {
         if(dur === 0) { // if duration is 0, run immediately.
@@ -59,7 +66,8 @@
      */
     playback.reset = function() {
       playback.measureNumber = 0;
-      playback.beat = 0;
+      playback.measureInPhrase = 0;
+      playback.beat = 1;
       playback.measure = playback.song.measures[0];
     };
     /**
@@ -76,24 +84,38 @@
         if(timeoutObj.force) timeoutObj.func();
       }
     };
+    
+    var getBeats = function() { // @todo docs
+      playback.beats = [null];
+      for(let i = 0; i < playback.measure.length; i++) {
+        playback.beats.push(playback.measure.getBeat(i));
+      }
+    };
     playback.play = function() {
       playback.playing = true;
       playback.beatLength = (60 * 1000) / playback.tempo;
       var signature = playback.song.timeSignature[0];
-      var sigArray = Array(signature).fill().map((x,i)=>i);
+      var sigArray = Array(signature - 1).fill().map((x,i)=>i + 1);
       var onMeasure = function() {
-        playback.beat = -1;
         if(!playback.measure) playback.playing = false;
         if(!playback.playing) return;
+        
+        playback.beat = 1;
+        getBeats();
         if(playback.style.onMeasure) playback.style.onMeasure();
-        playback.schedule(() => {
+        
+        var onBeat = function() {
           if(!playback.playing) return;
-          playback.nextBeat();
           playback.restsAfter = playback.getRestsAfter(playback.beat);
           playback.highlightCurrentBeat();
           if(playback.style.onBeat) playback.style.onBeat();
+        };
+        onBeat();
+        playback.scheduleRelative(() => {
+          playback.nextBeat();
+          onBeat();
         }, sigArray);
-        playback.schedule(() => {
+        playback.scheduleRelative(() => {
           playback.nextMeasure();
           onMeasure();
         }, signature);
@@ -132,10 +154,10 @@
       if(events) {
         var args = {
           measure: playback.measureNumber,
-          beat: playback.beat
+          beat: playback.beat - 1
         };
         events.dispatch('Player.playBeat', args);
-        playback.schedule(() => {
+        playback.scheduleRelative(() => {
           events.dispatch('Player.stopBeat', args);
         }, playback.restsAfter, true); // force unhighlight after playback stops
       }
@@ -201,30 +223,33 @@
       if(measure) {
         let count = 1;
         for(let i = current + 1; i < measure.length; i++) {
-          if(measure.getBeat(i)) {
+          if(measure.getBeat(i - 1)) {
             return count;
           } else {
             count++;
           }
         }
-        return measure.length - current;
+        return measure.length - current + 1;
       } else {
         return 0;
       }
     };
-    // Whether it's an even or odd measure.
-    playback.evenMeasure = false;
+    // Which measure it is in a phrase of four measures.
+    playback.measureInPhrase = 0;
     /**
      * Update playback.measure object to next measure.
      * @private
      */
     playback.nextMeasure = function() {
-      playback.evenMeasure = !playback.evenMeasure;
       playback.measure = playback.measure.getNextMeasure();
       if(playback.measure) {
         playback.measureNumber = playback.measure.getIndex();
+        
+        playback.measureInPhrase++;
+        if(playback.measureInPhrase == 4) playback.measureInPhrase = 0;
       } else {
         playback.playing = false;
+        playback.measureInPhrase = 0;
       }
     };
     /**
@@ -232,8 +257,8 @@
      */
     playback.nextBeat = function() {
       playback.beat++;
-      if(playback.beat >= playback.measure.length) {
-        playback.beat = 0;
+      if(playback.beat > playback.measure.length) {
+        playback.beat = 1;
       }
     };
     /**
@@ -257,7 +282,7 @@
       if(data.roll) {
         let total = 0;
         for(let note of notesAsNums) {
-          playback.schedule(() => {
+          playback.scheduleRelative(() => {
             playback.midi.noteOn(channel, note, data.velocity, 0);
           }, total);
           total += 0.05;
@@ -265,10 +290,15 @@
       } else {
         playback.midi.chordOn(channel, notesAsNums, data.velocity, 0);
       }
-      playback.schedule(() => {
+      playback.scheduleRelative(() => {
         // midi.js has the option to specify a delay, we're not using it.
         playback.midi.chordOff(channel, notesAsNums, 0);
       }, data.beats, true); // Force notes to end after playback stops.
+    };
+    // @todo docs
+    playback.randomFrom = function(arr) {
+      var idx = Math.floor(Math.random() * arr.length);
+      return arr[idx];
     };
     
     // Also supply some drums.
