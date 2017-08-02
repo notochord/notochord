@@ -231,6 +231,7 @@
      * @param {String} data.instrument Instrument name to play notes on.
      * @param {Number} data.beats Number of beats to play the note for.
      * @param {Number} [data.velocity=100] Velocity (volume) for the notes.
+     * @param {Boolean} [data.roll=false] If true, roll/arpeggiate notes.
      */
     // notes Array|Number
     playback.playNotes = function(data) {
@@ -241,8 +242,17 @@
       
       var instrumentNumber = playback.instruments.get(data.instrument);
       var channel = playback.instrumentChannels[instrumentNumber];
-      
-      playback.midi.chordOn(channel, notesAsNums, data.velocity, 0);
+      if(data.roll) {
+        let total = 0;
+        for(let note of notesAsNums) {
+          playback.schedule(() => {
+            playback.midi.noteOn(channel, note, data.velocity, 0);
+          }, total);
+          total += 0.05;
+        }
+      } else {
+        playback.midi.chordOn(channel, notesAsNums, data.velocity, 0);
+      }
       playback.schedule(() => {
         // midi.js has the option to specify a delay, we're not using it.
         playback.midi.chordOff(channel, notesAsNums, 0);

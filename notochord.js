@@ -7007,6 +7007,7 @@ module.exports = {
      * @param {String} data.instrument Instrument name to play notes on.
      * @param {Number} data.beats Number of beats to play the note for.
      * @param {Number} [data.velocity=100] Velocity (volume) for the notes.
+     * @param {Boolean} [data.roll=false] If true, roll/arpeggiate notes.
      */
     // notes Array|Number
     playback.playNotes = function(data) {
@@ -7017,8 +7018,17 @@ module.exports = {
       
       var instrumentNumber = playback.instruments.get(data.instrument);
       var channel = playback.instrumentChannels[instrumentNumber];
-      
-      playback.midi.chordOn(channel, notesAsNums, data.velocity, 0);
+      if(data.roll) {
+        let total = 0;
+        for(let note of notesAsNums) {
+          playback.schedule(() => {
+            playback.midi.noteOn(channel, note, data.velocity, 0);
+          }, total);
+          total += 0.05;
+        }
+      } else {
+        playback.midi.chordOn(channel, notesAsNums, data.velocity, 0);
+      }
       playback.schedule(() => {
         // midi.js has the option to specify a delay, we're not using it.
         playback.midi.chordOff(channel, notesAsNums, 0);
@@ -7309,14 +7319,16 @@ module.exports = {
       playback.playNotes({
         notes: playback.chordToNotes(firstBeat, 4),
         instrument: 'acoustic_grand_piano',
-        beats: 2
+        beats: 2,
+        roll: true
       });
       playback.schedule(() => {
         let beat = thirdBeat || firstBeat;
         playback.playNotes({
           notes: playback.chordToNotes(beat, 4),
           instrument: 'acoustic_grand_piano',
-          beats: 2
+          beats: 2,
+          roll: true
         });
       }, 2);
     };

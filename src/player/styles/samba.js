@@ -59,14 +59,16 @@
       playback.playNotes({
         notes: playback.chordToNotes(firstBeat, 4),
         instrument: 'acoustic_grand_piano',
-        beats: 2
+        beats: 2,
+        roll: true
       });
       playback.schedule(() => {
         let beat = thirdBeat || firstBeat;
         playback.playNotes({
           notes: playback.chordToNotes(beat, 4),
           instrument: 'acoustic_grand_piano',
-          beats: 2
+          beats: 2,
+          roll: true
         });
       }, 2);
     };
