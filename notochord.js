@@ -7186,7 +7186,7 @@ module.exports = {
       }
       playback.style.load();
     };
-    player.setStyle(0); // Default to basic until told otherwise.
+    player.setStyle(1); // Default to SAMBA until told otherwise.
     
     
     /**

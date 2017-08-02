@@ -11,7 +11,7 @@ Notochord.viewer.config({
 // Notochord.player plays a song as audio.
 // Configure the player as well.
 Notochord.player.config({
-    'tempo': 120
+    'tempo': 160
   });
 
 // Setup plaback controls.
@@ -25,7 +25,7 @@ document.querySelector('#tempo').addEventListener('change', e => {
 });
 // Add the styles list to the styles dropdown.
 document.querySelector('#style').innerHTML = Notochord.player.styles.map(s => {
-  return `<option>${s}</option>`;
+  return `<option ${s == 'samba' ? 'selected' : ''}>${s}</option>`;
 }).join('');
 document.querySelector('#style').addEventListener('change', e => {
   Notochord.player.setStyle(document.querySelector('#style').value);
