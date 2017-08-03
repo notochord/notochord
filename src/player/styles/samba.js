@@ -46,20 +46,28 @@
       } else {
         if(playback.beats[3]
           && playback.beats[3].root != playback.beats[1].root) {
-          playback.playNotes({
-            notes: playback.beats[1].root + 2,
-            instrument: 'acoustic_bass',
-            beats: 2,
-            velocity: 127
-          });
+          let idx = 0;
           playback.schedule(() => {
+            var root;
+            if(idx < 2) {
+              root = playback.beats[1].root;
+            } else {
+              root = playback.beats[3].root;
+            }
+            var length;
+            if(idx % 2 == 0) {
+              length = 1.5;
+            } else {
+              length = 0.5;
+            }
             playback.playNotes({
-              notes: playback.beats[3].root + 2,
+              notes: root + 2,
               instrument: 'acoustic_bass',
-              beats: 2,
+              beats: length,
               velocity: 127
             });
-          }, 3);
+            idx++;
+          }, [1,2.5,3,4.5]);
         } else {
           playback.playNotes({
             notes: playback.beats[1].root + 2,
@@ -111,8 +119,7 @@
                 notes: playback.chordToNotes(beat,
                   playback.pianistOctave(beat, 4)),
                 instrument: 'acoustic_grand_piano',
-                beats: 2,
-                roll: true
+                beats: 2
               });
             }, i);
           }
@@ -143,12 +150,12 @@
           if(playback.beat >= 3) {
             if(playback.beats[3]) beat = playback.beats[3];
           }
-          
+          var length = pianoPattern.l[item++];
           playback.playNotes({
             notes: playback.chordToNotes(beat, playback.pianistOctave(beat, 4)),
             instrument: 'acoustic_grand_piano',
-            beats: pianoPattern.l[item++],
-            roll: (Math.random() < 0.5)
+            beats: length,
+            roll: (length > 1)
           });
         }, pianoPattern.t);
       }
