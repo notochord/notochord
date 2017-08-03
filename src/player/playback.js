@@ -216,12 +216,13 @@
     playback.pianistOctave = function(chord, octave) {
       var root = chord.root;
       var key = playback.song.getTransposedKey();
-      var semitones = playback.tonal.semitones(key, root);
-      if(semitones < 6) {
-        return octave;
-      } else {
-        return octave - 1;
-      }
+      var semitonesFromKey = playback.tonal.semitones(key, root);
+      var down = !(semitonesFromKey < 6);
+      if(down) octave -= 1;
+      var cToRoot = playback.tonal.semitones('C', root);
+      var cToKey = playback.tonal.semitones('C', key);
+      if(cToRoot < cToKey) octave++;
+      return octave;
     };
     /**
      * Get the number of beats of rest left in the measure after (and including)

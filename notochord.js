@@ -6992,12 +6992,13 @@ module.exports = {
     playback.pianistOctave = function(chord, octave) {
       var root = chord.root;
       var key = playback.song.getTransposedKey();
-      var semitones = playback.tonal.semitones(key, root);
-      if(semitones < 6) {
-        return octave;
-      } else {
-        return octave - 1;
-      }
+      var semitonesFromKey = playback.tonal.semitones(key, root);
+      var down = !(semitonesFromKey < 6);
+      if(down) octave -= 1;
+      var cToRoot = playback.tonal.semitones('C', root);
+      var cToKey = playback.tonal.semitones('C', key);
+      if(cToRoot < cToKey) octave++;
+      return octave;
     };
     /**
      * Get the number of beats of rest left in the measure after (and including)
@@ -7506,13 +7507,17 @@ module.exports = {
      * Parse a string into a chord and save it to the specified beat index.
      * @param {String} chord The chord to parse.
      * @param {Number} index The beat in the measure to replace.
+     * @param {Boolean} [transpose=false] Whether to correct for transposition.
      */
-    this.parseChordToBeat = function(chord, index) {
+    this.parseChordToBeat = function(chord, index, transpose) {
       var parsed;
       if(chord) {
         // correct for a bug in chordMagic.
         let corrected = chord.replace('-', 'm');
         parsed = chordMagic.parse(corrected);
+        if(transpose) {
+          parsed = chordMagic.transpose(parsed, -1 * song.transpose);
+        }
         if(parsed) {
           parsed.raw = chord;
         } else {
@@ -7534,20 +7539,6 @@ module.exports = {
     for(let i = 0; i < this.length; i++) {
       this.parseChordToBeat(chords[i], i);
     }
-    
-    this.getNonTransposedBeat = function(beat) {
-      var chord = this._beats[beat];
-      var out = null;
-      if(chord) {
-        out =  Object.assign({}, chord);
-        if(chord.raw[1] == '#') {
-          out.rawRoot = chord.raw[0].toUpperCase() + '#';
-        } else {
-          out.rawRoot = chord.root;
-        }
-      }
-      return out;
-    };
     
     this.getBeat = function(beat) {
       var transpose = song.transpose;
@@ -8047,7 +8038,7 @@ module.exports = {
       editor._input.style.left = `${left}px`;
       
       var measure = beatView.measureView.measure;
-      var chord = measure.getNonTransposedBeat(beatView.index);
+      var chord = measure.getBeat(beatView.index);
       if(chord) {
         editor._input.value = chordMagic.prettyPrint(chord);
       } else {
@@ -8146,7 +8137,7 @@ module.exports = {
       var chord = editor._input.value;
       var beat = editor.editedBeat;
       var measure = beat.measureView.measure;
-      measure.parseChordToBeat(chord, beat.index);
+      measure.parseChordToBeat(chord, beat.index, true);
       editor.editedBeat.renderChord(measure.getBeat(beat.index));
     };
     
