@@ -7543,7 +7543,7 @@ module.exports = {
      * Here we have both.
      */
     style.onMeasure = function() {
-      var swung = [1,1.25,1.5,1.75,2,2.5,3,3.5,4,4.5].map(playback.swing);
+      var swung = [1,1.5,2,2.5,3,3.5,4,4.5].map(playback.swing);
       console.log(swung);
       playback.schedule(
         playback.drums.woodblock,
