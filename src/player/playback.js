@@ -27,6 +27,7 @@
     // this one is absolute timing in the measure
     playback.schedule = function(func, durations, force) {
       if (typeof durations == 'number') durations = [durations];
+      if(playback.style.swing) durations = durations.map(playback.swing);
       var relativeDurations = durations.map(d => d - playback.beat);
       playback.scheduleRelative(func, relativeDurations, force);
     };

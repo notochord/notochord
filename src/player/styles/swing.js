@@ -24,17 +24,30 @@
       ]);
     };
     
+    var drums = function() {
+      playback.schedule(
+        () => playback.drums.hatHalfOpen(0.1),
+        [1,2,2.5,3,4,4.5]
+      );
+      playback.schedule(() => playback.drums.kick(0.2), [1,2,3,4]);
+      playback.schedule(() => playback.drums.hatClosed(0.1), [2,4]);
+      
+      if(Math.random() < 0.3) {
+        let snarePattern = playback.randomFrom([
+          [4],
+          [2.5],
+          [2.5,3.5,4.5]
+        ]);
+        playback.schedule(() => playback.drums.snare1(0.1), snarePattern);
+      }
+    };
+    
     /*
      * Style should have either an onBeat function or an onMeasure function.
      * Here we have both.
      */
     style.onMeasure = function() {
-      var swung = [1,1.5,2,2.5,3,3.5,4,4.5].map(playback.swing);
-      console.log(swung);
-      playback.schedule(
-        playback.drums.woodblock,
-        swung
-      );
+      drums();
     };
     
     return style;
