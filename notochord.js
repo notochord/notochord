@@ -6663,7 +6663,7 @@ module.exports = tonal;
   }
 })();
 
-},{"./events":40,"./player/player":43,"./song/song":47,"./viewer/viewer":53}],40:[function(require,module,exports){
+},{"./events":40,"./player/player":43,"./song/song":48,"./viewer/viewer":54}],40:[function(require,module,exports){
 (function() {
   'use strict';
   var Events = (function() {
@@ -6987,6 +6987,25 @@ module.exports = {
         onSuccess();
       }
     };
+    {
+      playback.swingRatio = (2/3);
+      let swingRatio1 = playback.swingRatio / 0.5;
+      let swingRatio2 = (1 - playback.swingRatio) / 0.5;
+      playback.swing = function(origTime) {
+        var wholeBeats = Math.floor(origTime);
+        var remainder = origTime - wholeBeats;
+        var out = wholeBeats;
+        if(remainder >= 0.5) {
+          out += playback.swingRatio;
+          let whatsLeft = remainder - 0.5;
+          out += whatsLeft * swingRatio2;
+          if(remainder > 0.5) out -= 0.01; 
+        } else {
+          out += remainder * swingRatio1;
+        }
+        return out;
+      };
+    }
     // @todo docs
     // whether a pianist would move down the octave if playing this chord
     playback.pianistOctave = function(chord, octave) {
@@ -7156,6 +7175,10 @@ module.exports = {
       {
         'name': 'samba',
         'style': require('./styles/samba')(playback)
+      },
+      {
+        'name': 'swing',
+        'style': require('./styles/swing')(playback)
       }
     ];
     // @todo supply different styles based on time signature
@@ -7247,7 +7270,7 @@ module.exports = {
   module.exports = Player;
 })();
 
-},{"./playback":42,"./styles/basic":44,"./styles/samba":45}],44:[function(require,module,exports){
+},{"./playback":42,"./styles/basic":44,"./styles/samba":45,"./styles/swing":46}],44:[function(require,module,exports){
 (function() {
   
   /*
@@ -7490,6 +7513,50 @@ module.exports = {
 
 },{}],46:[function(require,module,exports){
 (function() {
+  
+  /*
+   * A style is expected to take one parameter, the player's playback object.
+   * The playback object has all of the functionality a style needs to get chord
+   * data from the current measure, and play notes.
+   *
+   * A style should return 2-3 functions: loa and onBeat or onMeasure.
+   */
+  
+  module.exports = function(playback) {
+    var style = {};
+    
+    style.swing = true;
+    
+    /*
+     * The load function could be no-op if you really wanted, but it has to
+     * exist. You can use it to load instruments required by the style.
+     */
+    style.load = function() {
+      playback.requireInstruments([
+        'acoustic_grand_piano',
+        'acoustic_bass'
+      ]);
+    };
+    
+    /*
+     * Style should have either an onBeat function or an onMeasure function.
+     * Here we have both.
+     */
+    style.onMeasure = function() {
+      var swung = [1,1.25,1.5,1.75,2,2.5,3,3.5,4,4.5].map(playback.swing);
+      console.log(swung);
+      playback.schedule(
+        playback.drums.woodblock,
+        swung
+      );
+    };
+    
+    return style;
+  };
+})();
+
+},{}],47:[function(require,module,exports){
+(function() {
   'use strict'; 
   /**
    * Represents a measure of music.
@@ -7614,7 +7681,7 @@ module.exports = {
   module.exports = Measure;
 })();
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 (function() {
   'use strict';
   /**
@@ -7753,7 +7820,7 @@ module.exports = {
   module.exports = Song;
 })();
 
-},{"./measure":46,"chord-magic":7,"tonal":38}],48:[function(require,module,exports){
+},{"./measure":47,"chord-magic":7,"tonal":38}],49:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -7970,7 +8037,7 @@ module.exports = {
   module.exports = BeatView;
 })();
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 (function() {
   'use strict';
   var Editor = (function() {
@@ -8160,7 +8227,7 @@ module.exports = {
   module.exports = Editor;
 })();
 
-},{"chord-magic":7}],50:[function(require,module,exports){
+},{"chord-magic":7}],51:[function(require,module,exports){
 (function() {
   'use strict';  
 
@@ -8296,7 +8363,7 @@ module.exports = {
   module.exports = MeasureView;
 })();
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 module.exports = {
   // https://commons.wikimedia.org/wiki/File:B%C3%A9mol.svg
   'flat': 'm 1.380956,10.84306 -0.02557,1.68783 0,0.28131 c 0,0.56261 0.02557,1.12522 0.102293,1.68783 1.150797,-0.97178 2.378313,-2.04586 2.378313,-3.55468 0,-0.84392 -0.358026,-1.7134103 -1.09965,-1.7134103 -0.792771,0 -1.329809,0.7672 -1.355382,1.6111203 z M 0.306879,15.42067 0,0.20457992 C 0.204586,0.07671992 0.460319,-7.6580061e-8 0.690478,-7.6580061e-8 0.920637,-7.6580061e-8 1.17637,0.07669992 1.380956,0.20457992 L 1.201943,9.0273597 c 0.639331,-0.53704 1.483249,-0.8695 2.327166,-0.8695 1.329809,0 2.27602,1.22752 2.27602,2.6084803 0,2.04586 -2.1993,2.99207 -3.759269,4.32188 C 1.662261,15.42067 1.432102,16.06 0.895064,16.06 0.562612,16.06 0.306879,15.77869 0.306879,15.42067 Z',
@@ -8311,7 +8378,7 @@ module.exports = {
   'slabo27px_H_height_ratio': 33.33 / 50
 };
 
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 /* eslint-disable max-len */
 module.exports = `/*<![CDATA[*/
 @import url("https://fonts.googleapis.com/css?family=Slabo+27px&subset=latin-ext");
@@ -8351,7 +8418,7 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
     opacity: 1; }
 
 /*]]>*/`;
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 /*
  * Code to generate a viewer object, which displays a song and optionally
  * provides an interface for editing it.
@@ -8563,4 +8630,4 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
   module.exports = Viewer;
 })();
 
-},{"./beatView":48,"./editor":49,"./measureView":50,"./resources/svg_constants":51,"./viewer.css.js":52}]},{},[39]);
+},{"./beatView":49,"./editor":50,"./measureView":51,"./resources/svg_constants":52,"./viewer.css.js":53}]},{},[39]);

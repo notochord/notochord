@@ -211,6 +211,25 @@
         onSuccess();
       }
     };
+    {
+      playback.swingRatio = (2/3);
+      let swingRatio1 = playback.swingRatio / 0.5;
+      let swingRatio2 = (1 - playback.swingRatio) / 0.5;
+      playback.swing = function(origTime) {
+        var wholeBeats = Math.floor(origTime);
+        var remainder = origTime - wholeBeats;
+        var out = wholeBeats;
+        if(remainder >= 0.5) {
+          out += playback.swingRatio;
+          let whatsLeft = remainder - 0.5;
+          out += whatsLeft * swingRatio2;
+          if(remainder > 0.5) out -= 0.01; 
+        } else {
+          out += remainder * swingRatio1;
+        }
+        return out;
+      };
+    }
     // @todo docs
     // whether a pianist would move down the octave if playing this chord
     playback.pianistOctave = function(chord, octave) {

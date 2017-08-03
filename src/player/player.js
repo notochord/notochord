@@ -33,6 +33,10 @@
       {
         'name': 'samba',
         'style': require('./styles/samba')(playback)
+      },
+      {
+        'name': 'swing',
+        'style': require('./styles/swing')(playback)
       }
     ];
     // @todo supply different styles based on time signature
