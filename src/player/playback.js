@@ -299,8 +299,8 @@
      * @param {Object} data Object with data about what to play.
      * @param {String|String[]} data.notes Note name[s] to play.
      * @param {String} data.instrument Instrument name to play notes on.
-     * @param {Number} data.beats Number of beats to play the note for.
-     * @param {Number} [data.velocity=100] Velocity (volume) for the notes.
+     * @param {Number} data.dur Number of beats to play the note for.
+     * @param {Number} [data.velocity=100] Velocity (volume) 0-127.
      * @param {Boolean} [data.roll=false] If true, roll/arpeggiate notes.
      */
     // notes Array|Number
@@ -326,9 +326,35 @@
       playback.scheduleRelative(() => {
         // midi.js has the option to specify a delay, we're not using it.
         playback.midi.chordOff(channel, notesAsNums, 0);
-      }, data.beats - 0.05, true); // Force notes to end after playback stops.
+      }, data.dur - 0.05, true); // Force notes to end after playback stops.
     };
-    // @todo docs
+    /**
+     * Schedule an array of note data.
+     * @param {Object} input Object to pass in actual parameters.
+     * @param {String} input.instrument Instrument to use.
+     * @param {Number} [data.velocity] Velocity (volume) 0-127.
+     * @param {Object[]} input.data Array of objects describing notes to play at
+     * different times.
+     * @param {Number|Number[]} input.data[].times What beat[s] to play on.
+     * @param {Number} input.data[].dur How many beats to play the notes for.
+     * @param {String|String[]} input.data[].notes Note name[s] to play.
+     */
+    playback.scheduleNotes = function(input) {
+      for(let set of input.data) {
+        playback.schedule(() => {
+          playback.playNotes({
+            notes: set.notes,
+            instrument: input.instrument,
+            dur: set.dur
+          });
+        }, set.times);
+      }
+    };
+    /**
+     * Takes an array and returns a random item from it.
+     * @param {Array} arr Items to choose from.
+     * @returns {*} One of the items of the array.
+     */
     playback.randomFrom = function(arr) {
       var idx = Math.floor(Math.random() * arr.length);
       return arr[idx];

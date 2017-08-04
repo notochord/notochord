@@ -7075,8 +7075,8 @@ module.exports = {
      * @param {Object} data Object with data about what to play.
      * @param {String|String[]} data.notes Note name[s] to play.
      * @param {String} data.instrument Instrument name to play notes on.
-     * @param {Number} data.beats Number of beats to play the note for.
-     * @param {Number} [data.velocity=100] Velocity (volume) for the notes.
+     * @param {Number} data.dur Number of beats to play the note for.
+     * @param {Number} [data.velocity=100] Velocity (volume) 0-127.
      * @param {Boolean} [data.roll=false] If true, roll/arpeggiate notes.
      */
     // notes Array|Number
@@ -7102,9 +7102,35 @@ module.exports = {
       playback.scheduleRelative(() => {
         // midi.js has the option to specify a delay, we're not using it.
         playback.midi.chordOff(channel, notesAsNums, 0);
-      }, data.beats - 0.05, true); // Force notes to end after playback stops.
+      }, data.dur - 0.05, true); // Force notes to end after playback stops.
     };
-    // @todo docs
+    /**
+     * Schedule an array of note data.
+     * @param {Object} input Object to pass in actual parameters.
+     * @param {String} input.instrument Instrument to use.
+     * @param {Number} [data.velocity] Velocity (volume) 0-127.
+     * @param {Object[]} input.data Array of objects describing notes to play at
+     * different times.
+     * @param {Number|Number[]} input.data[].times What beat[s] to play on.
+     * @param {Number} input.data[].dur How many beats to play the notes for.
+     * @param {String|String[]} input.data[].notes Note name[s] to play.
+     */
+    playback.scheduleNotes = function(input) {
+      for(let set of input.data) {
+        playback.schedule(() => {
+          playback.playNotes({
+            notes: set.notes,
+            instrument: input.instrument,
+            dur: set.dur
+          });
+        }, set.times);
+      }
+    };
+    /**
+     * Takes an array and returns a random item from it.
+     * @param {Array} arr Items to choose from.
+     * @returns {*} One of the items of the array.
+     */
     playback.randomFrom = function(arr) {
       var idx = Math.floor(Math.random() * arr.length);
       return arr[idx];
@@ -7320,7 +7346,7 @@ module.exports = {
         playback.playNotes({
           notes: notes, // Note name or array of note names.
           instrument: 'acoustic_grand_piano',
-          beats: playback.restsAfter // Number of beats to play the note.
+          dur: playback.restsAfter // Number of beats to play the note.
           // Optionally: 'velocity' which is a number 0-127 representing volume.
           // Well, technically it represents how hard you play an instrument
           // but it corresponds to volume so.
@@ -7329,7 +7355,7 @@ module.exports = {
         playback.playNotes({
           notes: chord.root + 2,
           instrument: 'acoustic_bass',
-          beats: playback.restsAfter
+          dur: playback.restsAfter
         });
       }
     };
@@ -7378,7 +7404,7 @@ module.exports = {
               playback.playNotes({
                 notes: beat.root + 2,
                 instrument: 'acoustic_bass',
-                beats: 1,
+                dur: 1,
                 velocity: 127
               });
             }, i);
@@ -7387,64 +7413,75 @@ module.exports = {
       } else {
         if(playback.beats[3]
           && playback.beats[3].root != playback.beats[1].root) {
-          let idx = 0;
-          playback.schedule(() => {
-            var root;
-            if(idx < 2) {
-              root = playback.beats[1].root;
-            } else {
-              root = playback.beats[3].root;
-            }
-            var length;
-            if(idx % 2 == 0) {
-              length = 1.5;
-            } else {
-              length = 0.5;
-            }
-            playback.playNotes({
-              notes: root + 2,
-              instrument: 'acoustic_bass',
-              beats: length,
-              velocity: 127
-            });
-            idx++;
-          }, [1,2.5,3,4.5]);
-        } else {
-          playback.playNotes({
-            notes: playback.beats[1].root + 2,
+          playback.scheduleNotes({
             instrument: 'acoustic_bass',
-            beats: 1.5,
-            velocity: 127
+            velocity: 127,
+            data: [
+              {
+                times: 1,
+                notes: playback.beats[1].root + 2,
+                dur: 1.5
+              },
+              {
+                times: 2.5,
+                notes: playback.beats[1].root + 2,
+                dur: 0.5
+              },
+              {
+                times: 3,
+                notes: playback.beats[3].root + 2,
+                dur: 1.5
+              },
+              {
+                times: 4.5,
+                notes: playback.beats[3].root + 2,
+                dur: 0.5
+              }
+            ]
           });
+        } else {
           // @todo dim?
           let low5 = playback.tonal.transpose(playback.beats[1].root + 1, 'P5');
           let coinFlip = Math.random() < 0.5;
           if(coinFlip) {
-            playback.schedule(() => {
-              playback.playNotes({
-                notes: low5,
-                instrument: 'acoustic_bass',
-                beats: 2.5,
-                velocity: 127
-              });
-            }, 2.5);
+            playback.scheduleNotes({
+              instrument: 'acoustic_bass',
+              velocity: 127,
+              data: [
+                {
+                  times: 1,
+                  notes: playback.beats[1].root + 2,
+                  dur: 1.5
+                },
+                {
+                  times: 2.5,
+                  notes: low5,
+                  dur: 2.5
+                }
+              ]
+            });
           } else {
-            playback.schedule(() => {
-              playback.playNotes({
-                notes: low5,
-                instrument: 'acoustic_bass',
-                beats: 1.5,
-                velocity: 127
-              });
-            }, 2.5);
-            playback.schedule(() => {
-              playback.playNotes({
-                notes: playback.beats[1].root + 2,
-                instrument: 'acoustic_bass',
-                beats: 1,
-                velocity: 127
-              });
-            }, 4);
+            playback.scheduleNotes({
+              instrument: 'acoustic_bass',
+              velocity: 127,
+              data: [
+                {
+                  times: 1,
+                  notes: playback.beats[1].root + 2,
+                  dur: 1.5
+                },
+                {
+                  times: 2.5,
+                  notes: low5,
+                  dur: 1.5
+                },
+                {
+                  times: 4,
+                  notes: playback.beats[1].root + 2,
+                  dur: 1
+                },
+              ]
+            });
           }
         }
       }
@@ -7460,7 +7497,7 @@ module.exports = {
                 notes: playback.chordToNotes(beat,
                   playback.pianistOctave(beat, 4)),
                 instrument: 'acoustic_grand_piano',
-                beats: 2
+                dur: 2
               });
             }, i);
           }
@@ -7495,7 +7532,7 @@ module.exports = {
           playback.playNotes({
             notes: playback.chordToNotes(beat, playback.pianistOctave(beat, 4)),
             instrument: 'acoustic_grand_piano',
-            beats: length,
+            dur: length,
             roll: (length > 1)
           });
         }, pianoPattern.t);

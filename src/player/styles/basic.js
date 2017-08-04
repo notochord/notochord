@@ -46,7 +46,7 @@
         playback.playNotes({
           notes: notes, // Note name or array of note names.
           instrument: 'acoustic_grand_piano',
-          beats: playback.restsAfter // Number of beats to play the note.
+          dur: playback.restsAfter // Number of beats to play the note.
           // Optionally: 'velocity' which is a number 0-127 representing volume.
           // Well, technically it represents how hard you play an instrument
           // but it corresponds to volume so.
@@ -55,7 +55,7 @@
         playback.playNotes({
           notes: chord.root + 2,
           instrument: 'acoustic_bass',
-          beats: playback.restsAfter
+          dur: playback.restsAfter
         });
       }
     };
