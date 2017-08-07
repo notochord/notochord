@@ -234,7 +234,7 @@
     // @todo docs
     // whether a pianist would move down the octave if playing this chord
     playback.pianistOctave = function(chord, octave) {
-      var root = chord.root;
+      var root = chord.root || chord; // accept either note or chord.
       var key = playback.song.getTransposedKey();
       var semitonesFromKey = playback.tonal.semitones(key, root);
       var down = !(semitonesFromKey < 6);
@@ -358,6 +358,20 @@
     playback.randomFrom = function(arr) {
       var idx = Math.floor(Math.random() * arr.length);
       return arr[idx];
+    };
+    
+    // https://stackoverflow.com/a/2450976/1784306
+    playback.shuffle = function(array) {
+      var currentIndex = array.length, temporaryValue, randomIndex;
+      while (0 !== currentIndex) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+      return array;
     };
     
     // Also supply some drums.
