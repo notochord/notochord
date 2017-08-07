@@ -7633,10 +7633,10 @@ module.exports = {
       }
       
       if(playback.beats[2] || playback.beats[4]) {
-        note1 = playback.beats[1];
-        note2 = playback.beats[2];
-        note3 = playback.beats[3];
-        note4 = playback.beats[4];
+        note1 = playback.beats[1] && playback.beats[1].root;
+        note2 = playback.beats[2] && playback.beats[2].root;
+        note3 = playback.beats[3] && playback.beats[3].root;
+        note4 = playback.beats[4] && playback.beats[4].root;
       } else {
         // loosely based on https://music.stackexchange.com/a/22174/5563
         let beat3 = playback.beats[3] || playback.beats[1];
