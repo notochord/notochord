@@ -7733,6 +7733,58 @@ module.exports = {
       });
     };
     
+    var piano = function() {
+      if(playback.beats[2] || playback.beats[4]) {
+        for(let i = 1; i < playback.beats.length; i++) {
+          let beat = playback.beats[i];
+          if(beat) {
+            playback.schedule(() => {
+              playback.playNotes({
+                notes: playback.chordToNotes(beat,
+                  playback.pianistOctave(beat, 4)),
+                instrument: 'acoustic_grand_piano',
+                dur: 2
+              });
+            }, i);
+          }
+        }
+      } else {
+        var patterns = [
+          {
+            t: [1.5,2,3.5],
+            l: [0.5,1.5,1]
+          },
+          {
+            t: [1,2.5,3.5],
+            l: [1.5, 0.5, 1]
+          },
+          {
+            t: [1,2.5,3.5,4.5],
+            l: [1.5,1.5,0.5,0.5]
+          }
+        ];
+        if(!playback.beats[3]) patterns.push({
+          t: [1,2.5],
+          l: [1.5,1.5]
+        });
+        var pianoPattern = playback.randomFrom(patterns);
+        var item = 0;
+        playback.schedule(() => {
+          var beat = playback.beats[1];
+          if(playback.beat >= 3) {
+            if(playback.beats[3]) beat = playback.beats[3];
+          }
+          var length = pianoPattern.l[item++];
+          playback.playNotes({
+            notes: playback.chordToNotes(beat, playback.pianistOctave(beat, 4)),
+            instrument: 'acoustic_grand_piano',
+            dur: length,
+            roll: (length > 1)
+          });
+        }, pianoPattern.t);
+      }
+    };
+    
     /*
      * Style should have either an onBeat function or an onMeasure function.
      * Here we have both.
@@ -7740,6 +7792,7 @@ module.exports = {
     style.onMeasure = function() {
       drums();
       bass();
+      piano();
     };
     
     return style;
