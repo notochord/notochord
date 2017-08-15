@@ -162,6 +162,7 @@
     this._svgGroup.addEventListener('focus', () => {
       viewer.editor.setSelectedBeat(this);
     });
+    this._svgGroup.addEventListener('mousedown', this._svgGroup.blur);
     
     /**
      * Render a chord.

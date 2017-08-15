@@ -169,8 +169,8 @@
     };
     
     var handleBlur = function(e) {
-      if(e.relatedTarget
-      && !viewer._svgElem.contains(e.relatedTarget)) {
+      if(!e.relatedTarget || (e.relatedTarget
+      && !viewer._svgElem.contains(e.relatedTarget))) {
         editor.setSelectedBeat(null);
       }
     };

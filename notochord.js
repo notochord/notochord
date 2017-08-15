@@ -8229,6 +8229,7 @@ module.exports = {
     this._svgGroup.addEventListener('focus', () => {
       viewer.editor.setSelectedBeat(this);
     });
+    this._svgGroup.addEventListener('mousedown', this._svgGroup.blur);
     
     /**
      * Render a chord.
@@ -8453,8 +8454,8 @@ module.exports = {
     };
     
     var handleBlur = function(e) {
-      if(e.relatedTarget
-      && !viewer._svgElem.contains(e.relatedTarget)) {
+      if(!e.relatedTarget || (e.relatedTarget
+      && !viewer._svgElem.contains(e.relatedTarget))) {
         editor.setSelectedBeat(null);
       }
     };
