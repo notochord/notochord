@@ -8360,28 +8360,36 @@ module.exports = {
       if(events) events.dispatch('Editor.setSelectedBeat');
     };
     
-    var toNextBeat = function() {
+    var toNextBeat = function(arrow) {
       let beat = editor.editedBeat;
       if(beat.index == beat.measureView.measure.length - 1) {
         let newMeasure = beat.measureView.measure.getNextMeasure();
-        if(!newMeasure) return;
-        let newMeasureView = newMeasure.measureView;
-        let newBeat = newMeasureView.beatViews[0];
-        newBeat._svgGroup.focus();
+        if(newMeasure) {
+          let newMeasureView = newMeasure.measureView;
+          let newBeat = newMeasureView.beatViews[0];
+          newBeat._svgGroup.focus();
+        } else if(!arrow) { // only do this for tab
+          editor.setSelectedBeat(null);
+          viewer._hiddenTabbable.focus();
+        }
       } else {
         let newBeat = beat.measureView.beatViews[beat.index + 1];
         newBeat._svgGroup.focus();
       }
     };
     
-    var toPrevBeat = function() {
+    var toPrevBeat = function(arrow) {
       let beat = editor.editedBeat;
       if(beat.index == 0) {
         let newMeasure = beat.measureView.measure.getPreviousMeasure();
-        if(!newMeasure) return;
-        let newMeasureView = newMeasure.measureView;
-        let newBeat = newMeasureView.beatViews[newMeasure.length - 1];
-        newBeat._svgGroup.focus();
+        if(newMeasure) {
+          let newMeasureView = newMeasure.measureView;
+          let newBeat = newMeasureView.beatViews[newMeasure.length - 1];
+          newBeat._svgGroup.focus();
+        } else if(!arrow) { // only do this for tab
+          editor.setSelectedBeat(null);
+          viewer._titleText.focus();
+        }
       } else {
         let newBeat = beat.measureView.beatViews[beat.index - 1];
         newBeat._svgGroup.focus();
@@ -8400,7 +8408,7 @@ module.exports = {
           if(editor._input.selectionStart !== editor._input.value.length) {
             return true;
           }
-          toNextBeat();
+          toNextBeat(true);
           break;
         }
         case 'Tab': {
@@ -8415,7 +8423,7 @@ module.exports = {
           if(editor._input.selectionStart !== 0) {
             return true;
           }
-          toPrevBeat();
+          toPrevBeat(true);
           break;
         }
         case 'ArrowUp': {
@@ -8520,12 +8528,12 @@ module.exports = {
     this.move = function() {
       var newIndex = measure.getIndex();
       if(this._svgGroup.parentNode) {
-        this._svgGroup.parentNode.removeChild(this._svgGroup);
+        viewer._measureGroup.removeChild(this._svgGroup);
       }
-      if(newIndex >= viewer._svgElem.children.length - 1) {
-        viewer._svgElem.appendChild(this._svgGroup);
+      if(newIndex >= viewer._measureGroup.children.length - 1) {
+        viewer._measureGroup.appendChild(this._svgGroup);
       } else {
-        viewer._svgElem.insertBefore(this._svgGroup, newIndex);
+        viewer._measureGroup.insertBefore(this._svgGroup, newIndex);
       }
     };
     this.move();
@@ -8699,6 +8707,23 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
     viewer.editor = require('./editor');
     viewer.editor.attachViewer(viewer);
     
+    // fill up the svg with various things in a specific order.
+    var styledata = require('./viewer.css.js');
+    var style = document.createElementNS(viewer.SVG_NS, 'style');
+    style.setAttributeNS(null, 'type', 'text/css');
+    style.appendChild(document.createTextNode(styledata));
+    viewer._svgElem.appendChild(style);
+    viewer._titleText = document.createElementNS(viewer.SVG_NS, 'text');
+    viewer._titleText.setAttributeNS(null, 'tabindex', 0);
+    viewer._svgElem.appendChild(viewer._titleText);
+    var composerText = document.createElementNS(viewer.SVG_NS, 'text');
+    viewer._svgElem.appendChild(composerText);
+    viewer._measureGroup = document.createElementNS(viewer.SVG_NS, 'g');
+    viewer._svgElem.appendChild(viewer._measureGroup);
+    viewer._hiddenTabbable = document.createElementNS(viewer.SVG_NS, 'g');
+    viewer._hiddenTabbable.setAttributeNS(null, 'tabindex', 0);
+    viewer._svgElem.appendChild(viewer._hiddenTabbable);
+    
     viewer.width = 1400;
     viewer.editable = false;
     viewer.fontSize = 50;
@@ -8766,12 +8791,6 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
       song = _song;
     };
     
-    var styledata = require('./viewer.css.js');
-    var style = document.createElementNS(viewer.SVG_NS, 'style');
-    style.setAttributeNS(null, 'type', 'text/css');
-    style.appendChild(document.createTextNode(styledata));
-    viewer._svgElem.appendChild(style);
-    
     /**
      * Append viewer's SVG element to a parent element.
      * @param {HTMLElement} parent The element to append the SVG element.
@@ -8800,22 +8819,18 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
      * @private
      */
     var setTitleAndComposer = function() {
-      var titleText = document.createElementNS(viewer.SVG_NS, 'text');
-      titleText.appendChild(document.createTextNode(song.title));
-      viewer._svgElem.appendChild(titleText);
-      var titleBB = titleText.getBBox();
+      viewer._titleText.appendChild(document.createTextNode(song.title));
+      var titleBB = viewer._titleText.getBBox();
       var ttscale = 0.7;
       var ttx = (viewer.width - (titleBB.width * ttscale)) / 2;
       var tty = viewer.H_HEIGHT * ttscale;
-      titleText.setAttributeNS(
+      viewer._titleText.setAttributeNS(
         null,
         'transform',
         `translate(${ttx}, ${tty}) scale(${ttscale})`
       );
       
-      var composerText = document.createElementNS(viewer.SVG_NS, 'text');
       composerText.appendChild(document.createTextNode(song.composer));
-      viewer._svgElem.appendChild(composerText);
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;
       var ctx = (viewer.width - (composerBB.width * ctscale)) / 2;

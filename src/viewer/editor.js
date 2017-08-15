@@ -75,28 +75,36 @@
       if(events) events.dispatch('Editor.setSelectedBeat');
     };
     
-    var toNextBeat = function() {
+    var toNextBeat = function(arrow) {
       let beat = editor.editedBeat;
       if(beat.index == beat.measureView.measure.length - 1) {
         let newMeasure = beat.measureView.measure.getNextMeasure();
-        if(!newMeasure) return;
-        let newMeasureView = newMeasure.measureView;
-        let newBeat = newMeasureView.beatViews[0];
-        newBeat._svgGroup.focus();
+        if(newMeasure) {
+          let newMeasureView = newMeasure.measureView;
+          let newBeat = newMeasureView.beatViews[0];
+          newBeat._svgGroup.focus();
+        } else if(!arrow) { // only do this for tab
+          editor.setSelectedBeat(null);
+          viewer._hiddenTabbable.focus();
+        }
       } else {
         let newBeat = beat.measureView.beatViews[beat.index + 1];
         newBeat._svgGroup.focus();
       }
     };
     
-    var toPrevBeat = function() {
+    var toPrevBeat = function(arrow) {
       let beat = editor.editedBeat;
       if(beat.index == 0) {
         let newMeasure = beat.measureView.measure.getPreviousMeasure();
-        if(!newMeasure) return;
-        let newMeasureView = newMeasure.measureView;
-        let newBeat = newMeasureView.beatViews[newMeasure.length - 1];
-        newBeat._svgGroup.focus();
+        if(newMeasure) {
+          let newMeasureView = newMeasure.measureView;
+          let newBeat = newMeasureView.beatViews[newMeasure.length - 1];
+          newBeat._svgGroup.focus();
+        } else if(!arrow) { // only do this for tab
+          editor.setSelectedBeat(null);
+          viewer._titleText.focus();
+        }
       } else {
         let newBeat = beat.measureView.beatViews[beat.index - 1];
         newBeat._svgGroup.focus();
@@ -115,7 +123,7 @@
           if(editor._input.selectionStart !== editor._input.value.length) {
             return true;
           }
-          toNextBeat();
+          toNextBeat(true);
           break;
         }
         case 'Tab': {
@@ -130,7 +138,7 @@
           if(editor._input.selectionStart !== 0) {
             return true;
           }
-          toPrevBeat();
+          toPrevBeat(true);
           break;
         }
         case 'ArrowUp': {

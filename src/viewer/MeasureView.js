@@ -45,12 +45,12 @@
     this.move = function() {
       var newIndex = measure.getIndex();
       if(this._svgGroup.parentNode) {
-        this._svgGroup.parentNode.removeChild(this._svgGroup);
+        viewer._measureGroup.removeChild(this._svgGroup);
       }
-      if(newIndex >= viewer._svgElem.children.length - 1) {
-        viewer._svgElem.appendChild(this._svgGroup);
+      if(newIndex >= viewer._measureGroup.children.length - 1) {
+        viewer._measureGroup.appendChild(this._svgGroup);
       } else {
-        viewer._svgElem.insertBefore(this._svgGroup, newIndex);
+        viewer._measureGroup.insertBefore(this._svgGroup, newIndex);
       }
     };
     this.move();

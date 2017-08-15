@@ -33,6 +33,23 @@
     viewer.editor = require('./editor');
     viewer.editor.attachViewer(viewer);
     
+    // fill up the svg with various things in a specific order.
+    var styledata = require('./viewer.css.js');
+    var style = document.createElementNS(viewer.SVG_NS, 'style');
+    style.setAttributeNS(null, 'type', 'text/css');
+    style.appendChild(document.createTextNode(styledata));
+    viewer._svgElem.appendChild(style);
+    viewer._titleText = document.createElementNS(viewer.SVG_NS, 'text');
+    viewer._titleText.setAttributeNS(null, 'tabindex', 0);
+    viewer._svgElem.appendChild(viewer._titleText);
+    var composerText = document.createElementNS(viewer.SVG_NS, 'text');
+    viewer._svgElem.appendChild(composerText);
+    viewer._measureGroup = document.createElementNS(viewer.SVG_NS, 'g');
+    viewer._svgElem.appendChild(viewer._measureGroup);
+    viewer._hiddenTabbable = document.createElementNS(viewer.SVG_NS, 'g');
+    viewer._hiddenTabbable.setAttributeNS(null, 'tabindex', 0);
+    viewer._svgElem.appendChild(viewer._hiddenTabbable);
+    
     viewer.width = 1400;
     viewer.editable = false;
     viewer.fontSize = 50;
@@ -100,12 +117,6 @@
       song = _song;
     };
     
-    var styledata = require('./viewer.css.js');
-    var style = document.createElementNS(viewer.SVG_NS, 'style');
-    style.setAttributeNS(null, 'type', 'text/css');
-    style.appendChild(document.createTextNode(styledata));
-    viewer._svgElem.appendChild(style);
-    
     /**
      * Append viewer's SVG element to a parent element.
      * @param {HTMLElement} parent The element to append the SVG element.
@@ -134,22 +145,18 @@
      * @private
      */
     var setTitleAndComposer = function() {
-      var titleText = document.createElementNS(viewer.SVG_NS, 'text');
-      titleText.appendChild(document.createTextNode(song.title));
-      viewer._svgElem.appendChild(titleText);
-      var titleBB = titleText.getBBox();
+      viewer._titleText.appendChild(document.createTextNode(song.title));
+      var titleBB = viewer._titleText.getBBox();
       var ttscale = 0.7;
       var ttx = (viewer.width - (titleBB.width * ttscale)) / 2;
       var tty = viewer.H_HEIGHT * ttscale;
-      titleText.setAttributeNS(
+      viewer._titleText.setAttributeNS(
         null,
         'transform',
         `translate(${ttx}, ${tty}) scale(${ttscale})`
       );
       
-      var composerText = document.createElementNS(viewer.SVG_NS, 'text');
       composerText.appendChild(document.createTextNode(song.composer));
-      viewer._svgElem.appendChild(composerText);
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;
       var ctx = (viewer.width - (composerBB.width * ctscale)) / 2;
