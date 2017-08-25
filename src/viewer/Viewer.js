@@ -76,7 +76,7 @@
         if(options['scaleDegrees'] !== undefined) {
           viewer.scaleDegrees = options['scaleDegrees'];
           // Hacky, but I can't think of what'd be better semantically.
-          events && events.dispatch('Notochord.transpose', {});
+          events && events.dispatch('Viewer.setScaleDegrees', {});
         }
       }
       
@@ -113,6 +113,7 @@
     viewer.attachEvents = function(ev) {
       events = ev;
       events.create('Viewer.setBeatEditing');
+      events.create('Viewer.setScaleDegrees');
       events.on('Notochord.load', viewer.renderSong);
       viewer.editor.attachEvents(events);
     };

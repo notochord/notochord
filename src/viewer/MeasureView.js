@@ -12,6 +12,7 @@
     this.measure = measure; 
     // link measure back to this
     measure.measureView = this;
+    var self = this;
     
     /**
      * A measure is represented in the nodetree by an SVG group full of things.
@@ -77,15 +78,17 @@
       
       // When I receive a transpose event, re-render each beat.
       if(events) {
-        events.on('Notochord.transpose', () => {
-          for(let i in this.beatViews) {
-            let beat = this.beatViews[i];
+        let rerender = function() {
+          for(let i in self.beatViews) {
+            let beat = self.beatViews[i];
             if(beat) {
               let chord = measure.getBeat(i);
               beat.renderChord(chord);
             }
           }
-        });
+        };
+        events.on('Notochord.transpose', rerender);
+        events.on('Viewer.setScaleDegrees', rerender);
       }
       
       {
@@ -114,7 +117,6 @@
     };
     this.render();
     
-    var self = this;
     // If connected to Notochord.player, highlight when my beat is played.
     if(events) {
       events.on('Player.playBeat', (args) => {
