@@ -129,9 +129,16 @@
       text.appendChild(document.createTextNode(bottomText));
       this._svgGroup.appendChild(text);
       let scale = 0.5;
+      let xScale = scale;
+      let projectedWidth = rootbb.width
+        + (text.getBBox().width * scale);
+      if(projectedWidth > viewer.beatOffset) {
+        let goalWidth = viewer.beatOffset - rootbb.width;
+        xScale = goalWidth / projectedWidth;
+      }
       text.setAttributeNS(null,
         'transform',
-        `translate(${rootbb.width}, 0) scale(${scale})`
+        `translate(${rootbb.width}, 0) scale(${xScale} ${scale})`
       );
     };
     
