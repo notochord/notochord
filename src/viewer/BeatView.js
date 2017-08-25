@@ -29,6 +29,22 @@
     this.measureView._svgGroup.appendChild(this._svgGroup);
     
     /**
+     * A rectangle behind the beat to make it look more interactive.
+     * @type {SVGRectElement}
+     * @private
+     */
+    var bgRect = document.createElementNS(viewer.SVG_NS, 'rect');
+    bgRect.classList.add('NotochordBeatViewBackground');
+    bgRect.setAttributeNS(null, 'x', '0');
+    bgRect.setAttributeNS(null, 'y', -1*(viewer.rowHeight - viewer.topPadding));
+    bgRect.setAttributeNS(null, 'width', viewer.beatOffset);
+    bgRect.setAttributeNS(null, 'height', viewer.rowHeight);
+    this._svgGroup.appendChild(bgRect);
+    
+    this._innerGroup = document.createElementNS(viewer.SVG_NS, 'g');
+    this._svgGroup.appendChild(this._innerGroup);
+    
+    /**
      * Get the root of the chord, or a Roman numeral if viewer.scaleDegrees is
      * true.
      * @param {Object} chord ChordMagic object to parse.
@@ -136,7 +152,7 @@
         'transform',
         `translate(${x}, ${y}) scale(${scale})`
       );
-      this._svgGroup.appendChild(path);
+      this._innerGroup.appendChild(path);
     };
     
     /**
@@ -149,32 +165,13 @@
     this._renderBottomText = function(bottomText, rootbb) {
       let text = document.createElementNS(viewer.SVG_NS, 'text');
       text.appendChild(document.createTextNode(bottomText));
-      this._svgGroup.appendChild(text);
+      this._innerGroup.appendChild(text);
       let scale = 0.5;
-      let xScale = scale;
-      let projectedWidth = rootbb.width
-        + (text.getBBox().width * scale);
-      if(projectedWidth > viewer.beatOffset) {
-        let goalWidth = viewer.beatOffset - rootbb.width;
-        xScale = goalWidth / projectedWidth;
-      }
       text.setAttributeNS(null,
         'transform',
-        `translate(${rootbb.width}, 0) scale(${xScale} ${scale})`
+        `translate(${rootbb.width}, 0) scale(${scale})`
       );
     };
-    
-    /**
-     * A rectangle behind the beat to make it look more interactive.
-     * @type {SVGRectElement}
-     * @private
-     */
-    var bgRect = document.createElementNS(viewer.SVG_NS, 'rect');
-    bgRect.classList.add('NotochordBeatViewBackground');
-    bgRect.setAttributeNS(null, 'x', '0');
-    bgRect.setAttributeNS(null, 'y', -1*(viewer.rowHeight - viewer.topPadding));
-    bgRect.setAttributeNS(null, 'width', viewer.beatOffset);
-    bgRect.setAttributeNS(null, 'height', viewer.rowHeight);
     
     /**
      * Set whether the beatView is being edited.
@@ -193,23 +190,23 @@
     });
     this._svgGroup.addEventListener('mousedown', this._svgGroup.blur);
     
+    var xScale = 1;
+    
     /**
      * Render a chord.
      * @param {?Object} chord A ChordMagic chord object to render, or null.
      */
     this.renderChord = function(chord) {
       // delete whatever might be in this._svgGroup
-      while(this._svgGroup.firstChild) {
-        this._svgGroup.removeChild(this._svgGroup.firstChild);
+      while(this._innerGroup.firstChild) {
+        this._innerGroup.removeChild(this._innerGroup.firstChild);
       }
-      
-      this._svgGroup.appendChild(bgRect);
       
       if(chord) {
         var {rootText, accidental} = this._getRootText(chord);
         var root = document.createElementNS(viewer.SVG_NS, 'text');
         root.appendChild(document.createTextNode(rootText));
-        this._svgGroup.appendChild(root);
+        this._innerGroup.appendChild(root);
         
         var rootbb = root.getBBox();
         
@@ -223,6 +220,18 @@
         if(bottomText) {
           this._renderBottomText(bottomText, rootbb);
         }
+        
+        var igbb = this._innerGroup.getBBox();
+        //var nextBeat = this.measureView.measure.getBeat(this.index + 1);
+        if(igbb.width > viewer.beatOffset) {
+          xScale = (viewer.beatOffset / igbb.width) / xScale;
+        } else {
+          xScale = 1;
+        }
+        this._innerGroup.setAttributeNS(null,
+          'transform',
+          `scale(${xScale} 1)`
+        );
       
         /*if(chord.overridingRoot) {
           // @todo scale down this._svgGroup and return a bigger this._svgGroup
