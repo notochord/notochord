@@ -30,6 +30,11 @@ document.querySelector('#style').innerHTML = Notochord.player.styles.map(s => {
 document.querySelector('#style').addEventListener('change', e => {
   Notochord.player.setStyle(document.querySelector('#style').value);
 });
+document.querySelector('#scaleDegrees').addEventListener('click', e => {
+  Notochord.viewer.config({
+    scaleDegrees: document.querySelector('#scaleDegrees').checked
+  });
+});
 
 blueSkies = new Notochord.Song({
   'title': 'Blue Skies',

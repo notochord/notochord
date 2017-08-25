@@ -34,7 +34,7 @@
      * @public
      */
     this.addMeasure = function(chords, index) {
-      return new Measure(this, chordMagic, index, chords);
+      return new Measure(this, chordMagic, tonal, index, chords);
     };
     /**
      * Append a newline to the piece

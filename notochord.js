@@ -7807,10 +7807,11 @@ module.exports = {
    * @class
    * @param {Song} song The song the Measure belongs to.
    * @param {Object} chordMagic A library that helps with parsing chords.
+   * @param {Object} tonal A library that helps with music theory things.
    * @param {?Number} index Optional: index at which to insert measure.
    * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
    */
-  var Measure = function(song, chordMagic, index, chords) {
+  var Measure = function(song, chordMagic, tonal, index, chords) {
     
     this.length = song.timeSignature[0];
     
@@ -7851,6 +7852,36 @@ module.exports = {
       this.parseChordToBeat(chords[i], i);
     }
     
+    const SCALE_DEGREES = {
+      1: {numeral: 'i', flat: false},
+      2: {numeral: 'ii', flat: true},
+      3: {numeral: 'ii', flat: false},
+      4: {numeral: 'iii', flat: true},
+      5: {numeral: 'iii', flat: false},
+      6: {numeral: 'iv', flat: false},
+      7: {numeral: 'v', flat: true},
+      8: {numeral: 'v', flat: false},
+      9: {numeral: 'vi', flat: true},
+      10: {numeral: 'vi', flat: false},
+      11: {numeral: 'vii', flat: true},
+      12: {numeral: 'vii', flat: false}
+    };
+    
+    var addScaleDegree = function(chord) {
+      var semis = tonal.semitones(song.getTransposedKey(), chord.root) + 1;
+      var caps = chord.quality == 'Major' || chord.quality == 'Augmented';
+      var sd = SCALE_DEGREES[semis];
+      var out = {
+        flat: sd.flat
+      };
+      if(caps) {
+        out.numeral = sd.numeral.toUpperCase();
+      } else {
+        out.numeral = sd.numeral;
+      }
+      chord.scaleDegree = out;
+    };
+    
     this.getBeat = function(beat) {
       var transpose = song.transpose;
       var oldChord = this._beats[beat];
@@ -7864,6 +7895,7 @@ module.exports = {
         } else {
           out.rawRoot = oldChord.root;
         }
+        addScaleDegree(out);
         return out;
       } else {
         return null;
@@ -7962,7 +7994,7 @@ module.exports = {
      * @public
      */
     this.addMeasure = function(chords, index) {
-      return new Measure(this, chordMagic, index, chords);
+      return new Measure(this, chordMagic, tonal, index, chords);
     };
     /**
      * Append a newline to the piece
@@ -8094,6 +8126,28 @@ module.exports = {
     this._svgGroup.setAttributeNS(null, 'tabindex', 0);
     // Append right away so we can compute size.
     this.measureView._svgGroup.appendChild(this._svgGroup);
+    
+    /**
+     * Get the root of the chord, or a Roman numeral if viewer.scaleDegrees is
+     * true.
+     * @param {Object} chord ChordMagic object to parse.
+     * @returns {Object} 2 Strings, rootText (or Roman numeral) and accidental
+     * (or null).
+     * @private
+     */
+    this._getRootText = function(chord) {
+      if(viewer.scaleDegrees) {
+        return {
+          rootText: chord.scaleDegree.numeral,
+          accidental: chord.scaleDegree.flat ? 'b' : null
+        };
+      } else {
+        return {
+          rootText: chord.rawRoot[0],
+          accidental: chord.rawRoot[1] || null
+        };
+      }
+    };
     
     /**
      * If the chord is anything besodes a major triad, it'll need extra symbols
@@ -8251,15 +8305,16 @@ module.exports = {
       this._svgGroup.appendChild(bgRect);
       
       if(chord) {
+        var {rootText, accidental} = this._getRootText(chord);
         var root = document.createElementNS(viewer.SVG_NS, 'text');
-        root.appendChild(document.createTextNode(chord.rawRoot[0]));
+        root.appendChild(document.createTextNode(rootText));
         this._svgGroup.appendChild(root);
         
         var rootbb = root.getBBox();
         
         // ACCIDENTALS
-        if(chord.rawRoot[1]) {
-          this._renderAccidental(chord.rawRoot[1], rootbb);
+        if(accidental) {
+          this._renderAccidental(accidental, rootbb);
         }
         // BOTTOM BITS
         // If the chord is anything besides a major triad, it needs more bits
@@ -8734,6 +8789,7 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
     viewer.width = 1400;
     viewer.editable = false;
     viewer.fontSize = 50;
+    viewer.scaleDegrees = false;
     var topMargin, rowYMargin, colWidth;
     
     /**
@@ -8743,12 +8799,21 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
      * @param {Boolean} [options.editable] Whether the viewer is editable.
      * @param {Number} [options.fontSize] Font size for big text (smaller
      * text will be relatively scaled).
+     * @param {Boolean} [options.scaleDegrees] Whether to display in scale-
+     * degree (Roman numeral) notation.
      */
     viewer.config = function(options) { // @todo do player.config like this too.
       if(options) {
         if(options['width']) viewer.width = options['width'];
-        if(options['editable']) viewer.editor.setEditable(options['editable']);
+        if(options['editable'] !== undefined) {
+          viewer.editor.setEditable(options['editable']);
+        }
         if(options['fontSize']) viewer.fontSize = options['fontSize'];
+        if(options['scaleDegrees'] !== undefined) {
+          viewer.scaleDegrees = options['scaleDegrees'];
+          // Hacky, but I can't think of what'd be better semantically.
+          events && events.dispatch('Notochord.transpose', {});
+        }
       }
       
       // The space left at the top for the title and stuff

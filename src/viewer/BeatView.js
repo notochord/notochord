@@ -29,6 +29,28 @@
     this.measureView._svgGroup.appendChild(this._svgGroup);
     
     /**
+     * Get the root of the chord, or a Roman numeral if viewer.scaleDegrees is
+     * true.
+     * @param {Object} chord ChordMagic object to parse.
+     * @returns {Object} 2 Strings, rootText (or Roman numeral) and accidental
+     * (or null).
+     * @private
+     */
+    this._getRootText = function(chord) {
+      if(viewer.scaleDegrees) {
+        return {
+          rootText: chord.scaleDegree.numeral,
+          accidental: chord.scaleDegree.flat ? 'b' : null
+        };
+      } else {
+        return {
+          rootText: chord.rawRoot[0],
+          accidental: chord.rawRoot[1] || null
+        };
+      }
+    };
+    
+    /**
      * If the chord is anything besodes a major triad, it'll need extra symbols
      * to describe quality, suspensions, 7ths, etc. This grabs those.
      * @param {Object} chord ChordMagic object to parse.
@@ -184,15 +206,16 @@
       this._svgGroup.appendChild(bgRect);
       
       if(chord) {
+        var {rootText, accidental} = this._getRootText(chord);
         var root = document.createElementNS(viewer.SVG_NS, 'text');
-        root.appendChild(document.createTextNode(chord.rawRoot[0]));
+        root.appendChild(document.createTextNode(rootText));
         this._svgGroup.appendChild(root);
         
         var rootbb = root.getBBox();
         
         // ACCIDENTALS
-        if(chord.rawRoot[1]) {
-          this._renderAccidental(chord.rawRoot[1], rootbb);
+        if(accidental) {
+          this._renderAccidental(accidental, rootbb);
         }
         // BOTTOM BITS
         // If the chord is anything besides a major triad, it needs more bits

@@ -5,10 +5,11 @@
    * @class
    * @param {Song} song The song the Measure belongs to.
    * @param {Object} chordMagic A library that helps with parsing chords.
+   * @param {Object} tonal A library that helps with music theory things.
    * @param {?Number} index Optional: index at which to insert measure.
    * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
    */
-  var Measure = function(song, chordMagic, index, chords) {
+  var Measure = function(song, chordMagic, tonal, index, chords) {
     
     this.length = song.timeSignature[0];
     
@@ -49,6 +50,36 @@
       this.parseChordToBeat(chords[i], i);
     }
     
+    const SCALE_DEGREES = {
+      1: {numeral: 'i', flat: false},
+      2: {numeral: 'ii', flat: true},
+      3: {numeral: 'ii', flat: false},
+      4: {numeral: 'iii', flat: true},
+      5: {numeral: 'iii', flat: false},
+      6: {numeral: 'iv', flat: false},
+      7: {numeral: 'v', flat: true},
+      8: {numeral: 'v', flat: false},
+      9: {numeral: 'vi', flat: true},
+      10: {numeral: 'vi', flat: false},
+      11: {numeral: 'vii', flat: true},
+      12: {numeral: 'vii', flat: false}
+    };
+    
+    var addScaleDegree = function(chord) {
+      var semis = tonal.semitones(song.getTransposedKey(), chord.root) + 1;
+      var caps = chord.quality == 'Major' || chord.quality == 'Augmented';
+      var sd = SCALE_DEGREES[semis];
+      var out = {
+        flat: sd.flat
+      };
+      if(caps) {
+        out.numeral = sd.numeral.toUpperCase();
+      } else {
+        out.numeral = sd.numeral;
+      }
+      chord.scaleDegree = out;
+    };
+    
     this.getBeat = function(beat) {
       var transpose = song.transpose;
       var oldChord = this._beats[beat];
@@ -62,6 +93,7 @@
         } else {
           out.rawRoot = oldChord.root;
         }
+        addScaleDegree(out);
         return out;
       } else {
         return null;

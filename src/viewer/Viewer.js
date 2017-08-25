@@ -53,6 +53,7 @@
     viewer.width = 1400;
     viewer.editable = false;
     viewer.fontSize = 50;
+    viewer.scaleDegrees = false;
     var topMargin, rowYMargin, colWidth;
     
     /**
@@ -62,12 +63,21 @@
      * @param {Boolean} [options.editable] Whether the viewer is editable.
      * @param {Number} [options.fontSize] Font size for big text (smaller
      * text will be relatively scaled).
+     * @param {Boolean} [options.scaleDegrees] Whether to display in scale-
+     * degree (Roman numeral) notation.
      */
     viewer.config = function(options) { // @todo do player.config like this too.
       if(options) {
         if(options['width']) viewer.width = options['width'];
-        if(options['editable']) viewer.editor.setEditable(options['editable']);
+        if(options['editable'] !== undefined) {
+          viewer.editor.setEditable(options['editable']);
+        }
         if(options['fontSize']) viewer.fontSize = options['fontSize'];
+        if(options['scaleDegrees'] !== undefined) {
+          viewer.scaleDegrees = options['scaleDegrees'];
+          // Hacky, but I can't think of what'd be better semantically.
+          events && events.dispatch('Notochord.transpose', {});
+        }
       }
       
       // The space left at the top for the title and stuff
