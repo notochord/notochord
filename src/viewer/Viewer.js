@@ -96,7 +96,7 @@
       // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
       var _colWidth = innerWidth / viewer.cols;
       // SVG distance between beats in a measure.
-      viewer.measureXMargin = _colWidth * .1;
+      viewer.measureXMargin = _colWidth * .05;
       colWidth = (innerWidth + viewer.measureXMargin) / viewer.cols;
       colWidth += -1 * viewer.measureXMargin / viewer.cols;
       viewer.measureWidth = colWidth - viewer.measureXMargin;
