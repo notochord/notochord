@@ -54,7 +54,9 @@
     viewer.editable = false;
     viewer.fontSize = 50;
     viewer.scaleDegrees = false;
-    var topMargin, rowYMargin, colWidth;
+    viewer.measureWidth = 350;
+    viewer.cols = 4;
+    var topMargin, rowYMargin, colWidth, innerWidth = viewer.width - 2;
     
     /**
      * Configure the viewer
@@ -68,7 +70,10 @@
      */
     viewer.config = function(options) { // @todo do player.config like this too.
       if(options) {
-        if(options['width']) viewer.width = options['width'];
+        if(options['width']) {
+          viewer.width = options['width'];
+          innerWidth = viewer.width - 2;
+        }
         if(options['editable'] !== undefined) {
           viewer.editor.setEditable(options['editable']);
         }
@@ -89,12 +94,13 @@
       
       // SVG width for each measure.
       // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
-      var _colWidth = viewer.width / 4;
+      var _colWidth = innerWidth / viewer.cols;
       // SVG distance between beats in a measure.
       viewer.measureXMargin = _colWidth * .1;
-      colWidth = (viewer.width + viewer.measureXMargin) / 4;
-      var colInnerWidth = colWidth - viewer.measureXMargin;
-      viewer.beatOffset = colInnerWidth / 4;
+      colWidth = (innerWidth + viewer.measureXMargin) / viewer.cols;
+      colWidth += -1 * viewer.measureXMargin / viewer.cols;
+      viewer.measureWidth = colWidth - viewer.measureXMargin;
+      viewer.beatOffset = viewer.measureWidth / viewer.cols;
       
       viewer.H_HEIGHT = viewer.fontSize * viewer.PATHS.slabo27px_H_height_ratio;
       
@@ -188,21 +194,23 @@
         viewer._svgElem.setAttributeNS(null, 'height', 0);
         return;
       }
+      var xoffset = 1 + (0.5 * viewer.measureXMargin);
       var row = 1;
       var col = 0;
       var y;
       for(let measure of song.measures) {
-        let x = colWidth * col++;
-        if(x + colWidth > (viewer.width + viewer.beatOffset)
+        let x = xoffset + (colWidth * col);
+        if(x + colWidth > (innerWidth + viewer.beatOffset)
           || measure === null) {
-          x = 0;
+          x = xoffset;
           col = 0;
           row++;
           if(measure === null) continue;
         }
         y = topMargin + ((viewer.rowHeight + rowYMargin) * row);
         if(!measure.measureView) return;
-        measure.measureView.setPosition(x,y);
+        measure.measureView.setPosition(x, y, col);
+        col++;
       }
       viewer.height = y + rowYMargin;
       viewer._svgElem.setAttributeNS(null, 'height', viewer.height);

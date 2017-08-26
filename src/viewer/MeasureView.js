@@ -10,6 +10,7 @@
    */
   var MeasureView = function(events, viewer, measure) {   
     this.measure = measure; 
+    var col = 0;
     // link measure back to this
     measure.measureView = this;
     var self = this;
@@ -26,16 +27,19 @@
      * Set a MeasureView's position.
      * @param {Number} x X position.
      * @param {Number} y Y position.
+     * @param {Number} _col Column (which measure this is in the row).
      * @public
      */
-    this.setPosition = function(x,y) {
+    this.setPosition = function(x, y, _col) {
       this._svgGroup.setAttributeNS(null, 'transform', `translate(${x}, ${y})`);
+      col = _col;
       
-      // Hide leftBar if first in the row.
-      if(x === 0) {
-        this._leftBar.setAttributeNS(null, 'visibility', 'hidden');
+      // Only show right bar if is last measure in the row.
+      // @todo how to handle short rows?
+      if(col === viewer.cols - 1) {
+        this._rightBar.setAttributeNS(null, 'visibility', 'visible');
       } else {
-        this._leftBar.setAttributeNS(null, 'visibility', 'visible');
+        this._rightBar.setAttributeNS(null, 'visibility', 'hidden');
       }
     };
     
@@ -113,6 +117,31 @@
           'stroke-width: 1px; stroke: black;'
         );
         this._svgGroup.appendChild(this._leftBar);
+      }
+      
+      {
+        /**
+         * Right bar of the measure. Hidden for all but the last meassure on the
+         *line.
+         * @type {SVGPathElement}
+         * @private
+         */
+        this._rightBar = document.createElementNS(viewer.SVG_NS, 'path');
+        this._rightBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
+        let x = viewer.measureWidth + (0.5 * viewer.measureXMargin);
+        let y = viewer.topPadding;
+        let scale = viewer.rowHeight / viewer.PATHS.bar_height;
+        this._rightBar.setAttributeNS(
+          null,
+          'transform',
+          `translate(${x}, ${y}) scale(${scale})`
+        );
+        this._rightBar.setAttributeNS(
+          null,
+          'style',
+          'stroke-width: 1px; stroke: black;'
+        );
+        this._svgGroup.appendChild(this._rightBar);
       }
     };
     this.render();

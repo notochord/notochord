@@ -8564,6 +8564,7 @@ module.exports = {
    */
   var MeasureView = function(events, viewer, measure) {   
     this.measure = measure; 
+    var col = 0;
     // link measure back to this
     measure.measureView = this;
     var self = this;
@@ -8580,16 +8581,19 @@ module.exports = {
      * Set a MeasureView's position.
      * @param {Number} x X position.
      * @param {Number} y Y position.
+     * @param {Number} _col Column (which measure this is in the row).
      * @public
      */
-    this.setPosition = function(x,y) {
+    this.setPosition = function(x, y, _col) {
       this._svgGroup.setAttributeNS(null, 'transform', `translate(${x}, ${y})`);
+      col = _col;
       
-      // Hide leftBar if first in the row.
-      if(x === 0) {
-        this._leftBar.setAttributeNS(null, 'visibility', 'hidden');
+      // Only show right bar if is last measure in the row.
+      // @todo how to handle short rows?
+      if(col === viewer.cols - 1) {
+        this._rightBar.setAttributeNS(null, 'visibility', 'visible');
       } else {
-        this._leftBar.setAttributeNS(null, 'visibility', 'visible');
+        this._rightBar.setAttributeNS(null, 'visibility', 'hidden');
       }
     };
     
@@ -8667,6 +8671,31 @@ module.exports = {
           'stroke-width: 1px; stroke: black;'
         );
         this._svgGroup.appendChild(this._leftBar);
+      }
+      
+      {
+        /**
+         * Right bar of the measure. Hidden for all but the last meassure on the
+         *line.
+         * @type {SVGPathElement}
+         * @private
+         */
+        this._rightBar = document.createElementNS(viewer.SVG_NS, 'path');
+        this._rightBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
+        let x = viewer.measureWidth + (0.5 * viewer.measureXMargin);
+        let y = viewer.topPadding;
+        let scale = viewer.rowHeight / viewer.PATHS.bar_height;
+        this._rightBar.setAttributeNS(
+          null,
+          'transform',
+          `translate(${x}, ${y}) scale(${scale})`
+        );
+        this._rightBar.setAttributeNS(
+          null,
+          'style',
+          'stroke-width: 1px; stroke: black;'
+        );
+        this._svgGroup.appendChild(this._rightBar);
       }
     };
     this.render();
@@ -8801,7 +8830,9 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
     viewer.editable = false;
     viewer.fontSize = 50;
     viewer.scaleDegrees = false;
-    var topMargin, rowYMargin, colWidth;
+    viewer.measureWidth = 350;
+    viewer.cols = 4;
+    var topMargin, rowYMargin, colWidth, innerWidth = viewer.width - 2;
     
     /**
      * Configure the viewer
@@ -8815,7 +8846,10 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
      */
     viewer.config = function(options) { // @todo do player.config like this too.
       if(options) {
-        if(options['width']) viewer.width = options['width'];
+        if(options['width']) {
+          viewer.width = options['width'];
+          innerWidth = viewer.width - 2;
+        }
         if(options['editable'] !== undefined) {
           viewer.editor.setEditable(options['editable']);
         }
@@ -8836,12 +8870,13 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
       
       // SVG width for each measure.
       // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
-      var _colWidth = viewer.width / 4;
+      var _colWidth = innerWidth / viewer.cols;
       // SVG distance between beats in a measure.
       viewer.measureXMargin = _colWidth * .1;
-      colWidth = (viewer.width + viewer.measureXMargin) / 4;
-      var colInnerWidth = colWidth - viewer.measureXMargin;
-      viewer.beatOffset = colInnerWidth / 4;
+      colWidth = (innerWidth + viewer.measureXMargin) / viewer.cols;
+      colWidth += -1 * viewer.measureXMargin / viewer.cols;
+      viewer.measureWidth = colWidth - viewer.measureXMargin;
+      viewer.beatOffset = viewer.measureWidth / viewer.cols;
       
       viewer.H_HEIGHT = viewer.fontSize * viewer.PATHS.slabo27px_H_height_ratio;
       
@@ -8935,21 +8970,23 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
         viewer._svgElem.setAttributeNS(null, 'height', 0);
         return;
       }
+      var xoffset = 1 + (0.5 * viewer.measureXMargin);
       var row = 1;
       var col = 0;
       var y;
       for(let measure of song.measures) {
-        let x = colWidth * col++;
-        if(x + colWidth > (viewer.width + viewer.beatOffset)
+        let x = xoffset + (colWidth * col);
+        if(x + colWidth > (innerWidth + viewer.beatOffset)
           || measure === null) {
-          x = 0;
+          x = xoffset;
           col = 0;
           row++;
           if(measure === null) continue;
         }
         y = topMargin + ((viewer.rowHeight + rowYMargin) * row);
         if(!measure.measureView) return;
-        measure.measureView.setPosition(x,y);
+        measure.measureView.setPosition(x, y, col);
+        col++;
       }
       viewer.height = y + rowYMargin;
       viewer._svgElem.setAttributeNS(null, 'height', viewer.height);
