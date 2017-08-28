@@ -7815,6 +7815,11 @@ module.exports = {
     
     this.length = song.timeSignature[0];
     
+    this.attributes = {
+      repeatStart: false,
+      repeatEnd: false
+    };
+    
     /**
      * Parse a string into a chord and save it to the specified beat index.
      * @param {String} chord The chord to parse.
@@ -7841,15 +7846,30 @@ module.exports = {
       this._beats[index] = parsed;
     };
     
-    /**
-     * Array containing timeSignature[0] ChordMagic chords or nulls.
-     * @type {?Object[]}
-     * @private
-     */
-    this._beats = new Array(this.length).fill(null);
-    if(!chords) chords = []; // If none given, pass undefined.
-    for(let i = 0; i < this.length; i++) {
-      this.parseChordToBeat(chords[i], i);
+    {
+      /**
+       * Array containing timeSignature[0] ChordMagic chords or nulls.
+       * @type {?Object[]}
+       * @private
+       */
+      this._beats = new Array(this.length).fill(null);
+      let i = 0;
+      if(!chords) chords = []; // If none given, pass undefined.
+      for(let chord of chords) {
+        switch (chord) {
+          case '|:': {
+            this.attributes['repeatStart'] = true;
+            break;
+          }
+          case ':|': {
+            this.attributes['repeatEnd'] = true;
+            break;
+          }
+          default: {
+            this.parseChordToBeat(chord, i++);
+          }
+        }
+      }
     }
     
     const SCALE_DEGREES = {
@@ -8135,9 +8155,9 @@ module.exports = {
     var bgRect = document.createElementNS(viewer.SVG_NS, 'rect');
     bgRect.classList.add('NotochordBeatViewBackground');
     bgRect.setAttributeNS(null, 'x', '0');
-    bgRect.setAttributeNS(null, 'y', -1*(viewer.rowHeight - viewer.topPadding));
-    bgRect.setAttributeNS(null, 'width', viewer.beatOffset);
-    bgRect.setAttributeNS(null, 'height', viewer.rowHeight);
+    bgRect.setAttributeNS(null, 'y', '0');
+    bgRect.setAttributeNS(null, 'width', viewer.globals.beatWidth);
+    bgRect.setAttributeNS(null, 'height', viewer.globals.rowHeight);
     this._svgGroup.appendChild(bgRect);
     
     this._innerGroup = document.createElementNS(viewer.SVG_NS, 'g');
@@ -8232,18 +8252,18 @@ module.exports = {
      */
     this._renderAccidental = function(acc, rootbb) {
       var path = document.createElementNS(viewer.SVG_NS, 'path');
-      var goal_height = (viewer.H_HEIGHT * 0.6);
+      var goal_height = (viewer.globals.H_HEIGHT * 0.6);
       var x = rootbb.width + PADDING_RIGHT;
       var y;
       var orig_height;
       if(acc == '#') {
         path.setAttributeNS(null, 'd',viewer.PATHS.sharp);
         orig_height = viewer.PATHS.sharp_height;
-        y = -0.6 * viewer.H_HEIGHT;
+        y = -0.6 * viewer.globals.H_HEIGHT;
       } else {
         path.setAttributeNS(null, 'd',viewer.PATHS.flat);
         orig_height = viewer.PATHS.flat_height;
-        y = (-1 * goal_height) - (0.6 * viewer.H_HEIGHT);
+        y = (-1 * goal_height) - (0.6 * viewer.globals.H_HEIGHT);
       }
       let scale = goal_height / orig_height;
       path.setAttributeNS(
@@ -8266,9 +8286,12 @@ module.exports = {
       text.appendChild(document.createTextNode(bottomText));
       this._innerGroup.appendChild(text);
       let scale = 0.5;
+      let x = rootbb.width;
+      let y = viewer.globals.topPadding
+        + ((1 - scale) * viewer.globals.H_HEIGHT);
       text.setAttributeNS(null,
         'transform',
-        `translate(${rootbb.width}, 0) scale(${scale})`
+        `translate(${x}, ${y}) scale(${scale})`
       );
     };
     
@@ -8304,6 +8327,11 @@ module.exports = {
       if(chord) {
         var {rootText, accidental} = this._getRootText(chord);
         var root = document.createElementNS(viewer.SVG_NS, 'text');
+        root.setAttributeNS(
+          null,
+          'transform',
+          `translate(0, ${viewer.globals.topPadding})`
+        );
         root.appendChild(document.createTextNode(rootText));
         this._innerGroup.appendChild(root);
         
@@ -8322,8 +8350,8 @@ module.exports = {
         
         var igbb = this._innerGroup.getBBox();
         //var nextBeat = this.measureView.measure.getBeat(this.index + 1);
-        if(igbb.width > viewer.beatOffset) {
-          xScale = (viewer.beatOffset / igbb.width) / xScale;
+        if(igbb.width > viewer.globals.beatWidth) {
+          xScale = (viewer.globals.beatWidth / igbb.width) / xScale;
         } else {
           xScale = 1;
         }
@@ -8590,7 +8618,7 @@ module.exports = {
       
       // Only show right bar if is last measure in the row.
       // @todo how to handle short rows?
-      if(col === viewer.cols - 1) {
+      if(col === viewer.globals.cols - 1) {
         this._rightBar.setAttributeNS(null, 'visibility', 'visible');
       } else {
         this._rightBar.setAttributeNS(null, 'visibility', 'hidden');
@@ -8615,6 +8643,60 @@ module.exports = {
     this.move();
     
     /**
+     * Render Measure.attributes-related graphics.
+     * @private
+     */
+    this._renderAttributes = function() {
+      // delete whatever might be in this._svgGroup
+      while(this._attrsGroup.firstChild) {
+        this._attrsGroup.removeChild(this._attrsGroup.firstChild);
+      }
+      // @todo should attrsGroup be in attrs?
+      this._attrs = {};
+      
+      if(this.measure.attributes['repeatStart']) {
+        this._attrs.repeatStart = document.createElementNS(viewer.SVG_NS, 'g');
+        this._attrsGroup.appendChild(this._attrs.repeatStart);
+        this._attrs.repeatStart.classList.add('NotochordRepeatStart');
+        let radius = viewer.globals.rowHeight * 0.03;
+        let x = 0.25 * viewer.globals.measureXPadding;
+        
+        let topDot = document.createElementNS(viewer.SVG_NS, 'circle');
+        topDot.setAttributeNS(null, 'r', radius);
+        topDot.setAttributeNS(null, 'cx', x);
+        topDot.setAttributeNS(null, 'cy', viewer.globals.rowHeight * 2/5);
+        this._attrs.repeatStart.appendChild(topDot);
+        
+        let bottomDot = document.createElementNS(viewer.SVG_NS, 'circle');
+        bottomDot.setAttributeNS(null, 'r', radius);
+        bottomDot.setAttributeNS(null, 'cx', x);
+        bottomDot.setAttributeNS(null, 'cy', viewer.globals.rowHeight * 3/5);
+        this._attrs.repeatStart.appendChild(bottomDot);
+      }
+      
+      if(this.measure.attributes['repeatEnd']) {
+        this._attrs.repeatEnd = document.createElementNS(viewer.SVG_NS, 'g');
+        this._attrsGroup.appendChild(this._attrs.repeatEnd);
+        this._attrs.repeatEnd.classList.add('NotochordRepeatEnd');
+        let radius = viewer.globals.rowHeight * 0.03;
+        let x = viewer.globals.measureWidth
+          - (0.25 * viewer.globals.measureXPadding);
+        
+        let topDot = document.createElementNS(viewer.SVG_NS, 'circle');
+        topDot.setAttributeNS(null, 'r', radius);
+        topDot.setAttributeNS(null, 'cx', x);
+        topDot.setAttributeNS(null, 'cy', viewer.globals.rowHeight * 2/5);
+        this._attrs.repeatEnd.appendChild(topDot);
+        
+        let bottomDot = document.createElementNS(viewer.SVG_NS, 'circle');
+        bottomDot.setAttributeNS(null, 'r', radius);
+        bottomDot.setAttributeNS(null, 'cx', x);
+        bottomDot.setAttributeNS(null, 'cy', viewer.globals.rowHeight * 3/5);
+        this._attrs.repeatEnd.appendChild(bottomDot);
+      }
+    };
+    
+    /**
      * Array containing timeSignature[0] Objects or null
      * @type {?Object[]}
      * @public
@@ -8628,7 +8710,8 @@ module.exports = {
     this.render = function() {
       for(let i = 0; i < measure.length; i++) {
         let chord = measure.getBeat(i);
-        let offset = i * viewer.beatOffset;
+        let offset = (0.5 * viewer.globals.measureXPadding)
+          + (i * viewer.globals.beatWidth);
         let beat = new viewer.BeatView(events, viewer, this, i, offset);
         beat.renderChord(chord);
         this.beatViews.push(beat);
@@ -8649,6 +8732,24 @@ module.exports = {
         events.on('Viewer.setScaleDegrees', rerender);
       }
       
+      /**
+       * Group to store Measure.attributes-related graphics.
+       * @type {SVGGElement}
+       * @private
+       */
+      this._attrsGroup = document.createElementNS(viewer.SVG_NS, 'g');
+      this._attrsGroup.classList.add('NotochordAttributes');
+      this._svgGroup.appendChild(this._attrsGroup);
+      
+      /**
+       * Object to store Measure.attributes-related elements.
+       * @type {Object}
+       * @private
+       */
+      this._attrs;
+      
+      this._renderAttributes();
+      
       {
         /**
          * Left bar of the measure. Hidden for the first meassure on the line.
@@ -8657,13 +8758,12 @@ module.exports = {
          */
         this._leftBar = document.createElementNS(viewer.SVG_NS, 'path');
         this._leftBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
-        let x = -0.5 * viewer.measureXMargin;
-        let y = viewer.topPadding;
-        let scale = viewer.rowHeight / viewer.PATHS.bar_height;
+        this._leftBar.classList.add('NotochordLeftBar');
+        let scale = viewer.globals.rowHeight / viewer.PATHS.bar_height;
         this._leftBar.setAttributeNS(
           null,
           'transform',
-          `translate(${x}, ${y}) scale(${scale})`
+          `scale(${scale})`
         );
         this._leftBar.setAttributeNS(
           null,
@@ -8682,13 +8782,13 @@ module.exports = {
          */
         this._rightBar = document.createElementNS(viewer.SVG_NS, 'path');
         this._rightBar.setAttributeNS(null, 'd', viewer.PATHS.bar);
-        let x = viewer.measureWidth + (0.5 * viewer.measureXMargin);
-        let y = viewer.topPadding;
-        let scale = viewer.rowHeight / viewer.PATHS.bar_height;
+        this._rightBar.classList.add('NotochordRightBar');
+        let x = viewer.globals.measureWidth;
+        let scale = viewer.globals.rowHeight / viewer.PATHS.bar_height;
         this._rightBar.setAttributeNS(
           null,
           'transform',
-          `translate(${x}, ${y}) scale(${scale})`
+          `translate(${x}, 0) scale(${scale})`
         );
         this._rightBar.setAttributeNS(
           null,
@@ -8726,7 +8826,7 @@ module.exports = {
   // https://commons.wikimedia.org/wiki/File:Di%C3%A8se.svg
   'sharp': 'm 4.6252809,-11.71096 c 0,-0.21414 -0.1713067,-0.40686 -0.38544,-0.40686 -0.2141334,0 -0.4068535,0.19272 -0.4068535,0.40686 l 0,3.1049303 -1.777307,-0.66381 0,-3.3833103 c 0,-0.21413 -0.19272,-0.40685 -0.4068534,-0.40685 -0.2141334,0 -0.3854401,0.19272 -0.3854401,0.40685 l 0,3.1049303 -0.68522678,-0.25696 c -0.0428267,-0.0214 -0.10706669,-0.0214 -0.14989337,-0.0214 C 0.19272004,-9.8265897 0,-9.6338697 0,-9.3983197 l 0,1.2847998 c 0,0.1713 0.10706669,0.34261 0.27837339,0.40685 l 0.98501351,0.34261 0,3.42614 -0.68522678,-0.23555 c -0.0428267,-0.0214 -0.10706669,-0.0214 -0.14989337,-0.0214 C 0.19272004,-4.1948799 0,-4.0021599 0,-3.7666099 l 0,1.2848 c 0,0.1713 0.10706669,0.3212 0.27837339,0.38544 l 0.98501351,0.36402 0,3.38331 c 0,0.21413 0.1713067,0.40685 0.3854401,0.40685 0.2141334,0 0.4068534,-0.19272 0.4068534,-0.40685 l 0,-3.10493 1.777307,0.66380998 0,3.38331002 c 0,0.21413 0.1927201,0.40685 0.4068535,0.40685 0.2141333,0 0.38544,-0.19272 0.38544,-0.40685 l 0,-3.10494002 0.6852268,0.25696 c 0.042827,0.0214 0.1070667,0.0214 0.1498934,0.0214 0.2355467,0 0.4282668,-0.19272 0.4282668,-0.42827 l 0,-1.28479998 c 0,-0.17131 -0.1070667,-0.34261 -0.2783734,-0.40685 l -0.9850136,-0.34262 0,-3.42613 0.6852268,0.23554 c 0.042827,0.0214 0.1070667,0.0214 0.1498934,0.0214 0.2355467,0 0.4282668,-0.19272 0.4282668,-0.42827 l 0,-1.2848 c 0,-0.17131 -0.1070667,-0.3212 -0.2783734,-0.38544 l -0.9850136,-0.36403 0,-3.3833001 z m -2.5696005,8.0728301 0,-3.42614 1.777307,0.6424 0,3.42614 z',
   'sharp_height': 16.059999465942383,
-  'bar': 'M 0,0 0,-100',
+  'bar': 'M 0,0 0,100',
   'bar_height': 100,
   'delta_char': '\u0394',
   'oslash_char': '\u00F8',
@@ -8738,7 +8838,8 @@ module.exports = {
 module.exports = `/*<![CDATA[*/
 @import url("https://fonts.googleapis.com/css?family=Slabo+27px&subset=latin-ext");
 .NotochordSVGElement {
-  font-family: 'Slabo 27px', serif; }
+  font-family: 'Slabo 27px', serif;
+  dominant-baseline: hanging; }
 
 .NotochordPlayedBeat path, .NotochordPlayedBeat text {
   fill: lightblue; }
@@ -8826,13 +8927,20 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
     viewer._hiddenTabbable.setAttributeNS(null, 'tabindex', 0);
     viewer._svgElem.appendChild(viewer._hiddenTabbable);
     
+    viewer.globals = {
+      cols: 4,
+      measureWidth: 237,
+      rowHeight: 60,
+      measureXPadding: 18.96,
+      beatWidth: 54.51,
+      H_HEIGHT: 33.33,
+      topPadding:13.335
+    };
     viewer.width = 1400;
     viewer.editable = false;
     viewer.fontSize = 50;
     viewer.scaleDegrees = false;
-    viewer.measureWidth = 350;
-    viewer.cols = 4;
-    var topMargin, rowYMargin, colWidth, innerWidth = viewer.width - 2;
+    var topMargin, rowYMargin, innerWidth = viewer.width - 2;
     
     /**
      * Configure the viewer
@@ -8861,26 +8969,26 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
         }
       }
       
-      // The space left at the top for the title and stuff
-      topMargin = 1.2 * viewer.fontSize;
-      // Vertical space between rows.
-      rowYMargin = 0.2 * viewer.fontSize;
-      
       viewer.rowHeight = 1.2 * viewer.fontSize;
+      
+      // The space left at the top for the title and stuff
+      topMargin = 1.5 * viewer.rowHeight;
+      // Vertical space between rows.
+      rowYMargin = 0.15 * viewer.rowHeight;
       
       // SVG width for each measure.
       // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
-      var _colWidth = innerWidth / viewer.cols;
+      viewer.globals.measureWidth = innerWidth / viewer.globals.cols;
+      viewer.globals.measureXPadding = viewer.globals.measureWidth * .08;
+      var measureInnerWidth = viewer.globals.measureWidth
+        - viewer.globals.measureXPadding;
       // SVG distance between beats in a measure.
-      viewer.measureXMargin = _colWidth * .05;
-      colWidth = (innerWidth + viewer.measureXMargin) / viewer.cols;
-      colWidth += -1 * viewer.measureXMargin / viewer.cols;
-      viewer.measureWidth = colWidth - viewer.measureXMargin;
-      viewer.beatOffset = viewer.measureWidth / viewer.cols;
+      viewer.globals.beatWidth = measureInnerWidth / viewer.globals.cols;
       
-      viewer.H_HEIGHT = viewer.fontSize * viewer.PATHS.slabo27px_H_height_ratio;
-      
-      viewer.topPadding = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
+      viewer.globals.H_HEIGHT = viewer.fontSize
+        * viewer.PATHS.slabo27px_H_height_ratio;
+      viewer.globals.topPadding = 0.5
+        * (viewer.rowHeight - viewer.globals.H_HEIGHT);
       
       viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
       viewer._svgElem.style.fontSize = viewer.fontSize;
@@ -8942,18 +9050,18 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
       var titleBB = viewer._titleText.getBBox();
       var ttscale = 0.7;
       var ttx = (viewer.width - (titleBB.width * ttscale)) / 2;
-      var tty = viewer.H_HEIGHT * ttscale;
       viewer._titleText.setAttributeNS(
         null,
         'transform',
-        `translate(${ttx}, ${tty}) scale(${ttscale})`
+        `translate(${ttx}, 0) scale(${ttscale})`
       );
       
       composerText.appendChild(document.createTextNode(song.composer));
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;
       var ctx = (viewer.width - (composerBB.width * ctscale)) / 2;
-      var cty = tty + rowYMargin + (viewer.H_HEIGHT * ctscale);
+      var cty = (viewer.globals.H_HEIGHT * ttscale)
+        + (viewer.globals.H_HEIGHT * ctscale);
       composerText.setAttributeNS(
         null,
         'transform',
@@ -8970,13 +9078,14 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
         viewer._svgElem.setAttributeNS(null, 'height', 0);
         return;
       }
-      var xoffset = 1 + (0.5 * viewer.measureXMargin);
-      var row = 1;
+      var xoffset = 1;
+      var row = 0;
       var col = 0;
       var y;
       for(let measure of song.measures) {
-        let x = xoffset + (colWidth * col);
-        if(x + colWidth > (innerWidth + viewer.beatOffset)
+        let x = xoffset + (viewer.globals.measureWidth * col);
+        if(x + viewer.globals.measureWidth
+          > (innerWidth + viewer.globals.beatWidth)
           || measure === null) {
           x = xoffset;
           col = 0;
@@ -8988,7 +9097,7 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
         measure.measureView.setPosition(x, y, col);
         col++;
       }
-      viewer.height = y + rowYMargin;
+      viewer.height = y + rowYMargin + viewer.rowHeight;
       viewer._svgElem.setAttributeNS(null, 'height', viewer.height);
     };
     

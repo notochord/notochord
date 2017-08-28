@@ -36,9 +36,9 @@
     var bgRect = document.createElementNS(viewer.SVG_NS, 'rect');
     bgRect.classList.add('NotochordBeatViewBackground');
     bgRect.setAttributeNS(null, 'x', '0');
-    bgRect.setAttributeNS(null, 'y', -1*(viewer.rowHeight - viewer.topPadding));
-    bgRect.setAttributeNS(null, 'width', viewer.beatOffset);
-    bgRect.setAttributeNS(null, 'height', viewer.rowHeight);
+    bgRect.setAttributeNS(null, 'y', '0');
+    bgRect.setAttributeNS(null, 'width', viewer.globals.beatWidth);
+    bgRect.setAttributeNS(null, 'height', viewer.globals.rowHeight);
     this._svgGroup.appendChild(bgRect);
     
     this._innerGroup = document.createElementNS(viewer.SVG_NS, 'g');
@@ -133,18 +133,18 @@
      */
     this._renderAccidental = function(acc, rootbb) {
       var path = document.createElementNS(viewer.SVG_NS, 'path');
-      var goal_height = (viewer.H_HEIGHT * 0.6);
+      var goal_height = (viewer.globals.H_HEIGHT * 0.6);
       var x = rootbb.width + PADDING_RIGHT;
       var y;
       var orig_height;
       if(acc == '#') {
         path.setAttributeNS(null, 'd',viewer.PATHS.sharp);
         orig_height = viewer.PATHS.sharp_height;
-        y = -0.6 * viewer.H_HEIGHT;
+        y = -0.6 * viewer.globals.H_HEIGHT;
       } else {
         path.setAttributeNS(null, 'd',viewer.PATHS.flat);
         orig_height = viewer.PATHS.flat_height;
-        y = (-1 * goal_height) - (0.6 * viewer.H_HEIGHT);
+        y = (-1 * goal_height) - (0.6 * viewer.globals.H_HEIGHT);
       }
       let scale = goal_height / orig_height;
       path.setAttributeNS(
@@ -167,9 +167,12 @@
       text.appendChild(document.createTextNode(bottomText));
       this._innerGroup.appendChild(text);
       let scale = 0.5;
+      let x = rootbb.width;
+      let y = viewer.globals.topPadding
+        + ((1 - scale) * viewer.globals.H_HEIGHT);
       text.setAttributeNS(null,
         'transform',
-        `translate(${rootbb.width}, 0) scale(${scale})`
+        `translate(${x}, ${y}) scale(${scale})`
       );
     };
     
@@ -205,6 +208,11 @@
       if(chord) {
         var {rootText, accidental} = this._getRootText(chord);
         var root = document.createElementNS(viewer.SVG_NS, 'text');
+        root.setAttributeNS(
+          null,
+          'transform',
+          `translate(0, ${viewer.globals.topPadding})`
+        );
         root.appendChild(document.createTextNode(rootText));
         this._innerGroup.appendChild(root);
         
@@ -223,8 +231,8 @@
         
         var igbb = this._innerGroup.getBBox();
         //var nextBeat = this.measureView.measure.getBeat(this.index + 1);
-        if(igbb.width > viewer.beatOffset) {
-          xScale = (viewer.beatOffset / igbb.width) / xScale;
+        if(igbb.width > viewer.globals.beatWidth) {
+          xScale = (viewer.globals.beatWidth / igbb.width) / xScale;
         } else {
           xScale = 1;
         }

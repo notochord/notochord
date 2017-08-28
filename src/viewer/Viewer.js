@@ -50,13 +50,20 @@
     viewer._hiddenTabbable.setAttributeNS(null, 'tabindex', 0);
     viewer._svgElem.appendChild(viewer._hiddenTabbable);
     
+    viewer.globals = {
+      cols: 4,
+      measureWidth: 237,
+      rowHeight: 60,
+      measureXPadding: 18.96,
+      beatWidth: 54.51,
+      H_HEIGHT: 33.33,
+      topPadding:13.335
+    };
     viewer.width = 1400;
     viewer.editable = false;
     viewer.fontSize = 50;
     viewer.scaleDegrees = false;
-    viewer.measureWidth = 350;
-    viewer.cols = 4;
-    var topMargin, rowYMargin, colWidth, innerWidth = viewer.width - 2;
+    var topMargin, rowYMargin, innerWidth = viewer.width - 2;
     
     /**
      * Configure the viewer
@@ -85,26 +92,26 @@
         }
       }
       
-      // The space left at the top for the title and stuff
-      topMargin = 1.2 * viewer.fontSize;
-      // Vertical space between rows.
-      rowYMargin = 0.2 * viewer.fontSize;
-      
       viewer.rowHeight = 1.2 * viewer.fontSize;
+      
+      // The space left at the top for the title and stuff
+      topMargin = 1.5 * viewer.rowHeight;
+      // Vertical space between rows.
+      rowYMargin = 0.15 * viewer.rowHeight;
       
       // SVG width for each measure.
       // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
-      var _colWidth = innerWidth / viewer.cols;
+      viewer.globals.measureWidth = innerWidth / viewer.globals.cols;
+      viewer.globals.measureXPadding = viewer.globals.measureWidth * .08;
+      var measureInnerWidth = viewer.globals.measureWidth
+        - viewer.globals.measureXPadding;
       // SVG distance between beats in a measure.
-      viewer.measureXMargin = _colWidth * .05;
-      colWidth = (innerWidth + viewer.measureXMargin) / viewer.cols;
-      colWidth += -1 * viewer.measureXMargin / viewer.cols;
-      viewer.measureWidth = colWidth - viewer.measureXMargin;
-      viewer.beatOffset = viewer.measureWidth / viewer.cols;
+      viewer.globals.beatWidth = measureInnerWidth / viewer.globals.cols;
       
-      viewer.H_HEIGHT = viewer.fontSize * viewer.PATHS.slabo27px_H_height_ratio;
-      
-      viewer.topPadding = 0.5 * (viewer.rowHeight - viewer.H_HEIGHT);
+      viewer.globals.H_HEIGHT = viewer.fontSize
+        * viewer.PATHS.slabo27px_H_height_ratio;
+      viewer.globals.topPadding = 0.5
+        * (viewer.rowHeight - viewer.globals.H_HEIGHT);
       
       viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
       viewer._svgElem.style.fontSize = viewer.fontSize;
@@ -166,18 +173,18 @@
       var titleBB = viewer._titleText.getBBox();
       var ttscale = 0.7;
       var ttx = (viewer.width - (titleBB.width * ttscale)) / 2;
-      var tty = viewer.H_HEIGHT * ttscale;
       viewer._titleText.setAttributeNS(
         null,
         'transform',
-        `translate(${ttx}, ${tty}) scale(${ttscale})`
+        `translate(${ttx}, 0) scale(${ttscale})`
       );
       
       composerText.appendChild(document.createTextNode(song.composer));
       var composerBB = composerText.getBBox();
       var ctscale = 0.5;
       var ctx = (viewer.width - (composerBB.width * ctscale)) / 2;
-      var cty = tty + rowYMargin + (viewer.H_HEIGHT * ctscale);
+      var cty = (viewer.globals.H_HEIGHT * ttscale)
+        + (viewer.globals.H_HEIGHT * ctscale);
       composerText.setAttributeNS(
         null,
         'transform',
@@ -194,13 +201,14 @@
         viewer._svgElem.setAttributeNS(null, 'height', 0);
         return;
       }
-      var xoffset = 1 + (0.5 * viewer.measureXMargin);
-      var row = 1;
+      var xoffset = 1;
+      var row = 0;
       var col = 0;
       var y;
       for(let measure of song.measures) {
-        let x = xoffset + (colWidth * col);
-        if(x + colWidth > (innerWidth + viewer.beatOffset)
+        let x = xoffset + (viewer.globals.measureWidth * col);
+        if(x + viewer.globals.measureWidth
+          > (innerWidth + viewer.globals.beatWidth)
           || measure === null) {
           x = xoffset;
           col = 0;
@@ -212,7 +220,7 @@
         measure.measureView.setPosition(x, y, col);
         col++;
       }
-      viewer.height = y + rowYMargin;
+      viewer.height = y + rowYMargin + viewer.rowHeight;
       viewer._svgElem.setAttributeNS(null, 'height', viewer.height);
     };
     

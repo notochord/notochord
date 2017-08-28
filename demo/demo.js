@@ -44,13 +44,13 @@ blueSkies = new Notochord.Song({
   'chords': [
     // Each array is a measure, and each item in an array is a beat.
     // null inside a measure means there's no chord set for that beat.
-    ['A-', null, null, null], ['E', null, null, null], ['A-7', null, null, null], ['A-6', null, null, null], 
+    ['|:', 'A-', null, null, null], ['E', null, null, null], ['A-7', null, null, null], ['A-6', null, null, null], 
     null, // newline.
     ['CM7', null, 'A7', null], ['D-7', null, 'G7', null], ['C6', null, null, null], ['Bdim7', null, 'E7', null], 
     null,
     ['A-', null, null, null], ['E', null, null, null], ['A-7', null, null, null], ['A-6', null, null, null], 
     null,
-    ['CM7', null, 'A7', null], ['D-7', null, 'G7', null], ['C6', null, null, null], ['C6', null, null, null], 
+    ['CM7', null, 'A7', null], ['D-7', null, 'G7', null], ['C6', null, null, null], ['C6', null, null, null, ':|'], 
   ]
 });
 Notochord.loadSong(blueSkies);

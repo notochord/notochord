@@ -13,6 +13,11 @@
     
     this.length = song.timeSignature[0];
     
+    this.attributes = {
+      repeatStart: false,
+      repeatEnd: false
+    };
+    
     /**
      * Parse a string into a chord and save it to the specified beat index.
      * @param {String} chord The chord to parse.
@@ -39,15 +44,30 @@
       this._beats[index] = parsed;
     };
     
-    /**
-     * Array containing timeSignature[0] ChordMagic chords or nulls.
-     * @type {?Object[]}
-     * @private
-     */
-    this._beats = new Array(this.length).fill(null);
-    if(!chords) chords = []; // If none given, pass undefined.
-    for(let i = 0; i < this.length; i++) {
-      this.parseChordToBeat(chords[i], i);
+    {
+      /**
+       * Array containing timeSignature[0] ChordMagic chords or nulls.
+       * @type {?Object[]}
+       * @private
+       */
+      this._beats = new Array(this.length).fill(null);
+      let i = 0;
+      if(!chords) chords = []; // If none given, pass undefined.
+      for(let chord of chords) {
+        switch (chord) {
+          case '|:': {
+            this.attributes['repeatStart'] = true;
+            break;
+          }
+          case ':|': {
+            this.attributes['repeatEnd'] = true;
+            break;
+          }
+          default: {
+            this.parseChordToBeat(chord, i++);
+          }
+        }
+      }
     }
     
     const SCALE_DEGREES = {

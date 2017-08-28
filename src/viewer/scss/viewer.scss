@@ -5,6 +5,7 @@ $played-highlight: hsl($hue, 53%, 79%);
 
 .NotochordSVGElement {
   font-family: 'Slabo 27px', serif;
+  dominant-baseline: hanging;
 }
 
 .NotochordPlayedBeat {

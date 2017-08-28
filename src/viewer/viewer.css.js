@@ -2,7 +2,8 @@
 module.exports = `/*<![CDATA[*/
 @import url("https://fonts.googleapis.com/css?family=Slabo+27px&subset=latin-ext");
 .NotochordSVGElement {
-  font-family: 'Slabo 27px', serif; }
+  font-family: 'Slabo 27px', serif;
+  dominant-baseline: hanging; }
 
 .NotochordPlayedBeat path, .NotochordPlayedBeat text {
   fill: lightblue; }
