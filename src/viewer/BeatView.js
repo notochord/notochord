@@ -140,11 +140,12 @@
       if(acc == '#') {
         path.setAttributeNS(null, 'd',viewer.PATHS.sharp);
         orig_height = viewer.PATHS.sharp_height;
-        y = -0.6 * viewer.globals.H_HEIGHT;
+        y = viewer.globals.topPadding + (0.3 * viewer.globals.H_HEIGHT);
       } else {
         path.setAttributeNS(null, 'd',viewer.PATHS.flat);
         orig_height = viewer.PATHS.flat_height;
-        y = (-1 * goal_height) - (0.6 * viewer.globals.H_HEIGHT);
+        y = viewer.globals.topPadding + (0.3 * viewer.globals.H_HEIGHT)
+          - goal_height;
       }
       let scale = goal_height / orig_height;
       path.setAttributeNS(
@@ -167,7 +168,7 @@
       text.appendChild(document.createTextNode(bottomText));
       this._innerGroup.appendChild(text);
       let scale = 0.5;
-      let x = rootbb.width;
+      let x = rootbb.width + PADDING_RIGHT;
       let y = viewer.globals.topPadding
         + ((1 - scale) * viewer.globals.H_HEIGHT);
       text.setAttributeNS(null,
