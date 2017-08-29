@@ -17,6 +17,7 @@
     playback.measureNumber = 0;
     playback.measure = null;
     playback.beat = 1;
+    playback.repeatNumber = 0;
     playback.playing = false;
     playback.tempo = 120; // Player should set these 3 before playing.
     playback.song = null;
@@ -70,6 +71,7 @@
       playback.measureInPhrase = 0;
       playback.beat = 1;
       playback.measure = playback.song.measures[0];
+      playback.repeatNumber = 0;
     };
     /**
      * Stops playback.
@@ -274,7 +276,23 @@
      * @private
      */
     playback.nextMeasure = function() {
-      playback.measure = playback.measure.getNextMeasure();
+      if(playback.repeatNumber == 0
+        && playback.measure.attributes['repeatEnd']) {
+        while(!playback.measure.attributes['repeatStart']) {
+          let newMeasure = playback.measure.getPreviousMeasure();
+          if(newMeasure) {
+            playback.measure = newMeasure;
+          } else {
+            break;
+          }
+        }
+        playback.repeatNumber = 1;
+      } else {
+        if(playback.measure.attributes['repeatEnd']) {
+          playback.repeatNumber = 0;
+        }
+        playback.measure = playback.measure.getNextMeasure();
+      }
       if(playback.measure) {
         playback.measureNumber = playback.measure.getIndex();
         
