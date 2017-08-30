@@ -17,7 +17,7 @@
     playback.measureNumber = 0;
     playback.measure = null;
     playback.beat = 1;
-    playback.repeatNumber = 0;
+    playback.repeatStack = [];
     playback.playing = false;
     playback.tempo = 120; // Player should set these 3 before playing.
     playback.song = null;
@@ -71,7 +71,13 @@
       playback.measureInPhrase = 0;
       playback.beat = 1;
       playback.measure = playback.song.measures[0];
-      playback.repeatNumber = 0;
+      playback.repeatStack = [
+        {
+          repeatCount: 0,
+          maxRepeats: 1,
+          startMeasure: playback.measure
+        }
+      ];
     };
     /**
      * Stops playback.
@@ -276,23 +282,27 @@
      * @private
      */
     playback.nextMeasure = function() {
-      if(playback.repeatNumber == 0
-        && playback.measure.attributes['repeatEnd']) {
-        while(!playback.measure.attributes['repeatStart']) {
-          let newMeasure = playback.measure.getPreviousMeasure();
-          if(newMeasure) {
-            playback.measure = newMeasure;
-          } else {
-            break;
-          }
+      if(playback.measure.attributes['repeatEnd']) {
+        let repeatData = playback.repeatStack[playback.repeatStack.length - 1];
+        if(repeatData.repeatCount < repeatData.maxRepeats) {
+          playback.measure = repeatData.startMeasure;
+          repeatData.repeatCount++;
+        } else {
+          playback.repeatStack.pop();
+          playback.measure = playback.measure.getNextMeasure();
         }
-        playback.repeatNumber = 1;
       } else {
-        if(playback.measure.attributes['repeatEnd']) {
-          playback.repeatNumber = 0;
-        }
         playback.measure = playback.measure.getNextMeasure();
+        
+        if(playback.measure.attributes['repeatStart']) {
+          playback.repeatStack.push({
+            repeatCount: 0,
+            maxRepeats: 1,
+            startMeasure: playback.measure
+          });
+        }
       }
+      
       if(playback.measure) {
         playback.measureNumber = playback.measure.getIndex();
         
