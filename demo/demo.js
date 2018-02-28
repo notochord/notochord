@@ -41,16 +41,44 @@ blueSkies = new Notochord.Song({
   'composer': 'Irving Berlin',
   'timeSignature': [4,4],
   'key': 'C',
-  'chords': [
-    // Each array is a measure, and each item in an array is a beat.
-    // null inside a measure means there's no chord set for that beat.
-    ['|:', 'A-', null, null, null], ['|:', 'E', null, null, null], ['|:', 'A-7', null, null, null, ':|'], ['A-6', null, null, null, ':|'], 
-    null, // newline.
-    ['CM7', null, 'A7', null], ['D-7', null, 'G7', null], ['C6', null, null, null], ['Bdim7', null, 'E7', null], 
-    null,
-    ['A-', null, null, null], ['E', null, null, null], ['A-7', null, null, null], ['A-6', null, null, null], 
-    null,
-    ['CM7', null, 'A7', null], ['D-7', null, 'G7', null], ['C6', null, null, null], ['C6', null, null, null, ':|'], 
+  'measures': [
+    {
+      'beats': ['A-'], // The first beat of every measure must be set.
+      'repeatStart': true,
+      'maxRepeats': 1
+    },
+    {
+      'beats': ['E']
+    },
+    {
+      'beats': ['A-7']
+    },
+    {
+      'beats': ['A-6']
+    },
+    {
+      'beats': ['CM7', undefined, 'A7']
+    },
+    {
+      'beats': ['D-7', undefined, 'G7']
+    },
+    {
+      'beats': ['C6'],
+      'ending': 1
+    },
+    {
+      'beats': ['Bdim', undefined, 'E7'],
+      'repeatEnd': true,
+      'ending': 1
+    },
+    {
+      'beats': ['C6'],
+      'ending': 2
+    },
+    {
+      'beats': ['C6'],
+      'ending': 2
+    }
   ]
 });
 Notochord.loadSong(blueSkies);

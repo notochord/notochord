@@ -282,9 +282,18 @@
      * @private
      */
     playback.nextMeasure = function() {
-      if(playback.measure.attributes['repeatEnd']) {
-        let repeatData = playback.repeatStack[playback.repeatStack.length - 1];
+      var skipToEnding = false;
+      var repeatData = playback.repeatStack[playback.repeatStack.length - 1];
+      if(repeatData && playback.measure.attributes['ending'] !== null) {
+        let ending = playback.measure.attributes['ending'];
+        if(repeatData.repeatCount != ending - 1) {
+          skipToEnding = true;
+        }
+      }
+      if(repeatData && (playback.measure.attributes['repeatEnd']
+        || playback.measure.attributes['ending'])) {
         if(repeatData.repeatCount < repeatData.maxRepeats) {
+          repeatData.endMeasure = playback.measure;
           playback.measure = repeatData.startMeasure;
           repeatData.repeatCount++;
         } else {
@@ -294,11 +303,12 @@
       } else {
         playback.measure = playback.measure.getNextMeasure();
         
-        if(playback.measure.attributes['repeatStart']) {
+        if(playback.measure && playback.measure.attributes['repeatStart']) {
           playback.repeatStack.push({
             repeatCount: 0,
-            maxRepeats: 1,
-            startMeasure: playback.measure
+            maxRepeats: playback.measure.attributes['maxRepeats'],
+            startMeasure: playback.measure,
+            endMeasure: null
           });
         }
       }

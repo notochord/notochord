@@ -7,15 +7,17 @@
    * @param {Object} chordMagic A library that helps with parsing chords.
    * @param {Object} tonal A library that helps with music theory things.
    * @param {?Number} index Optional: index at which to insert measure.
-   * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
+   * @param {Object} pseudoMeasure Optional: pseudo-measure object to parse.
    */
-  var Measure = function(song, chordMagic, tonal, index, chords) {
+  var Measure = function(song, chordMagic, tonal, index, pseudoMeasure) {
     
     this.length = song.timeSignature[0];
     
     this.attributes = {
       repeatStart: false,
-      repeatEnd: false
+      repeatEnd: false,
+      ending: null,
+      maxRepeats: 0
     };
     
     /**
@@ -52,22 +54,26 @@
        */
       this._beats = new Array(this.length).fill(null);
       let i = 0;
-      if(!chords) chords = []; // If none given, pass undefined.
-      for(let chord of chords) {
-        switch (chord) {
-          case '|:': {
-            this.attributes['repeatStart'] = true;
-            break;
-          }
-          case ':|': {
-            this.attributes['repeatEnd'] = true;
-            break;
-          }
-          default: {
-            this.parseChordToBeat(chord, i++);
-          }
+      var chords;
+      if(pseudoMeasure) {
+        chords = pseudoMeasure.beats;
+        if(pseudoMeasure.repeatStart) {
+          this.attributes['repeatStart'] = pseudoMeasure.repeatStart;
         }
+        if(pseudoMeasure.repeatEnd) {
+          this.attributes['repeatEnd'] = pseudoMeasure.repeatEnd;
+        }
+        if(pseudoMeasure.ending !== undefined) {
+          this.attributes['ending'] = pseudoMeasure.ending;
+        }
+        if(pseudoMeasure.maxRepeats !== undefined) {
+          this.attributes['maxRepeats'] = pseudoMeasure.maxRepeats;
+        }
+      } else {
+        chords = [];
       }
+      for(let chord of chords) this.parseChordToBeat(chord, i++);
+      
     }
     
     const SCALE_DEGREES = {
@@ -154,20 +160,12 @@
     
     // @todo docs
     this.getNextMeasure = function() {
-      var newIndex = this.getIndex();
-      while(true) {
-        newIndex++;
-        if(newIndex > song.measures.length) return null;
-        if(song.measures[newIndex]) return song.measures[newIndex];
-      }
+      var newIndex = this.getIndex() + 1;
+      return song.measures[newIndex] || null;
     };
     this.getPreviousMeasure = function() {
-      var newIndex = this.getIndex();
-      while(true) {
-        newIndex--;
-        if(newIndex == -1) return null;
-        if(song.measures[newIndex]) return song.measures[newIndex];
-      }
+      var newIndex = this.getIndex() - 1;
+      return song.measures[newIndex] || null;
     };
     
   };

@@ -7070,7 +7070,7 @@ module.exports = {
       } else {
         playback.measure = playback.measure.getNextMeasure();
         
-        if(playback.measure.attributes['repeatStart']) {
+        if(playback.measure && playback.measure.attributes['repeatStart']) {
           playback.repeatStack.push({
             repeatCount: 0,
             maxRepeats: 1,
@@ -7837,9 +7837,9 @@ module.exports = {
    * @param {Object} chordMagic A library that helps with parsing chords.
    * @param {Object} tonal A library that helps with music theory things.
    * @param {?Number} index Optional: index at which to insert measure.
-   * @param {null|Array.<String>} chords Optional: Array of chords as Strings.
+   * @param {Object} measureToParse Optional: pseudo-measure object to parse.
    */
-  var Measure = function(song, chordMagic, tonal, index, chords) {
+  var Measure = function(song, chordMagic, tonal, index, measureToParse) {
     
     this.length = song.timeSignature[0];
     
@@ -7882,22 +7882,16 @@ module.exports = {
        */
       this._beats = new Array(this.length).fill(null);
       let i = 0;
-      if(!chords) chords = []; // If none given, pass undefined.
-      for(let chord of chords) {
-        switch (chord) {
-          case '|:': {
-            this.attributes['repeatStart'] = true;
-            break;
-          }
-          case ':|': {
-            this.attributes['repeatEnd'] = true;
-            break;
-          }
-          default: {
-            this.parseChordToBeat(chord, i++);
-          }
-        }
+      var chords;
+      if(measureToParse) {
+        chords = measureToParse.beats;
+        this.attributes['repeatStart'] = measureToParse.repeatStart || false;
+        this.attributes['repeatEnd'] = measureToParse.repeatEnd || false;
+      } else {
+        chords = [];
       }
+      for(let chord of chords) this.parseChordToBeat(chord, i++);
+      
     }
     
     const SCALE_DEGREES = {
@@ -7984,20 +7978,12 @@ module.exports = {
     
     // @todo docs
     this.getNextMeasure = function() {
-      var newIndex = this.getIndex();
-      while(true) {
-        newIndex++;
-        if(newIndex > song.measures.length) return null;
-        if(song.measures[newIndex]) return song.measures[newIndex];
-      }
+      var newIndex = this.getIndex() + 1;
+      return song.measures[newIndex] || null;
     };
     this.getPreviousMeasure = function() {
-      var newIndex = this.getIndex();
-      while(true) {
-        newIndex--;
-        if(newIndex == -1) return null;
-        if(song.measures[newIndex]) return song.measures[newIndex];
-      }
+      var newIndex = this.getIndex() - 1;
+      return song.measures[newIndex] || null;
     };
     
   };
@@ -8036,25 +8022,13 @@ module.exports = {
     
     /**
      * Append a measure to the piece
-     * @param {String[]} chords Array of chords as Strings.
+     * @param {Object} measureToParse Pseudo-measure object to parse.
      * @param {?Number} index Optional: Index for the new measure.
      * @return {Measure} The generated measure.
      * @public
      */
-    this.addMeasure = function(chords, index) {
-      return new Measure(this, chordMagic, tonal, index, chords);
-    };
-    /**
-     * Append a newline to the piece
-     * @param {?Number} index Optional: Index for the newline in measures array.
-     * @public
-     */
-    this.addNewline = function(index) {
-      if(index === null) {
-        this.measures.push(null);
-      } else {
-        this.measures.splice(index, 0, null);
-      }
+    this.addMeasure = function(measureToParse, index) {
+      return new Measure(this, chordMagic, tonal, index, measureToParse);
     };
     
     /**
@@ -8097,16 +8071,14 @@ module.exports = {
     };
     
     /**
-     * Parse a song from an Array containing nulls (newline) or Arrays of beats.
-     * @param {Array.<null, Array>} array The array to parse into a song.
+     * Parse a song from an Array of pseudo-measure objects.
+     * @param {Array.<Object>} array The array to parse into a song.
      * @public
      */
-    this.parseArray = function(array) {
+    this.parseMeasureArray = function(array) {
       for(let measure of array) {
         if(measure) {
           this.addMeasure(measure, null);
-        } else {
-          this.addNewline(null);
         }
       }
     };
@@ -8136,9 +8108,9 @@ module.exports = {
      * @type {Number}
      */
     this.transpose = 0;
-    // I suppose this evaluates to false if songData.transpose is 0. Whatever.
-    if(songData.transpose) this.setTranspose(songData.transpose);
-    this.parseArray(songData.chords);
+    
+    if(songData.transpose !== undefined) this.setTranspose(songData.transpose);
+    this.parseMeasureArray(songData.measures);
   }
   
   module.exports = Song;
@@ -9003,7 +8975,7 @@ svg.NotochordEditable g.NotochordBeatView.NotochordBeatViewEditing .NotochordBea
       // The space left at the top for the title and stuff
       topMargin = 1.5 * viewer.rowHeight;
       // Vertical space between rows.
-      rowYMargin = 0.15 * viewer.rowHeight;
+      rowYMargin = 0.3 * viewer.rowHeight;
       
       // SVG width for each measure.
       // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?

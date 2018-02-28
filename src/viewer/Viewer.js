@@ -97,7 +97,7 @@
       // The space left at the top for the title and stuff
       topMargin = 1.5 * viewer.rowHeight;
       // Vertical space between rows.
-      rowYMargin = 0.15 * viewer.rowHeight;
+      rowYMargin = 0.3 * viewer.rowHeight;
       
       // SVG width for each measure.
       // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?

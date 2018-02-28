@@ -28,25 +28,13 @@
     
     /**
      * Append a measure to the piece
-     * @param {String[]} chords Array of chords as Strings.
+     * @param {Object} measureToParse Pseudo-measure object to parse.
      * @param {?Number} index Optional: Index for the new measure.
      * @return {Measure} The generated measure.
      * @public
      */
-    this.addMeasure = function(chords, index) {
-      return new Measure(this, chordMagic, tonal, index, chords);
-    };
-    /**
-     * Append a newline to the piece
-     * @param {?Number} index Optional: Index for the newline in measures array.
-     * @public
-     */
-    this.addNewline = function(index) {
-      if(index === null) {
-        this.measures.push(null);
-      } else {
-        this.measures.splice(index, 0, null);
-      }
+    this.addMeasure = function(measureToParse, index) {
+      return new Measure(this, chordMagic, tonal, index, measureToParse);
     };
     
     /**
@@ -89,16 +77,14 @@
     };
     
     /**
-     * Parse a song from an Array containing nulls (newline) or Arrays of beats.
-     * @param {Array.<null, Array>} array The array to parse into a song.
+     * Parse a song from an Array of pseudo-measure objects.
+     * @param {Array.<Object>} array The array to parse into a song.
      * @public
      */
-    this.parseArray = function(array) {
+    this.parseMeasureArray = function(array) {
       for(let measure of array) {
         if(measure) {
           this.addMeasure(measure, null);
-        } else {
-          this.addNewline(null);
         }
       }
     };
@@ -128,9 +114,9 @@
      * @type {Number}
      */
     this.transpose = 0;
-    // I suppose this evaluates to false if songData.transpose is 0. Whatever.
-    if(songData.transpose) this.setTranspose(songData.transpose);
-    this.parseArray(songData.chords);
+    
+    if(songData.transpose !== undefined) this.setTranspose(songData.transpose);
+    this.parseMeasureArray(songData.measures);
   }
   
   module.exports = Song;
