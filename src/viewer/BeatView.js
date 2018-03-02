@@ -15,7 +15,6 @@
     this.index = index;
     
     var tonal = require('tonal');
-    window.tonal = tonal;
     
     // Padding between the root of the chord and the accidental/other bits.
     const PADDING_RIGHT = 7;
