@@ -38,11 +38,10 @@
       var chord = playback.beats[playback.beat];
       // If there's no chord returned by getBeat, there's no chord on this beat.
       if(chord) {
-        // This decides if it'd sound better to go up or down the octave.
-        var octave = playback.pianistOctave(chord, 4);
         
-        // This turns a ChordMagic chord object into an array of note names.
-        var notes = playback.chordToNotes(chord, octave);
+        // This turns a beat object into an array of note names.
+        // the second argument decides whether to go up or down the octave.
+        var notes = playback.octave(chord, 4, true);
         playback.playNotes({
           notes: notes, // Note name or array of note names.
           instrument: 'acoustic_grand_piano',
@@ -53,7 +52,7 @@
         });
         
         playback.playNotes({
-          notes: chord.root + 2,
+          notes: chord[0] + 2,
           instrument: 'acoustic_bass',
           dur: playback.restsAfter
         });

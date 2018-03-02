@@ -35,7 +35,7 @@
           if(beat) {
             playback.schedule(() => {
               playback.playNotes({
-                notes: beat.root + 2,
+                notes: beat[0] + 2,
                 instrument: 'acoustic_bass',
                 dur: 1,
                 velocity: 127
@@ -45,36 +45,36 @@
         }
       } else {
         if(playback.beats[3]
-          && playback.beats[3].root != playback.beats[1].root) {
+          && playback.beats[3][0] != playback.beats[1][0]) {
           playback.scheduleNotes({
             instrument: 'acoustic_bass',
             velocity: 127,
             data: [
               {
                 times: 1,
-                notes: playback.beats[1].root + 2,
+                notes: playback.beats[1][0] + 2,
                 dur: 1.5
               },
               {
                 times: 2.5,
-                notes: playback.beats[1].root + 2,
+                notes: playback.beats[1][0] + 2,
                 dur: 0.5
               },
               {
                 times: 3,
-                notes: playback.beats[3].root + 2,
+                notes: playback.beats[3][0] + 2,
                 dur: 1.5
               },
               {
                 times: 4.5,
-                notes: playback.beats[3].root + 2,
+                notes: playback.beats[3][0] + 2,
                 dur: 0.5
               }
             ]
           });
         } else {
           // @todo dim?
-          let low5 = playback.tonal.transpose(playback.beats[1].root + 1, 'P5');
+          let low5 = playback.tonal.transpose(playback.beats[1][0] + 1, 'P5');
           let coinFlip = Math.random() < 0.5;
           if(coinFlip) {
             playback.scheduleNotes({
@@ -83,7 +83,7 @@
               data: [
                 {
                   times: 1,
-                  notes: playback.beats[1].root + 2,
+                  notes: playback.beats[1][0] + 2,
                   dur: 1.5
                 },
                 {
@@ -100,7 +100,7 @@
               data: [
                 {
                   times: 1,
-                  notes: playback.beats[1].root + 2,
+                  notes: playback.beats[1][0] + 2,
                   dur: 1.5
                 },
                 {
@@ -110,7 +110,7 @@
                 },
                 {
                   times: 4,
-                  notes: playback.beats[1].root + 2,
+                  notes: playback.beats[1][0] + 2,
                   dur: 1
                 },
               ]
@@ -127,8 +127,7 @@
           if(beat) {
             playback.schedule(() => {
               playback.playNotes({
-                notes: playback.chordToNotes(beat,
-                  playback.pianistOctave(beat, 4)),
+                notes: playback.octave(beat, 4, true),
                 instrument: 'acoustic_grand_piano',
                 dur: 2
               });
@@ -163,7 +162,7 @@
           }
           var length = pianoPattern.l[item++];
           playback.playNotes({
-            notes: playback.chordToNotes(beat, playback.pianistOctave(beat, 4)),
+            notes: playback.octave(beat, 4, true),
             instrument: 'acoustic_grand_piano',
             dur: length,
             roll: (length > 1)

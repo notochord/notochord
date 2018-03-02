@@ -16,7 +16,6 @@
    */
   function Song(songData) {
     var Measure = require('./measure');
-    var chordMagic = require('chord-magic');
     var tonal = require('tonal');
     
     /**
@@ -34,7 +33,7 @@
      * @public
      */
     this.addMeasure = function(measureToParse, index) {
-      return new Measure(this, chordMagic, tonal, index, measureToParse);
+      return new Measure(this, index, measureToParse);
     };
     
     /**
@@ -47,13 +46,14 @@
       if(Number.isInteger(transpose)) {
         this.transpose = transpose % 12;
       } else {
-        let orig_chord = chordMagic.parse(this.key);
-        let new_chord = chordMagic.parse(transpose);
-        this.transpose = tonal.semitones(
-          orig_chord.root + '4',
-          new_chord.root + '4'
+        let orig_chord = tonal.Chord.tokenize(this.key);
+        let new_chord = tonal.Chord.tokenize(transpose);
+        this.transpose = tonal.Distance.semitones(
+          orig_chord[0],
+          new_chord[0]
         );
-        if(orig_chord.quality != new_chord.quality) {
+        this.transposeInt = tonal.Interval.fromSemitones(this.transpose);
+        /*if(orig_chord.quality != new_chord.quality) {
           // for example, if the song is in CM and user transposes to Am
           // if you try to transpose to not Major/Minor I'll cry.
           if(new_chord.quality == 'Minor') {
@@ -61,7 +61,7 @@
           } else {
             this.transpose = (this.transpose - 3) % 12;
           }
-        }
+        }*/
       }
     };
     
@@ -71,8 +71,8 @@
      * @public
      */
     this.getTransposedKey = function() {
-      return tonal.note.pc(
-        tonal.note.fromMidi(tonal.note.midi(this.key + '4') + this.transpose)
+      return tonal.Note.pc(
+        tonal.transpose(this.key, tonal.Interval.fromSemitones(this.transpose))
       );
     };
     

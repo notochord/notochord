@@ -131,7 +131,12 @@
         let offset = (0.5 * viewer.globals.measureXPadding)
           + (i * viewer.globals.beatWidth);
         let beat = new viewer.BeatView(events, viewer, this, i, offset);
-        beat.renderChord(chord);
+        if(viewer.scaleDegrees) {
+          let degree = measure.getScaleDegree(i);
+          beat.renderChord(chord, degree);
+        } else {
+          beat.renderChord(chord);
+        }
         this.beatViews.push(beat);
       }
       
@@ -142,7 +147,12 @@
             let beat = self.beatViews[i];
             if(beat) {
               let chord = measure.getBeat(i);
-              beat.renderChord(chord);
+              if(viewer.scaleDegrees) {
+                let degree = measure.getScaleDegree(i);
+                beat.renderChord(chord, degree);
+              } else {
+                beat.renderChord(chord);
+              }
             }
           }
         };

@@ -4,12 +4,11 @@
    * Represents a measure of music.
    * @class
    * @param {Song} song The song the Measure belongs to.
-   * @param {Object} chordMagic A library that helps with parsing chords.
-   * @param {Object} tonal A library that helps with music theory things.
    * @param {?Number} index Optional: index at which to insert measure.
    * @param {Object} pseudoMeasure Optional: pseudo-measure object to parse.
    */
-  var Measure = function(song, chordMagic, tonal, index, pseudoMeasure) {
+  var Measure = function(song, index, pseudoMeasure) {
+    var tonal = require('tonal');
     
     this.length = song.timeSignature[0];
     
@@ -20,26 +19,36 @@
       maxRepeats: 0
     };
     
+    var getShortest = function (left, right) {
+      return left.length <= right.length ? left : right;
+    };
+    
     /**
      * Parse a string into a chord and save it to the specified beat index.
      * @param {String} chord The chord to parse.
      * @param {Number} index The beat in the measure to replace.
      * @param {Boolean} [transpose=false] Whether to correct for transposition.
      */
-    this.parseChordToBeat = function(chord, index, transpose) {
+    this.parseChordToBeat = function(chord, index, transpose = false) {
       var parsed;
       if(chord) {
-        // correct for a bug in chordMagic.
-        let corrected = chord.replace('-', 'm');
-        parsed = chordMagic.parse(corrected);
-        if(transpose) {
-          parsed = chordMagic.transpose(parsed, -1 * song.transpose);
+        parsed = chord.replace(/-/g, 'm');
+        var chordParts = tonal.Chord.tokenize(parsed);
+        if(transpose && song.transpose) {
+          chordParts[0] = tonal.Note.enharmonic(
+            tonal.transpose(
+              chordParts[0],
+              tonal.Interval.invert(song.transposeInt)
+            )
+          );
         }
-        if(parsed) {
-          parsed.raw = chord;
-        } else {
-          parsed = null;
+        
+        // get the shortest chord name
+        if(chordParts[1]) {
+          let names = tonal.Chord.props(chordParts[1]).names;
+          chordParts[1] = names.reduce(getShortest).replace(/_/g, 'm7');
         }
+        parsed = chordParts.join('');
       } else {
         parsed = null;
       }
@@ -48,7 +57,7 @@
     
     {
       /**
-       * Array containing timeSignature[0] ChordMagic chords or nulls.
+       * Array containing timeSignature[0] chord strings or nulls.
        * @type {?Object[]}
        * @private
        */
@@ -91,8 +100,14 @@
       12: {numeral: 'vii', flat: false}
     };
     
-    var addScaleDegree = function(chord) {
-      var semis = tonal.semitones(song.getTransposedKey(), chord.root) + 1;
+    /* @todo docs */
+    this.getScaleDegree = function(beat) {
+      var chord = this._beats[beat];
+      if(!chord) return null;
+      
+      var semis = tonal.Distance.semitones(
+        song.key,
+        chord.root) + 1;
       var caps = chord.quality == 'Major' || chord.quality == 'Augmented';
       var sd = SCALE_DEGREES[semis];
       var out = {
@@ -103,24 +118,23 @@
       } else {
         out.numeral = sd.numeral;
       }
-      chord.scaleDegree = out;
+      return out;
     };
     
+    /* @todo docs */
     this.getBeat = function(beat) {
       var transpose = song.transpose;
-      var oldChord = this._beats[beat];
-      if(oldChord) {
-        var out = chordMagic.transpose(oldChord, transpose);
-        out.raw = oldChord.raw;
+      var chord = this._beats[beat];
+      if(chord) {
         if(transpose) {
-          out.rawRoot = out.root;
-        } else if(oldChord.raw[1] == '#') {
-          out.rawRoot = oldChord.raw[0].toUpperCase() + '#';
+          let chordParts = tonal.Chord.tokenize(chord);
+          chordParts[0] = tonal.Note.enharmonic(
+            tonal.transpose(chordParts[0], song.transposeInt)
+          );
+          return chordParts.join('');
         } else {
-          out.rawRoot = oldChord.root;
+          return chord;
         }
-        addScaleDegree(out);
-        return out;
       } else {
         return null;
       }

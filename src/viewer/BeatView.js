@@ -14,6 +14,9 @@
     this.measureView = measureView;
     this.index = index;
     
+    var tonal = require('tonal');
+    window.tonal = tonal;
+    
     // Padding between the root of the chord and the accidental/other bits.
     const PADDING_RIGHT = 7;
     
@@ -47,21 +50,24 @@
     /**
      * Get the root of the chord, or a Roman numeral if viewer.scaleDegrees is
      * true.
-     * @param {Object} chord ChordMagic object to parse.
+     * @param {String} chord chord string to parse.
+     * @param {Object} [degree] if included, render the given scale degree
+     *  instead of the root of the chord.
      * @returns {Object} 2 Strings, rootText (or Roman numeral) and accidental
      * (or null).
      * @private
      */
-    this._getRootText = function(chord) {
-      if(viewer.scaleDegrees) {
+    this._getRootText = function(chord, degree) {
+      if(degree !== undefined) {
         return {
-          rootText: chord.scaleDegree.numeral,
-          accidental: chord.scaleDegree.flat ? 'b' : null
+          rootText: degree.numeral,
+          accidental: degree.flat ? 'b' : null
         };
       } else {
+        var parsed = tonal.Chord.tokenize(chord);
         return {
-          rootText: chord.rawRoot[0],
-          accidental: chord.rawRoot[1] || null
+          rootText: parsed[0].charAt(0),
+          accidental: parsed[0].charAt(1) || null
         };
       }
     };
@@ -74,54 +80,12 @@
      * @private
      */
     this._getBottomText = function(chord) {
-      var bottomText = '';
-      if(chord.quality != 'Major' || chord.extended || chord.added) {
-        const ADDED_MAP = {
-          'Add9': 'Add9',
-          'Add11': 'Add11',
-          'Major6': 'Add6',
-          'SixNine': '69',
-          'PowerChord': 'Add5'
-        };
-        if(chord.extended) {
-          const EXTENDED_MAP = {
-            'Major7': viewer.PATHS.delta_char,
-            'Minor7': '-7',
-            'Dominant7': '7',
-            'Diminished7': 'o7',
-            'Major9': viewer.PATHS.delta_char + '9',
-            'Major11': viewer.PATHS.delta_char + '11',
-            'Major13': viewer.PATHS.delta_char + '13',
-            'AugmentedDominant7': '+7',
-            'AugmentedMajor7': '+' + viewer.PATHS.delta_char + '7',
-            'Minor9': '-9'
-          };
-          if(chord.extended == 'Dominant7' && chord.quality == 'Diminished') {
-            // @todo chord-magic can't detect this???
-            bottomText += viewer.PATHS.oslash_char + '7';
-          } else {
-            bottomText += EXTENDED_MAP[chord.extended];
-          }
-          if(chord.added) {
-            bottomText += ADDED_MAP[chord.added];
-          }
-        } else { // quality != Major
-          if(chord.quality == 'Minor') {
-            bottomText += '-';
-          } else if(chord.quality == 'Diminished') {
-            bottomText += 'o';
-          } else if(chord.quality == 'Augmented') {
-            bottomText += '+';
-          }
-          
-          if(chord.added == 'Major6') {
-            bottomText += '6';
-          } else if(chord.added) {
-            bottomText += ADDED_MAP[chord.added];
-          }
-        }
-        if(chord.suspended) bottomText += chord.suspended;
-      }
+      var bottomText = tonal.Chord.tokenize(chord)[1];
+      if(!bottomText) return '';
+      bottomText = bottomText.replace(
+        /M(?=7|9|11|13)/,
+        viewer.PATHS.delta_char);
+      bottomText = bottomText.replace(/m/g, '-');
       return bottomText;
     };
     
@@ -198,7 +162,7 @@
     
     /**
      * Render a chord.
-     * @param {?Object} chord A ChordMagic chord object to render, or null.
+     * @param {?String} chord A chord string to render, or null.
      */
     this.renderChord = function(chord) {
       // delete whatever might be in this._svgGroup

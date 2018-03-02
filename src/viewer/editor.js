@@ -3,7 +3,7 @@
   var Editor = (function() {
     var editor = {};
     var editable = false;
-    var chordMagic = require('chord-magic');
+    var tonal = require('tonal');
     
     var events = null;
     /**
@@ -67,7 +67,7 @@
       var measure = beatView.measureView.measure;
       var chord = measure.getBeat(beatView.index);
       if(chord) {
-        editor._input.value = chordMagic.prettyPrint(chord);
+        editor._input.value = chord;
       } else {
         editor._input.value = '';
       }
@@ -143,19 +143,21 @@
         }
         case 'ArrowUp': {
           let rawChord = editor._input.value;
-          let chord = chordMagic.parse(rawChord);
-          let transposed = chordMagic.transpose(chord, 1);
-          let transpString = chordMagic.prettyPrint(transposed);
-          editor._input.value = transpString;
+          let chordParts = tonal.Chord.tokenize(rawChord);
+          chordParts[0] = tonal.Note.enharmonic(
+            tonal.transpose(chordParts[0], 'm2')
+          );
+          editor._input.value = chordParts.join('');
           handleTextualKeyboardInput();
           break;
         }
         case 'ArrowDown': {
           let rawChord = editor._input.value;
-          let chord = chordMagic.parse(rawChord);
-          let transposed = chordMagic.transpose(chord, -1);
-          let transpString = chordMagic.prettyPrint(transposed);
-          editor._input.value = transpString;
+          let chordParts = tonal.Chord.tokenize(rawChord);
+          chordParts[0] = tonal.Note.enharmonic(
+            tonal.transpose(chordParts[0], 'm-2')
+          );
+          editor._input.value = chordParts.join('');
           handleTextualKeyboardInput();
           break;
         }

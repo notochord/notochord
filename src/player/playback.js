@@ -12,7 +12,6 @@
     
     playback.ready = false;
     playback.midi = require('midi.js');
-    playback.chordMagic = require('chord-magic');
     playback.tonal = require('tonal');
     playback.measureNumber = 0;
     playback.measure = null;
@@ -94,10 +93,23 @@
       }
     };
     
+    /**
+     * Fills playback.beats with an array of beat array-like objects, which
+     * consist of a "name" property for the original chord name, and numbered
+     * entires for the nites in the chord.
+     * @private
+     */
     var getBeats = function() { // @todo docs
-      playback.beats = [null];
+      playback.beats = [ null ]; // First item is null so it can be 1-indexed.
       for(let i = 0; i < playback.measure.length; i++) {
-        playback.beats.push(playback.measure.getBeat(i));
+        let beat = playback.measure.getBeat(i);
+        if(beat) {
+          let beatObj = playback.tonal.Chord.notes(beat).slice();
+          beatObj['name'] = beat;
+          playback.beats.push(beatObj);
+        } else {
+          playback.beats.push(null);
+        }
       }
     };
     playback.play = function() {
@@ -130,30 +142,6 @@
         }, signature);
       };
       onMeasure();
-    };
-    /**
-     * Turns a ChordMagic chord object into an array of note names.
-     * @param {Object} chord ChordMagic chord object to analyze.
-     * @param {Number} octave Octave to put the notes in.
-     * @returns {Number[]} Array of note names.
-     * @private
-     */
-    playback.chordToNotes = function(chord, octave) {
-      var chordAsString = playback.chordMagic.prettyPrint(chord);
-      var chordAsNoteNames = playback.tonal.chord(chordAsString);
-      
-      var currentOctave = octave;
-      var prevSemitones = Infinity;
-      var notesInOctaves = chordAsNoteNames.map(note => {
-        let semitones = playback.tonal.semitones(note, 'C');
-        if(semitones == 0) semitones = 12;
-        if(semitones > prevSemitones) {
-          currentOctave++;
-        }
-        prevSemitones = semitones;
-        return note + currentOctave;
-      });
-      return notesInOctaves;
     };
     /**
      * If there's a beat in the viewer, highlight it for its duration.
@@ -239,19 +227,46 @@
         return out;
       };
     }
-    // @todo docs
-    // whether a pianist would move down the octave if playing this chord
-    playback.pianistOctave = function(chord, octave) {
-      var root = chord.root || chord; // accept either note or chord.
-      var key = playback.song.getTransposedKey();
-      var semitonesFromKey = playback.tonal.semitones(key, root);
-      var down = !(semitonesFromKey < 6);
-      if(down) octave -= 1;
-      var cToRoot = playback.tonal.semitones('C', root);
-      var cToKey = playback.tonal.semitones('C', key);
-      if(cToRoot < cToKey) octave++;
-      return octave;
+    
+    
+    
+    
+    /**
+     * Put a note, array of notes, or beat object into a specific measure.
+     * @param {String|Array} beat A note, array of notes, or beat object to put
+     * into the selected measure.
+     * @param {Number} octave to put the notes in.
+     * @param {Boolean} [pianist = false] If true, potentially drop below the
+     * given octave to duplicate how a pianist might invert the chord.
+     * @returns {Array} Notes in the given octave.
+     */
+    playback.octave = function(beat, octave, pianist = false) {
+      if(typeof beat == 'string') beat = [beat];
+      if(pianist) {
+        let root = beat[0];
+        var key = playback.song.getTransposedKey();
+        var semitonesFromKey = playback.tonal.Distance.semitones(key, root);
+        var down = (semitonesFromKey >= 6);
+        if(down) octave -= 1;
+        var cToRoot = playback.tonal.Distance.semitones('C', root);
+        var cToKey = playback.tonal.Distance.semitones('C', key);
+        if(cToRoot < cToKey) octave++;
+      }
+      
+      var prevSemitones = Infinity;
+      var notesInOctaves = beat.map(note => {
+        let semitones = playback.tonal.Distance.semitones(note, 'C');
+        if(semitones == 0) semitones = 12;
+        if(semitones > prevSemitones) {
+          octave++;
+        }
+        prevSemitones = semitones;
+        return note + octave;
+      });
+      return notesInOctaves;
+      
     };
+    
     /**
      * Get the number of beats of rest left in the measure after (and including)
      * a given beat.
@@ -288,28 +303,30 @@
         let ending = playback.measure.attributes['ending'];
         if(repeatData.repeatCount != ending - 1) {
           skipToEnding = true;
+          playback.measure = repeatData.endMeasure.getNextMeasure();
         }
       }
-      if(repeatData && (playback.measure.attributes['repeatEnd']
-        || playback.measure.attributes['ending'])) {
-        if(repeatData.repeatCount < repeatData.maxRepeats) {
-          repeatData.endMeasure = playback.measure;
-          playback.measure = repeatData.startMeasure;
-          repeatData.repeatCount++;
+      if(!skipToEnding) {
+        if(repeatData && playback.measure.attributes['repeatEnd']) {
+          if(repeatData.repeatCount < repeatData.maxRepeats) {
+            repeatData.endMeasure = playback.measure;
+            playback.measure = repeatData.startMeasure;
+            repeatData.repeatCount++;
+          } else {
+            playback.repeatStack.pop();
+            playback.measure = playback.measure.getNextMeasure();
+          }
         } else {
-          playback.repeatStack.pop();
           playback.measure = playback.measure.getNextMeasure();
-        }
-      } else {
-        playback.measure = playback.measure.getNextMeasure();
-        
-        if(playback.measure && playback.measure.attributes['repeatStart']) {
-          playback.repeatStack.push({
-            repeatCount: 0,
-            maxRepeats: playback.measure.attributes['maxRepeats'],
-            startMeasure: playback.measure,
-            endMeasure: null
-          });
+          
+          if(playback.measure && playback.measure.attributes['repeatStart']) {
+            playback.repeatStack.push({
+              repeatCount: 0,
+              maxRepeats: playback.measure.attributes['maxRepeats'],
+              startMeasure: playback.measure,
+              endMeasure: null
+            });
+          }
         }
       }
       
@@ -344,7 +361,7 @@
     // notes Array|Number
     playback.playNotes = function(data) {
       if(typeof data.notes == 'string') data.notes = [data.notes];
-      var notesAsNums = data.notes.map(playback.tonal.note.midi);
+      var notesAsNums = data.notes.map(playback.tonal.Note.midi);
       
       if(!data.velocity) data.velocity = 100;
       

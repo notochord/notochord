@@ -50,27 +50,17 @@
       var transpose = function(note, intvl) {
         return playback.tonal.transpose(note + 4, intvl).replace(/\d/, '');
       };
-      var up5 = function(chord) {
-        if(!chord) return null;
-        if(chord.quality == 'Augmented') {
-          return transpose(chord.root, '5A');
-        } else if(chord.quality == 'Diminished') {
-          return transpose(chord.root, '5d');
-        } else {
-          return transpose(chord.root, '5P');
-        }
-      };
       var note1, note2, note3, note4;
       {
         let key = playback.song.getTransposedKey();
-        var keyscale = playback.tonal.scale.notes(key + ' major');
+        var keyscale = playback.tonal.Scale.notes(key + ' major');
       }
       
       if(playback.beats[2] || playback.beats[4]) {
-        note1 = playback.beats[1] && playback.beats[1].root;
-        note2 = playback.beats[2] && playback.beats[2].root;
-        note3 = playback.beats[3] && playback.beats[3].root;
-        note4 = playback.beats[4] && playback.beats[4].root;
+        note1 = playback.beats[1] && playback.beats[1][0];
+        note2 = playback.beats[2] && playback.beats[2][0];
+        note3 = playback.beats[3] && playback.beats[3][0];
+        note4 = playback.beats[4] && playback.beats[4][0];
       } else {
         // loosely based on https://music.stackexchange.com/a/22174/5563
         let beat3 = playback.beats[3] || playback.beats[1];
@@ -79,55 +69,56 @@
         let lookahead = null, interval31 = null;
         if(nextMeasure) {
           lookahead = nextMeasure.getBeat(0);
-          interval31 = playback.tonal.interval(beat3.root, lookahead.root);
+          interval31 = playback.tonal.Distance.subtract(
+            lookahead[0],
+            beat3[0]);
           doFourthTrick = interval31 == '4P' && (Math.random() < 0.2);
         }
         
         if(fourthTrick) {
           let beat1 = playback.beats[1];
           if(beat1.quality == 'Major' || beat1.quality == 'Augmented') {
-            note1 = transpose(beat1.root, '3M');
+            note1 = transpose(beat1[0], '3M');
           } else { // chord is m/dim
-            note1 = transpose(beat1.root, '3m');
+            note1 = transpose(beat1[0], '3m');
           }
         } else {
-          note1 = playback.beats[1].root;
+          note1 = playback.beats[1][0];
         }
         
         if(doFourthTrick) {
           fourthTrick = true;
-          note4 = transpose(beat3.root, '7m');
+          note4 = transpose(beat3[0], '7m');
         } else {
           fourthTrick = false;
-          let next5 = up5(lookahead);
+          let next5 = lookahead[3];
           if(keyscale.includes(next5) && Math.random() < 0.3) {
             note4 = next5;
           } else if(lookahead) {
             let scale3;
             if(beat3.quality == 'Major' || beat3.quality == 'Augmented') {
-              scale3 = playback.tonal.scale.notes(beat3.root + ' major');
+              scale3 = playback.tonal.Scale.notes(beat3[0] + ' major');
               // @todo that's actually wrong? #5 for aug????
             } else {
-              scale3 = playback.tonal.scale.notes(beat3.root + ' minor');
+              scale3 = playback.tonal.Scale.notes(beat3[0] + ' minor');
               // @todo likewise for dim
             }
             let intervals = playback.shuffle(['-2m', '-2M','2m', '2M']);
             for(let int of intervals) {
-              note4 = transpose(lookahead.root, int);
+              note4 = transpose(lookahead[0], int);
               if(scale3.includes(note4) && keyscale.includes(note4)) break;
             }
-            if(!note4) note4 = up5(beat3);
+            if(!note4) note4 = beat3[2];
           } else {
-            note4 = up5(beat3);
+            note4 = beat3[2];
           }
         }
         
-        let rootChanges = (beat3.root != playback.beats[1].root);
-        let chord1str = playback.chordMagic.prettyPrint(playback.beats[1]);
-        let chord1 = playback.tonal.chord(chord1str);
+        let rootChanges = (beat3[0] != playback.beats[1][0]);
+        let chord1 = playback.tonal.Chord.notes(playback.beats[0]).slice();
         chord1.splice(0,1);
         if(rootChanges) {
-          note3 = beat3.root;
+          note3 = beat3[0];
           if(chord1.includes(note4)) {
             let idx = chord1.indexOf(note4);
             chord1.splice(idx, 1);
@@ -174,8 +165,7 @@
           if(beat) {
             playback.schedule(() => {
               playback.playNotes({
-                notes: playback.chordToNotes(beat,
-                  playback.pianistOctave(beat, 4)),
+                notes: playback.octave(beat, 4, true),
                 instrument: 'acoustic_grand_piano',
                 dur: 2
               });
@@ -210,7 +200,7 @@
           }
           var length = pianoPattern.l[item++];
           playback.playNotes({
-            notes: playback.chordToNotes(beat, playback.pianistOctave(beat, 4)),
+            notes: playback.octave(beat, 4, true),
             instrument: 'acoustic_grand_piano',
             dur: length,
             roll: (length > 1)

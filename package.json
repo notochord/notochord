@@ -24,8 +24,7 @@
     "node-sass": "^4.5.3"
   },
   "dependencies": {
-    "chord-magic": "1.0.0",
     "midi.js": "0.3.1",
-    "tonal": "0.69.7"
+    "tonal": "1.1.3"
   }
 }
