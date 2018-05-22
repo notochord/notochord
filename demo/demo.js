@@ -24,9 +24,11 @@ document.querySelector('#tempo').addEventListener('change', e => {
   Notochord.setTempo(document.querySelector('#tempo').value);
 });
 // Add the styles list to the styles dropdown.
-document.querySelector('#style').innerHTML = Notochord.player.styles.map(s => {
-  return `<option ${s == 'samba' ? 'selected' : ''}>${s}</option>`;
-}).join('');
+var dropdown = '';
+Notochord.player.styles.forEach((val, key) => {
+  dropdown += `<option ${key == 'samba' ? 'selected' : ''}>${key}</option>`;
+})
+document.querySelector('#style').innerHTML = dropdown;
 document.querySelector('#style').addEventListener('change', e => {
   Notochord.player.setStyle(document.querySelector('#style').value);
 });
@@ -36,7 +38,7 @@ document.querySelector('#scaleDegrees').addEventListener('click', e => {
   });
 });
 
-blueSkies = new Notochord.Song({
+var blueSkies = new Notochord.Song({
   'title': 'Blue Skies',
   'composer': 'Irving Berlin',
   'timeSignature': [4,4],
@@ -82,4 +84,3 @@ blueSkies = new Notochord.Song({
   ]
 });
 Notochord.loadSong(blueSkies);
-Notochord.player.play();

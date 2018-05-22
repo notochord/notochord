@@ -4,6 +4,10 @@
         "browser": true,
         "commonjs": true
     },
+    "globals": {
+      "Tonal": false,
+      "Soundfont": false
+    },
     "extends": "eslint:recommended",
     "parserOptions": {
         "sourceType": "module"
@@ -37,6 +41,9 @@
         ],
         "max-len": [
             "error"
+        ],
+        "no-console": [
+            "warn"
         ]
     }
 }
