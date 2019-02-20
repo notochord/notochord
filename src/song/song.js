@@ -1,4 +1,4 @@
-import Measure from './Measure.js';
+import Measure from './measure.js';
 
 /**
  * Parse a song from an Object.

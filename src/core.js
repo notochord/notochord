@@ -5,9 +5,9 @@ window.Tonal = Tonal;
 window.Soundfont = Soundfont;
 
 import events from './events.js';
-import player from './Player/Player.js';
-import viewer from './Viewer/Viewer.js';
-import Song from './Song/Song.js';
+import player from './player/player.js';
+import viewer from './viewer/viewer.js';
+import Song from './song/song.js';
 
 export default (function () {
   var Notochord = {
