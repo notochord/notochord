@@ -45,7 +45,7 @@ export default function MeasureView(events, viewer, measure) {
    * @public
    */
   this.move = function() {
-    var newIndex = measure.getIndex();
+    var newIndex = this.measure.getIndex();
     if(this._svgGroup.parentNode) {
       viewer._measureGroup.removeChild(this._svgGroup);
     }
