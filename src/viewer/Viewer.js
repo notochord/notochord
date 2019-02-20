@@ -1,6 +1,6 @@
 import svg_constants from './resources/svg_constants.js';
-import editor from './editor.js';
-import styledata from './viewer.css.js';
+import editor from './Editor.js';
+import styledata from './Viewer.css.js';
 import MeasureView from './MeasureView.js';
 import BeatView from './BeatView.js';
 

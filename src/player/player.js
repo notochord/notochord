@@ -1,4 +1,4 @@
-import playback from './playback.js';
+import playback from './Playback.js';
 
 import style_basic from './styles/basic.js';
 import style_samba from './styles/samba.js';
