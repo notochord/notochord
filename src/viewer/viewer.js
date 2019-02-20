@@ -80,6 +80,8 @@ export default (function() {
    */
   viewer.config = function(options) { // @todo do player.config like this too.
     if(options) {
+      viewer.shouldResize = (options['shouldResize'] === undefined)
+        ? true : options['shouldResize'];
       if(options['width']) {
         viewer.width = options['width'];
         innerWidth = viewer.width - 2;
@@ -115,8 +117,11 @@ export default (function() {
       * viewer.PATHS.slabo27px_H_height_ratio;
     viewer.globals.topPadding = 0.5
       * (viewer.rowHeight - viewer.globals.H_HEIGHT);
-    
-    viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
+    if(viewer.shouldResize) {
+      viewer._svgElem.setAttributeNS(null, 'width', viewer.width);
+    }
+    viewer._svgElem.setAttributeNS(null, 'viewBox',
+      `0 0 ${viewer.width} ${viewer.height || 600}`);
     viewer._svgElem.style.fontSize = viewer.fontSize;
     if(reflow) reflow();
   };
@@ -201,7 +206,10 @@ export default (function() {
    */
   var reflow = function() {
     if(!song) {
-      viewer._svgElem.setAttributeNS(null, 'height', 0);
+      if(viewer.shouldResize) {
+        viewer._svgElem.setAttributeNS(null, 'height', 0);
+      }
+      viewer._svgElem.setAttributeNS(null, 'viewBox', `0 0 ${viewer.width} 0`);
       return;
     }
     var xoffset = 1;
@@ -224,7 +232,11 @@ export default (function() {
       col++;
     }
     viewer.height = y + rowYMargin + viewer.rowHeight;
-    viewer._svgElem.setAttributeNS(null, 'height', viewer.height);
+    if(viewer.shouldResize) {
+      viewer._svgElem.setAttributeNS(null, 'height', viewer.height);
+    }
+    viewer._svgElem.setAttributeNS(null, 'viewBox',
+      `0 0 ${viewer.width} ${viewer.height}`);
   };
   
   /**
