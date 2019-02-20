@@ -218,3 +218,4 @@ export default function BeatView(events, viewer, measureView, index, xoffset) {
     }
   };
 }
+

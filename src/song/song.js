@@ -116,3 +116,4 @@ export default function Song(songData) {
   if(songData.transpose !== undefined) this.setTranspose(songData.transpose);
   this.parseMeasureArray(songData.measures);
 }
+

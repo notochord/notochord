@@ -239,3 +239,4 @@ export default function MeasureView(events, viewer, measure) {
     });
   }
 }
+
