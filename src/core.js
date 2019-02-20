@@ -1,3 +1,9 @@
+// Suboptimal but I need it to bundle correctly for a presentation tomorrow:
+import * as Tonal from 'tonal';
+import {Soundfont} from 'soundfont-player';
+window.Tonal = Tonal;
+window.Soundfont = Soundfont;
+
 import events from './events.js';
 import player from './player/player.js';
 import viewer from './viewer/viewer.js';

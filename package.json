@@ -7,7 +7,7 @@
     "test": "echo \"\"",
     "webpack": "node_modules/.bin/webpack  -d --watch",
     "build": "node_modules/.bin/webpack",
-    "server": "python -m SimpleHTTPServer 8000",
+    "server": "http-server",
     "sass": "node sass.js",
     "lint": "node_modules/.bin/eslint src/**"
   },
@@ -27,5 +27,9 @@
     "node-sass": "^4.5.3",
     "webpack": "^4.8.3",
     "webpack-cli": "^2.1.3"
+  },
+  "dependencies": {
+    "soundfont-player": "^0.11.0",
+    "tonal": "^2.2.1"
   }
 }

@@ -1,3 +1,5 @@
+import * as Tonal from 'tonal';
+
 var events = null;
 
 var playback = {};
