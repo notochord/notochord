@@ -10,7 +10,7 @@ import Measure from './measure.js';
  * @param {String} [songData.key] Original key of the song.
  * @param {Number|String} [songData.transpose] Key to transpose to, or integer
  * of semitones to transpose by.
- * @param {Array.<null, Array>} songData.chords The chords array to parse.
+ * @param {Array.<null, Array>} [songData.chords] The chords array to parse.
  * @class
  * @public
  */
@@ -114,6 +114,36 @@ export default function Song(songData) {
   this.transpose = 0;
   
   if(songData.transpose !== undefined) this.setTranspose(songData.transpose);
-  this.parseMeasureArray(songData.measures);
+
+  if(songData.measures) {
+    this.parseMeasureArray(songData.measures);
+  } else {
+    const emptyMeasure = {beats: (new Array(this.timeSignature[0])).fill(null)};
+    const emptyData = (new Array(8)).fill(emptyMeasure);
+    this.parseMeasureArray(emptyData);
+  }
+
+  this.serialize = function() {
+    const out = {
+      title: this.title,
+      composer: this.composer,
+      timeSignature: this.timeSignature,
+      key: this.key,
+      transpose: this.transpose,
+      measures: this.measures.map(measure => {
+        const mout = {
+          beats: measure._beats
+        };
+        Object.keys(measure.attributes).forEach(attrName => {
+          if(measure.attributes.hasOwnProperty(attrName)) {
+            mout[attrName] = measure.attributes[attrName];
+          }
+        });
+        return mout;
+      })
+    };
+
+    return out;
+  };
 }
 

@@ -10,6 +10,7 @@ export default (function() {
   editor.attachEvents = function(ev) {
     events = ev;
     events.create('Editor.setSelectedBeat');
+    events.create('Editor.commitUpdate');
     events.on('Player.play', () => editor.setSelectedBeat(null));
   };
   
@@ -173,6 +174,7 @@ export default (function() {
     var measure = beat.measureView.measure;
     measure.parseChordToBeat(chord, beat.index, true);
     editor.editedBeat.renderChord(measure.getBeat(beat.index));
+    if(events) events.dispatch('Editor.commitUpdate');
   };
   
   var handleBlur = function(e) {
