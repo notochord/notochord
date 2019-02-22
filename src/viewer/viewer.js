@@ -80,6 +80,8 @@ export default (function() {
    */
   viewer.config = function(options) { // @todo do player.config like this too.
     if(options) {
+      viewer.showTitle = (options['showTitle'] === undefined)
+        ? true : options['showTitle'];
       viewer.shouldResize = (options['shouldResize'] === undefined)
         ? true : options['shouldResize'];
       if(options['width']) {
@@ -95,14 +97,19 @@ export default (function() {
         // Hacky, but I can't think of what'd be better semantically.
         events && events.dispatch('Viewer.setScaleDegrees', {});
       }
+    } else {
+      viewer.showTitle = true;
+      viewer.shouldResize = true;
+      // @todo the rest of them
     }
     
     viewer.rowHeight = 1.2 * viewer.fontSize;
     
-    // The space left at the top for the title and stuff
-    topMargin = 1.5 * viewer.rowHeight;
     // Vertical space between rows.
     rowYMargin = 0.3 * viewer.rowHeight;
+
+    // The space left at the top for the title and stuff
+    topMargin = viewer.showTitle ? 1.5 * viewer.rowHeight : rowYMargin;
     
     // SVG width for each measure.
     // @todo: shorten to 2 if the width/fontsize ratio is ridiculous?
@@ -177,6 +184,7 @@ export default (function() {
    * @private
    */
   var setTitleAndComposer = function() {
+    if(!viewer.showTitle) return;
     viewer._titleText.appendChild(document.createTextNode(song.title));
     var titleBB = viewer._titleText.getBBox();
     var ttscale = 0.7;
