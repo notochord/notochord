@@ -1,6 +1,6 @@
 # Notochord
 
-Notochord is a lead-sheet editor and chord player inspired by iReal Pro. It's still in development so expect bugs and missing functionality. Check out [the demo](https://notochord.github.io/notochord/demo/) or [this even prettier demo](http://notochord.herokuapp.com) which may not be up right now.
+Notochord is a lead-sheet editor and chord player inspired by iReal Pro. It's still in development so expect bugs and missing functionality. Check out [the demo](https://notochord.github.io/).
 
 There probably wont't be a lot of exciting progress on this right now because I'm focusing on school for the sec. Hopefully I'll be able to dedicate more time to it after I graduate. I'm still around to answer any questions, so feel free to open an issue! -Jacob
 
